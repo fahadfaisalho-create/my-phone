@@ -11,3 +11,5 @@ coverage/
 apps/api/uploads/
 .next/
 next-env.d.ts
+expo-env.d.ts
+web-build/
