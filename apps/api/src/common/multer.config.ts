@@ -15,6 +15,7 @@ const FIELD_SUBFOLDER: Record<string, string> = {
   logo: 'logos',
   crFile: 'cr',
   bankFile: 'bank',
+  image: 'products',
   productImage: 'products',
 };
 

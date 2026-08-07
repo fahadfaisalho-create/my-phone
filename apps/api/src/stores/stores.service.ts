@@ -1,6 +1,7 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateStoreDto } from './dto/update-store.dto';
+import { getOwnedStoreOrThrow } from '../common/get-owned-store.util';
 
 export interface UpdateStoreFiles {
   logo?: Express.Multer.File[];
@@ -25,11 +26,7 @@ export class StoresService {
   // تعديل بيانات المحل. إذا كان مرفوضاً سابقاً، تُعاد الحالة إلى "قيد المراجعة" تلقائياً
   // (حسب القاعدة: التاجر يعدّل ويعيد الإرسال دون بدء حساب جديد)
   async updateMine(ownerUserId: string, dto: UpdateStoreDto, files: UpdateStoreFiles) {
-    const store = await this.prisma.store.findFirst({ where: { ownerUserId } });
-    if (!store) throw new NotFoundException('لا يوجد محل مرتبط بهذا الحساب');
-    if (store.status === 'suspended') {
-      throw new ForbiddenException('الحساب موقوف — تواصل مع الدعم');
-    }
+    const store = await getOwnedStoreOrThrow(this.prisma, ownerUserId);
 
     const logo = files.logo?.[0];
     const crFile = files.crFile?.[0];
