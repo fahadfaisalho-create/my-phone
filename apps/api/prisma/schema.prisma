@@ -1,0 +1,279 @@
+// نموذج قاعدة البيانات لمنصة صيانة وبيع الجوالات
+// مطابق لجدول "نموذج قاعدة البيانات" في ملف المواصفات التقنية
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- Enums ----------
+
+enum UserRole {
+  admin
+  merchant_rep
+  consumer
+}
+
+enum StoreStatus {
+  pending
+  active
+  rejected
+  suspended
+}
+
+enum SubscriptionPlan {
+  monthly
+  six_months
+  yearly
+}
+
+enum SubscriptionStatus {
+  active
+  expired
+}
+
+enum DeviceSupport {
+  all
+  apple
+  samsung
+}
+
+enum BookingStatus {
+  pending
+  accepted
+  completed
+  cancelled
+}
+
+enum OrderStatus {
+  pending
+  processing
+  completed
+  cancelled
+}
+
+enum PaymentStatus {
+  unpaid
+  paid
+  refunded
+}
+
+enum SenderType {
+  merchant
+  consumer
+}
+
+enum TicketRelatedType {
+  store
+  consumer
+}
+
+enum TicketStatus {
+  open
+  in_progress
+  closed
+}
+
+// ---------- Models ----------
+
+model User {
+  id           String   @id @default(cuid())
+  role         UserRole
+  name         String
+  email        String?  @unique
+  phone        String?  @unique
+  passwordHash String?  @map("password_hash")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  stores       Store[]         @relation("StoreOwner")
+  bookings     Booking[]       @relation("ConsumerBookings")
+  orders       Order[]         @relation("ConsumerOrders")
+  chats        Chat[]          @relation("ConsumerChats")
+  reviews      Review[]        @relation("ConsumerReviews")
+
+  @@map("users")
+}
+
+model Store {
+  id                    String      @id @default(cuid())
+  ownerUserId           String      @map("owner_user_id")
+  owner                 User        @relation("StoreOwner", fields: [ownerUserId], references: [id])
+  name                  String
+  logoUrl               String?     @map("logo_url")
+  commercialRegisterNo  String      @map("commercial_register_no")
+  taxNo                 String?     @map("tax_no")
+  iban                  String
+  crFileUrl             String      @map("cr_file_url")
+  bankCertificateFileUrl String     @map("bank_certificate_file_url")
+  status                StoreStatus @default(pending)
+  rejectionReason       String?     @map("rejection_reason")
+  createdAt             DateTime    @default(now()) @map("created_at")
+
+  branches      Branch[]
+  subscriptions Subscription[]
+  services      Service[]
+  products      Product[]
+  bookings      Booking[]
+  orders        Order[]
+  chats         Chat[]
+  reviews       Review[]
+
+  @@map("stores")
+}
+
+model Branch {
+  id      String  @id @default(cuid())
+  storeId String  @map("store_id")
+  store   Store   @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  name    String
+  lat     Float?
+  lng     Float?
+  address String?
+
+  bookings Booking[]
+
+  @@map("branches")
+}
+
+model Subscription {
+  id        String             @id @default(cuid())
+  storeId   String             @map("store_id")
+  store     Store              @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  plan      SubscriptionPlan
+  price     Decimal            @db.Decimal(10, 2)
+  startDate DateTime           @map("start_date")
+  endDate   DateTime           @map("end_date")
+  status    SubscriptionStatus @default(active)
+
+  @@map("subscriptions")
+}
+
+model Service {
+  id               String        @id @default(cuid())
+  storeId          String        @map("store_id")
+  store            Store         @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  name             String
+  deviceSupport    DeviceSupport @default(all) @map("device_support")
+  laborPrice       Decimal       @db.Decimal(10, 2) @map("labor_price")
+  linkedProductId  String?       @map("linked_product_id")
+  linkedProduct    Product?      @relation(fields: [linkedProductId], references: [id])
+
+  bookings Booking[]
+
+  @@map("services")
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  storeId     String   @map("store_id")
+  store       Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  name        String
+  imageUrl    String?  @map("image_url")
+  category    String?
+  description String?
+  price       Decimal  @db.Decimal(10, 2)
+  quantity    Int      @default(0)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  services   Service[]
+  orderItems OrderItem[]
+
+  @@map("products")
+}
+
+model Booking {
+  id          String        @id @default(cuid())
+  consumerId  String        @map("consumer_id")
+  consumer    User          @relation("ConsumerBookings", fields: [consumerId], references: [id])
+  storeId     String        @map("store_id")
+  store       Store         @relation(fields: [storeId], references: [id])
+  serviceId   String        @map("service_id")
+  service     Service       @relation(fields: [serviceId], references: [id])
+  branchId    String        @map("branch_id")
+  branch      Branch        @relation(fields: [branchId], references: [id])
+  scheduledAt DateTime      @map("scheduled_at")
+  status      BookingStatus @default(pending)
+
+  @@map("bookings")
+}
+
+model Order {
+  id            String        @id @default(cuid())
+  consumerId    String        @map("consumer_id")
+  consumer      User          @relation("ConsumerOrders", fields: [consumerId], references: [id])
+  storeId       String        @map("store_id")
+  store         Store         @relation(fields: [storeId], references: [id])
+  total         Decimal       @db.Decimal(10, 2)
+  status        OrderStatus   @default(pending)
+  paymentStatus PaymentStatus @default(unpaid) @map("payment_status")
+
+  items OrderItem[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String  @map("order_id")
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String  @map("product_id")
+  product   Product @relation(fields: [productId], references: [id])
+  qty       Int
+  price     Decimal @db.Decimal(10, 2)
+
+  @@map("order_items")
+}
+
+model Chat {
+  id         String   @id @default(cuid())
+  consumerId String   @map("consumer_id")
+  consumer   User     @relation("ConsumerChats", fields: [consumerId], references: [id])
+  storeId    String   @map("store_id")
+  store      Store    @relation(fields: [storeId], references: [id])
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  messages Message[]
+
+  @@map("chats")
+}
+
+model Message {
+  id         String     @id @default(cuid())
+  chatId     String     @map("chat_id")
+  chat       Chat       @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  senderType SenderType @map("sender_type")
+  senderId   String     @map("sender_id")
+  text       String?
+  imageUrl   String?    @map("image_url")
+  createdAt  DateTime   @default(now()) @map("created_at")
+
+  @@map("messages")
+}
+
+model Review {
+  id         String   @id @default(cuid())
+  consumerId String   @map("consumer_id")
+  consumer   User     @relation("ConsumerReviews", fields: [consumerId], references: [id])
+  storeId    String   @map("store_id")
+  store      Store    @relation(fields: [storeId], references: [id])
+  rating     Int
+  comment    String?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("reviews")
+}
+
+model SupportTicket {
+  id          String            @id @default(cuid())
+  relatedType TicketRelatedType @map("related_type")
+  relatedId   String            @map("related_id")
+  subject     String
+  status      TicketStatus      @default(open)
+  createdAt   DateTime          @default(now()) @map("created_at")
+
+  @@map("support_tickets")
+}

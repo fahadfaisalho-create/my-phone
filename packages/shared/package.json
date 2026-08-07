@@ -1,0 +1,7 @@
+{
+  "name": "@platform/shared",
+  "version": "0.1.0",
+  "private": true,
+  "main": "index.ts",
+  "description": "أنواع وschemas مشتركة بين تطبيقات المنصة (يُبنى تدريجياً في مراحل لاحقة)"
+}
