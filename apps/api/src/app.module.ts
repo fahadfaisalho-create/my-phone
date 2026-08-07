@@ -7,6 +7,13 @@ import { AdminModule } from './admin/admin.module';
 import { BranchesModule } from './branches/branches.module';
 import { ServicesModule } from './services/services.module';
 import { ProductsModule } from './products/products.module';
+import { ConsumerAuthModule } from './consumer-auth/consumer-auth.module';
+import { CatalogModule } from './catalog/catalog.module';
+import { ReviewsModule } from './reviews/reviews.module';
+import { BookingsModule } from './bookings/bookings.module';
+import { OrdersModule } from './orders/orders.module';
+import { ChatModule } from './chat/chat.module';
+import { SupportTicketsModule } from './support-tickets/support-tickets.module';
 
 @Module({
   imports: [
@@ -18,6 +25,13 @@ import { ProductsModule } from './products/products.module';
     BranchesModule,
     ServicesModule,
     ProductsModule,
+    ConsumerAuthModule,
+    CatalogModule,
+    ReviewsModule,
+    BookingsModule,
+    OrdersModule,
+    ChatModule,
+    SupportTicketsModule,
   ],
 })
 export class AppModule {}

@@ -238,6 +238,7 @@ model Chat {
 
   messages Message[]
 
+  @@unique([consumerId, storeId])
   @@map("chats")
 }
 
@@ -264,6 +265,7 @@ model Review {
   comment    String?
   createdAt  DateTime @default(now()) @map("created_at")
 
+  @@unique([consumerId, storeId])
   @@map("reviews")
 }
 
