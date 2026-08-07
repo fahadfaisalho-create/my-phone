@@ -9,3 +9,5 @@ build/
 .expo/
 coverage/
 apps/api/uploads/
+.next/
+next-env.d.ts

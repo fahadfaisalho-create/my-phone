@@ -5,12 +5,15 @@
   "description": "منصة صيانة وبيع الجوالات — Monorepo",
   "workspaces": [
     "apps/api",
+    "apps/web-admin",
     "packages/shared"
   ],
   "scripts": {
     "api:dev": "npm run start:dev --workspace=apps/api",
     "api:build": "npm run build --workspace=apps/api",
     "api:prisma:migrate": "npm run prisma:migrate --workspace=apps/api",
-    "api:prisma:studio": "npm run prisma:studio --workspace=apps/api"
+    "api:prisma:studio": "npm run prisma:studio --workspace=apps/api",
+    "admin:dev": "npm run dev --workspace=apps/web-admin",
+    "admin:build": "npm run build --workspace=apps/web-admin"
   }
 }
