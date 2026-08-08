@@ -17,6 +17,7 @@ import {
 import RootNavigator from '@/navigation/RootNavigator';
 import { ScreenLoading } from '@/components/ui';
 import { getToken } from '@/lib/api';
+import { CartProvider } from '@/lib/CartContext';
 
 // يُفعَّل RTL على مستوى نظام التشغيل عند البناء الأصلي (يحتاج إعادة تشغيل)؛
 // في وضع التطوير/الويب نعتمد على تنسيقات row-reverse/textAlign يدوياً لضمان ثبات المعاينة.
@@ -40,9 +41,11 @@ export default function App() {
   }
 
   return (
-    <NavigationContainer>
-      <StatusBar style="light" />
-      <RootNavigator initialRoute={initialRoute} />
-    </NavigationContainer>
+    <CartProvider>
+      <NavigationContainer>
+        <StatusBar style="light" />
+        <RootNavigator initialRoute={initialRoute} />
+      </NavigationContainer>
+    </CartProvider>
   );
 }

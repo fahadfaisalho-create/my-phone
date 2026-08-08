@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { FlatList, RefreshControl, StyleSheet, Text, TextInput, View } from 'react-native';
+import { FlatList, Pressable, RefreshControl, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@/navigation/types';
 import { apiFetch, ApiError, clearSession, getUser } from '@/lib/api';
@@ -58,6 +58,18 @@ export default function HomeScreen({ navigation }: Props) {
         <Text style={styles.logout} onPress={handleLogout}>
           خروج
         </Text>
+      </View>
+
+      <View style={styles.quickLinks}>
+        <Pressable style={styles.quickLink} onPress={() => navigation.navigate('ChatList')}>
+          <Text style={styles.quickLinkText}>💬 محادثاتي</Text>
+        </Pressable>
+        <Pressable style={styles.quickLink} onPress={() => navigation.navigate('MyBookings')}>
+          <Text style={styles.quickLinkText}>📅 حجوزاتي</Text>
+        </Pressable>
+        <Pressable style={styles.quickLink} onPress={() => navigation.navigate('MyOrders')}>
+          <Text style={styles.quickLinkText}>🧾 طلباتي</Text>
+        </Pressable>
       </View>
 
       <TextInput
@@ -126,6 +138,22 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     overflow: 'hidden',
   },
+  quickLinks: {
+    flexDirection: 'row-reverse',
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingTop: 14,
+  },
+  quickLink: {
+    flex: 1,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 10,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  quickLinkText: { fontFamily: fonts.bodyMedium, fontSize: 12, color: colors.text },
   search: {
     margin: 16,
     marginBottom: 8,

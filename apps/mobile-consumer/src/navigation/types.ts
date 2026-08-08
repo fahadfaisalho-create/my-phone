@@ -3,4 +3,10 @@ export type RootStackParamList = {
   OtpVerify: { phone: string; devOtp?: string };
   Home: undefined;
   StoreDetail: { storeId: string };
+  ChatList: undefined;
+  ChatThread: { chatId: string; storeName: string };
+  MyBookings: undefined;
+  Booking: { storeId: string; storeName: string; serviceId: string; serviceName: string };
+  Cart: { storeId: string; storeName: string };
+  MyOrders: undefined;
 };

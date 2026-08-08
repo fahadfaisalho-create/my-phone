@@ -10,6 +10,8 @@ import BranchesTab from '@/components/tabs/BranchesTab';
 import ServicesTab from '@/components/tabs/ServicesTab';
 import ProductsTab from '@/components/tabs/ProductsTab';
 import InventoryTab from '@/components/tabs/InventoryTab';
+import BookingsTab from '@/components/tabs/BookingsTab';
+import OrdersTab from '@/components/tabs/OrdersTab';
 import MessagesTab from '@/components/tabs/MessagesTab';
 import StatsTab from '@/components/tabs/StatsTab';
 
@@ -18,6 +20,8 @@ const TABS = [
   { key: 'services', label: 'الخدمات' },
   { key: 'products', label: 'المنتجات' },
   { key: 'inventory', label: 'المخزون' },
+  { key: 'bookings', label: 'الحجوزات' },
+  { key: 'orders', label: 'الطلبات' },
   { key: 'messages', label: 'الرسائل' },
   { key: 'stats', label: 'الإحصائيات' },
 ] as const;
@@ -71,6 +75,8 @@ export default function DashboardPage() {
       {tab === 'services' && <ServicesTab />}
       {tab === 'products' && <ProductsTab />}
       {tab === 'inventory' && <InventoryTab />}
+      {tab === 'bookings' && <BookingsTab />}
+      {tab === 'orders' && <OrdersTab />}
       {tab === 'messages' && <MessagesTab />}
       {tab === 'stats' && <StatsTab />}
     </div>

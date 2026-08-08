@@ -5,7 +5,8 @@ import type { RootStackParamList } from '@/navigation/types';
 import { apiFetch, ApiError, fileUrl } from '@/lib/api';
 import { DEVICE_LABEL, StoreDetail } from '@/lib/types';
 import { colors, fonts } from '@/theme/colors';
-import { Badge, Card, ErrorText, PrimaryButton, ScreenLoading, Stars } from '@/components/ui';
+import { Badge, Card, ErrorText, PrimaryButton, ScreenLoading, SecondaryButton, Stars } from '@/components/ui';
+import { useCart } from '@/lib/CartContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'StoreDetail'>;
 
@@ -17,6 +18,8 @@ export default function StoreDetailScreen({ route, navigation }: Props) {
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [reviewError, setReviewError] = useState('');
+  const [contacting, setContacting] = useState(false);
+  const cart = useCart();
 
   async function load() {
     try {
@@ -57,6 +60,21 @@ export default function StoreDetailScreen({ route, navigation }: Props) {
     }
   }
 
+  async function handleContact() {
+    setContacting(true);
+    try {
+      const chat = await apiFetch<{ id: string }>('/chats', {
+        method: 'POST',
+        body: JSON.stringify({ storeId }),
+      });
+      navigation.navigate('ChatThread', { chatId: chat.id, storeName: store?.name || '' });
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'تعذّر بدء المحادثة');
+    } finally {
+      setContacting(false);
+    }
+  }
+
   if (error) {
     return (
       <View style={styles.center}>
@@ -67,9 +85,11 @@ export default function StoreDetailScreen({ route, navigation }: Props) {
   if (!store) return <ScreenLoading />;
 
   const logo = fileUrl(store.logoUrl);
+  const showCartBar = cart.storeId === storeId && cart.items.length > 0;
 
   return (
-    <ScrollView style={styles.flex} contentContainerStyle={{ padding: 16 }}>
+    <View style={styles.flex}>
+    <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: showCartBar ? 90 : 16 }}>
       <Card style={styles.header}>
         <View style={styles.logoWrap}>
           {logo ? (
@@ -89,6 +109,11 @@ export default function StoreDetailScreen({ route, navigation }: Props) {
         </View>
       </Card>
 
+      {store.available && (
+        <SecondaryButton title={contacting ? 'جارٍ الفتح...' : '💬 تواصل مع المحل'} onPress={handleContact} />
+      )}
+      <View style={{ height: 14 }} />
+
       <Card>
         <Text style={styles.sectionTitle}>الخدمات</Text>
         {store.services.length === 0 ? (
@@ -100,6 +125,21 @@ export default function StoreDetailScreen({ route, navigation }: Props) {
                 <Text style={styles.serviceName}>{sv.name}</Text>
                 <Text style={styles.serviceMeta}>{DEVICE_LABEL[sv.deviceSupport]}</Text>
                 <Text style={styles.servicePrice}>شغل يد {sv.laborPrice} ﷼</Text>
+                {store.available && (
+                  <Pressable
+                    style={styles.bookBtn}
+                    onPress={() =>
+                      navigation.navigate('Booking', {
+                        storeId,
+                        storeName: store.name,
+                        serviceId: sv.id,
+                        serviceName: sv.name,
+                      })
+                    }
+                  >
+                    <Text style={styles.bookBtnText}>احجز موعد</Text>
+                  </Pressable>
+                )}
               </View>
             ))}
           </View>
@@ -114,6 +154,7 @@ export default function StoreDetailScreen({ route, navigation }: Props) {
           <View style={styles.productGrid}>
             {store.products.map((p) => {
               const img = fileUrl(p.imageUrl);
+              const inCart = cart.storeId === storeId && cart.items.some((i) => i.productId === p.id);
               return (
                 <View style={styles.productCard} key={p.id}>
                   <View style={styles.productImgWrap}>
@@ -127,6 +168,12 @@ export default function StoreDetailScreen({ route, navigation }: Props) {
                     {p.name}
                   </Text>
                   <Text style={styles.productPrice}>{p.price} ﷼</Text>
+                  {store.available && p.quantity > 0 && (
+                    <Pressable style={styles.addCartBtn} onPress={() => cart.addItem(storeId, store.name, p)}>
+                      <Text style={styles.addCartBtnText}>{inCart ? '✓ في السلة' : '+ أضف للسلة'}</Text>
+                    </Pressable>
+                  )}
+                  {p.quantity <= 0 && <Text style={styles.outOfStock}>نفدت الكمية</Text>}
                 </View>
               );
             })}
@@ -171,6 +218,18 @@ export default function StoreDetailScreen({ route, navigation }: Props) {
         </View>
       </Card>
     </ScrollView>
+    {showCartBar && (
+      <Pressable
+        style={styles.cartBar}
+        onPress={() => navigation.navigate('Cart', { storeId, storeName: store.name })}
+      >
+        <Text style={styles.cartBarText}>
+          🛒 {cart.items.reduce((n, i) => n + i.qty, 0)} منتج — {cart.total} ﷼
+        </Text>
+        <Text style={styles.cartBarAction}>عرض السلة</Text>
+      </Pressable>
+    )}
+    </View>
   );
 }
 
@@ -206,6 +265,39 @@ const styles = StyleSheet.create({
   serviceName: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.text, textAlign: 'right' },
   serviceMeta: { fontFamily: fonts.body, fontSize: 11, color: colors.muted, textAlign: 'right', marginTop: 4 },
   servicePrice: { fontFamily: fonts.bodyMedium, fontSize: 12, color: colors.ink, textAlign: 'right', marginTop: 2 },
+  bookBtn: {
+    marginTop: 8,
+    backgroundColor: colors.teal,
+    borderRadius: 8,
+    paddingVertical: 7,
+    alignItems: 'center',
+  },
+  bookBtnText: { color: '#fff', fontFamily: fonts.bodySemi, fontSize: 11.5 },
+  addCartBtn: {
+    marginHorizontal: 6,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: colors.teal,
+    borderRadius: 8,
+    paddingVertical: 6,
+    alignItems: 'center',
+  },
+  addCartBtnText: { color: colors.tealDark, fontFamily: fonts.bodyMedium, fontSize: 11 },
+  outOfStock: { color: colors.red, fontFamily: fonts.body, fontSize: 10.5, textAlign: 'center', marginBottom: 8 },
+  cartBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: colors.ink,
+    flexDirection: 'row-reverse',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+  },
+  cartBarText: { color: '#fff', fontFamily: fonts.bodySemi, fontSize: 13 },
+  cartBarAction: { color: colors.teal, fontFamily: fonts.bodySemi, fontSize: 13 },
   productGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   productCard: {
     width: '31%',

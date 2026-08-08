@@ -55,6 +55,23 @@ export interface StoreDetail {
   available: boolean;
 }
 
+export interface ChatListItem {
+  id: string;
+  storeId: string;
+  store: { name: string; logoUrl: string | null };
+  messages: { id: string; text: string | null; senderType: 'consumer' | 'merchant'; createdAt: string }[];
+}
+
+export interface ChatMessage {
+  id: string;
+  chatId: string;
+  senderType: 'consumer' | 'merchant';
+  senderId: string;
+  text: string | null;
+  imageUrl: string | null;
+  createdAt: string;
+}
+
 export const DEVICE_LABEL: Record<DeviceSupport, string> = {
   all: 'جميع الأجهزة',
   apple: 'أبل فقط',
