@@ -8,6 +8,7 @@ export interface Subscription {
   startDate: string;
   endDate: string;
   status: 'active' | 'expired';
+  paidAt: string | null;
 }
 
 export interface StoreRequest {

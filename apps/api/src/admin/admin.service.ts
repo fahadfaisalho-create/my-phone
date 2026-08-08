@@ -41,4 +41,15 @@ export class AdminService {
       // TODO: عند ربط خدمة البريد، يُرسل بريد للتاجر بالسبب هنا (حسب قاعدة العمل المحسومة)
     });
   }
+
+  // تأكيد/إلغاء تأكيد استلام دفع فاتورة الاشتراك يدوياً من الإدمن
+  // (بديل مؤقت لحد ربط بوابة دفع فعلية — مطابق لملاحظة "الدفع يُحدَّد لاحقاً" في المواصفات)
+  async setSubscriptionPaid(subscriptionId: string, paid: boolean) {
+    const subscription = await this.prisma.subscription.findUnique({ where: { id: subscriptionId } });
+    if (!subscription) throw new NotFoundException('الاشتراك غير موجود');
+    return this.prisma.subscription.update({
+      where: { id: subscriptionId },
+      data: { paidAt: paid ? new Date() : null },
+    });
+  }
 }

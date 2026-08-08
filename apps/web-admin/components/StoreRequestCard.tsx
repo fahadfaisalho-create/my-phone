@@ -32,10 +32,12 @@ export default function StoreRequestCard({
   store,
   onApprove,
   onReject,
+  onTogglePayment,
 }: {
   store: StoreRequest;
   onApprove: (id: string) => Promise<void>;
   onReject: (id: string, reason: string) => Promise<void>;
+  onTogglePayment: (subscriptionId: string, paid: boolean) => Promise<void>;
 }) {
   const [showReject, setShowReject] = useState(false);
   const [reason, setReason] = useState('');
@@ -60,6 +62,16 @@ export default function StoreRequestCard({
       await onReject(store.id, reason.trim());
       setShowReject(false);
       setReason('');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleTogglePayment() {
+    if (!sub) return;
+    setBusy(true);
+    try {
+      await onTogglePayment(sub.id, !sub.paidAt);
     } finally {
       setBusy(false);
     }
@@ -120,6 +132,17 @@ export default function StoreRequestCard({
           </>
         )}
       </div>
+
+      {sub && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+          <span className={`badge ${sub.paidAt ? 'b-active' : 'b-pending'}`}>
+            {sub.paidAt ? `فاتورة مدفوعة (${new Date(sub.paidAt).toLocaleDateString('ar-SA')})` : 'فاتورة غير مدفوعة'}
+          </span>
+          <button className="link" onClick={handleTogglePayment} disabled={busy}>
+            {sub.paidAt ? 'إلغاء تأكيد الدفع' : 'تأكيد استلام الدفع'}
+          </button>
+        </div>
+      )}
 
       {store.status === 'rejected' && store.rejectionReason && (
         <p style={{ fontSize: 12, color: 'var(--red)', margin: '6px 0 12px' }}>

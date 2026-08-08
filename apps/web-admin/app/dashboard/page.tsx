@@ -69,6 +69,14 @@ export default function DashboardPage() {
     await load();
   }
 
+  async function handleTogglePayment(subscriptionId: string, paid: boolean) {
+    await apiFetch(`/admin/subscriptions/${subscriptionId}/payment`, {
+      method: 'PATCH',
+      body: JSON.stringify({ paid }),
+    });
+    await load();
+  }
+
   if (!ready) return null;
 
   return (
@@ -97,7 +105,13 @@ export default function DashboardPage() {
         </div>
       ) : (
         stores.map((s) => (
-          <StoreRequestCard key={s.id} store={s} onApprove={handleApprove} onReject={handleReject} />
+          <StoreRequestCard
+            key={s.id}
+            store={s}
+            onApprove={handleApprove}
+            onReject={handleReject}
+            onTogglePayment={handleTogglePayment}
+          />
         ))
       )}
     </div>

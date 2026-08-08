@@ -148,6 +148,8 @@ model Subscription {
   startDate DateTime           @map("start_date")
   endDate   DateTime           @map("end_date")
   status    SubscriptionStatus @default(active)
+  // بوابة الدفع الفعلية مؤجلة (تُحدَّد لاحقاً) — حالياً الإدمن يؤكد استلام الدفع يدوياً
+  paidAt    DateTime?          @map("paid_at")
 
   @@map("subscriptions")
 }
