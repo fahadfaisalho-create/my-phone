@@ -148,8 +148,9 @@ model Subscription {
   startDate DateTime           @map("start_date")
   endDate   DateTime           @map("end_date")
   status    SubscriptionStatus @default(active)
-  // بوابة الدفع الفعلية مؤجلة (تُحدَّد لاحقاً) — حالياً الإدمن يؤكد استلام الدفع يدوياً
-  paidAt    DateTime?          @map("paid_at")
+  // الإدمن يقدر يؤكد الدفع يدوياً (fallback)، أو تلقائياً عبر Moyasar (invoice + webhook)
+  paidAt              DateTime? @map("paid_at")
+  gatewayInvoiceId    String?   @map("gateway_invoice_id")
 
   @@map("subscriptions")
 }
@@ -212,6 +213,8 @@ model Order {
   total         Decimal       @db.Decimal(10, 2)
   status        OrderStatus   @default(pending)
   paymentStatus PaymentStatus @default(unpaid) @map("payment_status")
+  // الإدمن يقدر يؤكد الدفع يدوياً (fallback)، أو تلقائياً عبر Moyasar (invoice + webhook)
+  gatewayInvoiceId String?    @map("gateway_invoice_id")
 
   items OrderItem[]
 

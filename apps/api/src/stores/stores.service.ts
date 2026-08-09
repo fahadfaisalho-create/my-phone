@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateStoreDto } from './dto/update-store.dto';
 import { getOwnedStoreOrThrow } from '../common/get-owned-store.util';
@@ -47,6 +47,22 @@ export class StoresService {
           : store.bankCertificateFileUrl,
         ...(wasRejected ? { status: 'pending', rejectionReason: null } : {}),
       },
+    });
+  }
+
+  // محاكاة دفع فوري لاشتراك المحل من التاجر نفسه — بوابة الدفع الفعلية غير مربوطة بعد
+  // (منظر بواجهة المستخدم فقط؛ الإدمن يقدر أيضاً يؤكد/يلغي التأكيد يدوياً كخيار احتياطي)
+  async confirmSubscriptionPayment(ownerUserId: string) {
+    const store = await getOwnedStoreOrThrow(this.prisma, ownerUserId);
+    const subscription = await this.prisma.subscription.findFirst({
+      where: { storeId: store.id },
+      orderBy: { startDate: 'desc' },
+    });
+    if (!subscription) throw new NotFoundException('لا يوجد اشتراك لهذا المحل');
+    if (subscription.paidAt) throw new BadRequestException('تم دفع الاشتراك مسبقاً');
+    return this.prisma.subscription.update({
+      where: { id: subscription.id },
+      data: { paidAt: new Date() },
     });
   }
 }

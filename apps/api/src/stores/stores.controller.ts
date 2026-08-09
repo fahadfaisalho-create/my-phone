@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Patch, UploadedFiles, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Post, UploadedFiles, UseGuards, UseInterceptors } from '@nestjs/common';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -38,5 +38,12 @@ export class StoresController {
     @UploadedFiles() files: UpdateStoreFiles,
   ) {
     return this.storesService.updateMine(user.id, dto, files);
+  }
+
+  // محاكاة دفع فوري للاشتراك (بوابة الدفع الفعلية غير مربوطة بعد)
+  @Post('me/subscription/confirm-payment')
+  @Roles('merchant_rep')
+  confirmSubscriptionPayment(@CurrentUser() user: AuthenticatedUser) {
+    return this.storesService.confirmSubscriptionPayment(user.id);
   }
 }

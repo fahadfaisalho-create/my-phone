@@ -69,6 +69,22 @@ export class OrdersService {
     });
   }
 
+  // محاكاة دفع فوري من المستهلك نفسه — بوابة الدفع الفعلية غير مربوطة بعد
+  // (منظر بواجهة المستخدم فقط؛ الإدمن يقدر أيضاً يؤكد/يلغي التأكيد يدوياً كخيار احتياطي)
+  async confirmPaymentAsConsumer(consumerId: string, orderId: string) {
+    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    if (!order || order.consumerId !== consumerId) {
+      throw new NotFoundException('الطلب غير موجود');
+    }
+    if (order.paymentStatus === 'paid') {
+      throw new BadRequestException('تم دفع هذا الطلب مسبقاً');
+    }
+    return this.prisma.order.update({
+      where: { id: orderId },
+      data: { paymentStatus: 'paid' },
+    });
+  }
+
   async updateStatus(ownerUserId: string, orderId: string, status: OrderStatus) {
     const store = await getOwnedStoreOrThrow(this.prisma, ownerUserId);
     const order = await this.prisma.order.findUnique({ where: { id: orderId } });

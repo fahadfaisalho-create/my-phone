@@ -26,8 +26,13 @@ export class OrdersController {
     return this.ordersService.listMine(user.id);
   }
 
-  // ملاحظة: تأكيد الدفع لم يعد ذاتياً من المستهلك — الإدمن يؤكده يدوياً (AdminOrdersController)
-  // لحد ربط بوابة دفع فعلية، بنفس منطق تأكيد دفع اشتراك المحل.
+  // محاكاة دفع فوري (بوابة الدفع الفعلية غير مربوطة بعد) — الإدمن يقدر أيضاً
+  // يؤكد/يلغي التأكيد يدوياً من AdminOrdersController كخيار احتياطي
+  @Post('orders/:id/confirm-payment')
+  @Roles('consumer')
+  confirmPayment(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
+    return this.ordersService.confirmPaymentAsConsumer(user.id, id);
+  }
 
   // --- التاجر ---
   @Get('stores/me/orders')
