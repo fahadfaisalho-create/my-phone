@@ -60,26 +60,6 @@ export class OrdersService {
     });
   }
 
-  private async findOwnedByConsumer(consumerId: string, orderId: string) {
-    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
-    if (!order || order.consumerId !== consumerId) {
-      throw new NotFoundException('الطلب غير موجود');
-    }
-    return order;
-  }
-
-  // محاكاة تأكيد الدفع (بوابة الدفع الفعلية غير مربوطة بعد) — بنفس نمط تفعيل اشتراك المحل
-  async confirmPayment(consumerId: string, orderId: string) {
-    const order = await this.findOwnedByConsumer(consumerId, orderId);
-    if (order.paymentStatus === 'paid') {
-      throw new BadRequestException('تم دفع هذا الطلب مسبقاً');
-    }
-    return this.prisma.order.update({
-      where: { id: orderId },
-      data: { paymentStatus: 'paid' },
-    });
-  }
-
   async listForMyStore(ownerUserId: string) {
     const store = await getOwnedStoreOrThrow(this.prisma, ownerUserId);
     return this.prisma.order.findMany({
@@ -96,5 +76,28 @@ export class OrdersService {
       throw new NotFoundException('الطلب غير موجود');
     }
     return this.prisma.order.update({ where: { id: orderId }, data: { status } });
+  }
+
+  // --- الإدمن: بوابة الدفع الفعلية غير مربوطة بعد، فالإدمن يؤكد استلام دفع الطلب يدوياً
+  // (بنفس نمط تأكيد دفع اشتراك المحل) ---
+  listAllForAdmin(paymentStatus?: 'unpaid' | 'paid' | 'refunded') {
+    return this.prisma.order.findMany({
+      where: paymentStatus ? { paymentStatus } : undefined,
+      orderBy: { id: 'desc' },
+      include: {
+        items: { include: { product: true } },
+        consumer: { select: { name: true, phone: true } },
+        store: { select: { name: true } },
+      },
+    });
+  }
+
+  async setPaymentStatusAsAdmin(orderId: string, paid: boolean) {
+    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    if (!order) throw new NotFoundException('الطلب غير موجود');
+    return this.prisma.order.update({
+      where: { id: orderId },
+      data: { paymentStatus: paid ? 'paid' : 'unpaid' },
+    });
   }
 }

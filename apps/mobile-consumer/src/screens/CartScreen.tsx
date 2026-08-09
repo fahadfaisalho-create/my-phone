@@ -21,8 +21,6 @@ export default function CartScreen({ route, navigation }: Props) {
   const [error, setError] = useState('');
   const [placing, setPlacing] = useState(false);
   const [order, setOrder] = useState<OrderResponse | null>(null);
-  const [paying, setPaying] = useState(false);
-  const [paid, setPaid] = useState(false);
 
   async function handlePlaceOrder() {
     setError('');
@@ -36,6 +34,7 @@ export default function CartScreen({ route, navigation }: Props) {
         }),
       });
       setOrder(res);
+      cart.clear();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'تعذّر إنشاء الطلب');
     } finally {
@@ -43,44 +42,17 @@ export default function CartScreen({ route, navigation }: Props) {
     }
   }
 
-  async function handleConfirmPayment() {
-    if (!order) return;
-    setPaying(true);
-    setError('');
-    try {
-      await apiFetch(`/orders/${order.id}/confirm-payment`, { method: 'POST' });
-      setPaid(true);
-      cart.clear();
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'تعذّر تأكيد الدفع');
-    } finally {
-      setPaying(false);
-    }
-  }
-
-  if (paid) {
-    return (
-      <View style={styles.center}>
-        <Card style={{ width: '100%' }}>
-          <Text style={styles.successTitle}>تم الدفع بنجاح ✅</Text>
-          <Text style={styles.mutedText}>سيقوم المحل بتجهيز طلبك. يمكنك متابعته من "طلباتي".</Text>
-          <PrimaryButton title="طلباتي" onPress={() => navigation.replace('MyOrders')} />
-        </Card>
-      </View>
-    );
-  }
-
   if (order) {
     return (
       <View style={styles.center}>
         <Card style={{ width: '100%' }}>
-          <Text style={styles.successTitle}>تم إنشاء الطلب</Text>
+          <Text style={styles.successTitle}>تم إنشاء الطلب ✅</Text>
           <Text style={styles.mutedText}>الإجمالي: {order.total} ﷼</Text>
           <Text style={styles.note}>
-            بوابة الدفع الفعلية غير مربوطة بعد — هذا الزر يحاكي نجاح الدفع فوراً (مثل تفعيل اشتراك المحل).
+            بوابة الدفع الفعلية غير مربوطة بعد — سيتم تأكيد استلام الدفع من قبل إدارة المنصة، وبعدها
+            يبدأ المحل بتجهيز طلبك. يمكنك متابعة الحالة من &quot;طلباتي&quot;.
           </Text>
-          {error ? <ErrorText>{error}</ErrorText> : null}
-          <PrimaryButton title="تأكيد الدفع" onPress={handleConfirmPayment} loading={paying} />
+          <PrimaryButton title="طلباتي" onPress={() => navigation.replace('MyOrders')} />
         </Card>
       </View>
     );

@@ -28,6 +28,26 @@ export interface StoreRequest {
   subscriptions: Subscription[];
 }
 
+export type OrderStatus = 'pending' | 'processing' | 'completed' | 'cancelled';
+export type PaymentStatus = 'unpaid' | 'paid' | 'refunded';
+
+export interface AdminOrder {
+  id: string;
+  total: string;
+  status: OrderStatus;
+  paymentStatus: PaymentStatus;
+  store: { name: string };
+  consumer: { name: string; phone: string | null };
+  items: { qty: number; product: { name: string } }[];
+}
+
+export const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
+  pending: 'بانتظار المعالجة',
+  processing: 'جارٍ التجهيز',
+  completed: 'مكتمل',
+  cancelled: 'ملغى',
+};
+
 export const PLAN_LABEL: Record<SubscriptionPlan, string> = {
   monthly: 'شهر',
   six_months: '6 أشهر',

@@ -26,11 +26,8 @@ export class OrdersController {
     return this.ordersService.listMine(user.id);
   }
 
-  @Post('orders/:id/confirm-payment')
-  @Roles('consumer')
-  confirmPayment(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
-    return this.ordersService.confirmPayment(user.id, id);
-  }
+  // ملاحظة: تأكيد الدفع لم يعد ذاتياً من المستهلك — الإدمن يؤكده يدوياً (AdminOrdersController)
+  // لحد ربط بوابة دفع فعلية، بنفس منطق تأكيد دفع اشتراك المحل.
 
   // --- التاجر ---
   @Get('stores/me/orders')
