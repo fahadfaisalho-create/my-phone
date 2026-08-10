@@ -26,6 +26,8 @@ export interface Store {
   rejectionReason: string | null;
   createdAt: string;
   subscriptions?: Subscription[];
+  supportsDelivery: boolean;
+  deliveryFee: string | null;
 }
 
 export interface Branch {

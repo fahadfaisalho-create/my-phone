@@ -84,6 +84,13 @@ enum VisitType {
   home_visit
 }
 
+// طريقة استلام الطلب: من الفرع أو توصيل — التوصيل حالياً بيانات فقط
+// (عنوان + رسوم يحددها التاجر)، بانتظار التنسيق مع أرامكس لربط فعلي لاحقاً
+enum DeliveryType {
+  pickup
+  delivery
+}
+
 // ---------- Models ----------
 
 model User {
@@ -122,6 +129,11 @@ model Store {
   status                StoreStatus @default(pending)
   rejectionReason       String?     @map("rejection_reason")
   createdAt             DateTime    @default(now()) @map("created_at")
+
+  // خدمة التوصيل للطلبات (منتجات) — يفعّلها التاجر ويحدد رسومها، بيانات فقط حالياً
+  // (بانتظار التنسيق مع أرامكس لربط فعلي لاحقاً)
+  supportsDelivery Boolean  @default(false) @map("supports_delivery")
+  deliveryFee      Decimal? @map("delivery_fee") @db.Decimal(10, 2)
 
   branches      Branch[]
   subscriptions Subscription[]
@@ -236,6 +248,12 @@ model Order {
   paymentStatus PaymentStatus @default(unpaid) @map("payment_status")
   // الإدمن يقدر يؤكد الدفع يدوياً (fallback)، أو تلقائياً عبر Moyasar (invoice + webhook)
   gatewayInvoiceId String?    @map("gateway_invoice_id")
+
+  // طريقة الاستلام: من الفرع أو توصيل — والعنوان/الإحداثيات إلزامية عند التوصيل
+  deliveryType    DeliveryType @default(pickup) @map("delivery_type")
+  deliveryAddress String?      @map("delivery_address")
+  deliveryLat     Decimal?     @map("delivery_lat") @db.Decimal(10, 7)
+  deliveryLng     Decimal?     @map("delivery_lng") @db.Decimal(10, 7)
 
   items OrderItem[]
 

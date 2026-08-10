@@ -16,6 +16,8 @@ export default function SettingsTab() {
   const [tax, setTax] = useState('');
   const [iban, setIban] = useState('');
   const [logo, setLogo] = useState<File | null>(null);
+  const [supportsDelivery, setSupportsDelivery] = useState(false);
+  const [deliveryFee, setDeliveryFee] = useState('');
 
   async function load() {
     try {
@@ -24,6 +26,8 @@ export default function SettingsTab() {
       setStoreName(s.name);
       setTax(s.taxNo || '');
       setIban(s.iban);
+      setSupportsDelivery(s.supportsDelivery);
+      setDeliveryFee(s.deliveryFee || '');
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'تعذّر تحميل بيانات المحل');
     } finally {
@@ -46,9 +50,13 @@ export default function SettingsTab() {
       form.append('iban', iban);
       if (tax) form.append('taxNo', tax);
       if (logo) form.append('logo', logo);
+      form.append('supportsDelivery', String(supportsDelivery));
+      if (supportsDelivery && deliveryFee) form.append('deliveryFee', deliveryFee);
 
       const updated = await apiFetch<Store>('/stores/me', { method: 'PATCH', body: form });
       setStore(updated);
+      setSupportsDelivery(updated.supportsDelivery);
+      setDeliveryFee(updated.deliveryFee || '');
       setLogo(null);
       setSuccess(true);
     } catch (err) {
@@ -85,6 +93,32 @@ export default function SettingsTab() {
 
       <label htmlFor="iban">رقم الآيبان</label>
       <input id="iban" value={iban} onChange={(e) => setIban(e.target.value)} />
+
+      <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 400, marginTop: 12 }}>
+        <input
+          type="checkbox"
+          checked={supportsDelivery}
+          onChange={(e) => setSupportsDelivery(e.target.checked)}
+        />
+        🚚 تفعيل خدمة التوصيل للطلبات
+      </label>
+      {supportsDelivery && (
+        <>
+          <label htmlFor="deliveryFee">رسوم التوصيل (اختياري، ﷼)</label>
+          <input
+            id="deliveryFee"
+            type="number"
+            min="0"
+            value={deliveryFee}
+            onChange={(e) => setDeliveryFee(e.target.value)}
+            placeholder="بدون رسوم إضافية"
+          />
+          <p className="note">
+            التوصيل حالياً يدوي — بيانات الطلب وعنوان المستهلك تصلك، وترتب الشحن بنفسك (عبر أرامكس مثلاً) لين نربط
+            التوصيل تلقائياً بالتطبيق لاحقاً.
+          </p>
+        </>
+      )}
 
       <p className="note" style={{ marginTop: 8 }}>
         لتعديل السجل التجاري أو ملف تصديق الحساب البنكي، تواصل مع الدعم — هذه البيانات تحتاج مراجعة إدارية.

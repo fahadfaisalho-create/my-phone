@@ -4,15 +4,25 @@ import { useEffect, useState } from 'react';
 import { apiFetch, ApiError } from '@/lib/api';
 
 type OrderStatus = 'pending' | 'processing' | 'completed' | 'cancelled';
+type DeliveryType = 'pickup' | 'delivery';
 
 interface Order {
   id: string;
   total: string;
   status: OrderStatus;
   paymentStatus: 'unpaid' | 'paid' | 'refunded';
+  deliveryType: DeliveryType;
+  deliveryAddress: string | null;
+  deliveryLat: string | null;
+  deliveryLng: string | null;
   consumer: { name: string; phone: string | null };
   items: { qty: number; product: { name: string } }[];
 }
+
+const DELIVERY_LABEL: Record<DeliveryType, string> = {
+  pickup: '🏬 استلام من الفرع',
+  delivery: '🚚 توصيل',
+};
 
 const STATUS_LABEL: Record<OrderStatus, string> = {
   pending: 'بانتظار المعالجة',
@@ -88,8 +98,24 @@ export default function OrdersTab() {
               <div style={{ fontSize: 12, color: 'var(--muted)' }}>
                 {o.total} ﷼ · {PAY_LABEL[o.paymentStatus]}
               </div>
+              {o.deliveryType === 'delivery' && o.deliveryAddress && (
+                <div style={{ fontSize: 12, color: 'var(--ink)', marginTop: 4 }}>📍 {o.deliveryAddress}</div>
+              )}
+              {o.deliveryType === 'delivery' && o.deliveryLat && o.deliveryLng && (
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${o.deliveryLat},${o.deliveryLng}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ fontSize: 12, color: 'var(--ink)', marginTop: 2, display: 'inline-block' }}
+                >
+                  🗺️ فتح الموقع بالخرائط (دقة GPS)
+                </a>
+              )}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+              <span className="badge" style={{ background: o.deliveryType === 'delivery' ? '#FCEBEB' : '#F0F0F0' }}>
+                {DELIVERY_LABEL[o.deliveryType]}
+              </span>
               <span className={`badge ${STATUS_BADGE[o.status]}`}>{STATUS_LABEL[o.status]}</span>
               {o.status === 'pending' && o.paymentStatus === 'paid' && (
                 <button className="secondary" disabled={busyId === o.id} onClick={() => updateStatus(o.id, 'processing')}>

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@/navigation/types';
 import { apiFetch, ApiError } from '@/lib/api';
@@ -14,8 +14,22 @@ interface OrderItem {
   total: string;
   status: 'pending' | 'processing' | 'completed' | 'cancelled';
   paymentStatus: 'unpaid' | 'paid' | 'refunded';
+  deliveryType: 'pickup' | 'delivery';
+  deliveryAddress: string | null;
+  deliveryLat: number | string | null;
+  deliveryLng: number | string | null;
   store: { name: string };
   items: { qty: number; product: { name: string } }[];
+}
+
+const DELIVERY_LABEL: Record<OrderItem['deliveryType'], string> = {
+  pickup: '🏬 استلام من الفرع',
+  delivery: '🚚 توصيل',
+};
+
+function openInMaps(lat: number, lng: number) {
+  const url = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+  Linking.openURL(url).catch(() => undefined);
 }
 
 const STATUS_LABEL: Record<OrderItem['status'], string> = {
@@ -94,6 +108,18 @@ export default function MyOrdersScreen({}: Props) {
             <Text style={styles.items}>
               {item.items.map((i) => `${i.product.name} ×${i.qty}`).join('، ')}
             </Text>
+            <Text style={styles.deliveryType}>{DELIVERY_LABEL[item.deliveryType]}</Text>
+            {item.deliveryType === 'delivery' && item.deliveryAddress && (
+              <Text style={styles.address}>📍 {item.deliveryAddress}</Text>
+            )}
+            {item.deliveryType === 'delivery' && item.deliveryLat != null && item.deliveryLng != null && (
+              <Pressable
+                onPress={() => openInMaps(Number(item.deliveryLat), Number(item.deliveryLng))}
+                style={styles.mapsLink}
+              >
+                <Text style={styles.mapsLinkText}>🗺️ عرض الموقع بالخرائط</Text>
+              </Pressable>
+            )}
             <View style={styles.rowBottom}>
               <Text style={styles.pay}>{PAY_LABEL[item.paymentStatus]}</Text>
               <Text style={styles.total}>{item.total} ﷼</Text>
@@ -129,6 +155,10 @@ const styles = StyleSheet.create({
   rowTop: { flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
   store: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.text },
   items: { fontFamily: fonts.body, fontSize: 12.5, color: colors.muted, textAlign: 'right', marginBottom: 8 },
+  deliveryType: { fontFamily: fonts.bodyMedium, fontSize: 11.5, color: colors.tealDark, textAlign: 'right' },
+  address: { fontFamily: fonts.body, fontSize: 11.5, color: colors.muted, textAlign: 'right', marginTop: 2 },
+  mapsLink: { alignSelf: 'flex-end', marginTop: 4 },
+  mapsLinkText: { fontFamily: fonts.bodyMedium, fontSize: 11.5, color: colors.tealDark, textDecorationLine: 'underline' },
   rowBottom: { flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center' },
   pay: { fontFamily: fonts.bodyMedium, fontSize: 11.5, color: colors.green },
   total: { fontFamily: fonts.heading, fontSize: 14, color: colors.ink },

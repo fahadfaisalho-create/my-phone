@@ -45,6 +45,9 @@ export class StoresService {
         bankCertificateFileUrl: bankFile
           ? `/uploads/bank/${bankFile.filename}`
           : store.bankCertificateFileUrl,
+        supportsDelivery: dto.supportsDelivery ?? store.supportsDelivery,
+        deliveryFee:
+          dto.supportsDelivery === false ? null : dto.deliveryFee ?? store.deliveryFee,
         ...(wasRejected ? { status: 'pending', rejectionReason: null } : {}),
       },
     });

@@ -17,8 +17,18 @@ export class OrdersService {
     if (!store) throw new NotFoundException('المحل غير موجود');
     assertStoreAvailable(store.status, store.subscriptions[0] ?? null);
 
+    const deliveryType = dto.deliveryType ?? 'pickup';
+    if (deliveryType === 'delivery') {
+      if (!store.supportsDelivery) {
+        throw new BadRequestException('هذا المحل لا يدعم خدمة التوصيل');
+      }
+      if (!dto.deliveryAddress?.trim()) {
+        throw new BadRequestException('عنوان التوصيل مطلوب عند اختيار التوصيل');
+      }
+    }
+
     return this.prisma.$transaction(async (tx) => {
-      let total = 0;
+      let total = deliveryType === 'delivery' ? Number(store.deliveryFee ?? 0) : 0;
       const itemsData: { productId: string; qty: number; price: number }[] = [];
 
       for (const item of dto.items) {
@@ -45,6 +55,10 @@ export class OrdersService {
           total,
           status: 'pending',
           paymentStatus: 'unpaid',
+          deliveryType,
+          deliveryAddress: deliveryType === 'delivery' ? dto.deliveryAddress!.trim() : null,
+          deliveryLat: deliveryType === 'delivery' ? dto.deliveryLat ?? null : null,
+          deliveryLng: deliveryType === 'delivery' ? dto.deliveryLng ?? null : null,
           items: { create: itemsData },
         },
         include: { items: true },

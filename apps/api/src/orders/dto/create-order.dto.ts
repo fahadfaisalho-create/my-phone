@@ -1,5 +1,18 @@
-import { ArrayMinSize, IsArray, IsInt, IsNotEmpty, IsString, Min, ValidateNested } from 'class-validator';
+import {
+  ArrayMinSize,
+  IsArray,
+  IsEnum,
+  IsInt,
+  IsLatitude,
+  IsLongitude,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Min,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
+import { DeliveryType } from '@prisma/client';
 
 export class OrderItemInput {
   @IsString()
@@ -22,4 +35,22 @@ export class CreateOrderDto {
   @ValidateNested({ each: true })
   @Type(() => OrderItemInput)
   items: OrderItemInput[];
+
+  // طريقة الاستلام: من الفرع أو توصيل — إذا لم يُرسل يُعتبر "استلام من الفرع"
+  @IsOptional()
+  @IsEnum(DeliveryType, { message: 'طريقة الاستلام غير صحيحة' })
+  deliveryType?: DeliveryType;
+
+  // إلزامي فقط عند اختيار التوصيل
+  @IsOptional()
+  @IsString()
+  deliveryAddress?: string;
+
+  @IsOptional()
+  @IsLatitude({ message: 'إحداثية خط العرض غير صحيحة' })
+  deliveryLat?: number;
+
+  @IsOptional()
+  @IsLongitude({ message: 'إحداثية خط الطول غير صحيحة' })
+  deliveryLng?: number;
 }

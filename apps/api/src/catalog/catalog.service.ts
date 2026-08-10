@@ -67,6 +67,8 @@ export class CatalogService {
       services: store.services,
       products: store.products,
       reviews: store.reviews,
+      supportsDelivery: store.supportsDelivery,
+      deliveryFee: store.deliveryFee,
       avgRating: avg,
       reviewsCount: store.reviews.length,
       available: isStoreAvailable(store.status, store.subscriptions[0] ?? null),
