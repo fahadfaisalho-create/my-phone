@@ -33,11 +33,15 @@ export default function StoreRequestCard({
   onApprove,
   onReject,
   onTogglePayment,
+  onSuspend,
+  onReactivate,
 }: {
   store: StoreRequest;
   onApprove: (id: string) => Promise<void>;
   onReject: (id: string, reason: string) => Promise<void>;
   onTogglePayment: (subscriptionId: string, paid: boolean) => Promise<void>;
+  onSuspend: (id: string) => Promise<void>;
+  onReactivate: (id: string) => Promise<void>;
 }) {
   const [showReject, setShowReject] = useState(false);
   const [reason, setReason] = useState('');
@@ -72,6 +76,25 @@ export default function StoreRequestCard({
     setBusy(true);
     try {
       await onTogglePayment(sub.id, !sub.paidAt);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleSuspend() {
+    if (!confirm(`إيقاف "${store.name}"؟ سيختفي زر الشات/الحجز/الشراء عند المستهلكين.`)) return;
+    setBusy(true);
+    try {
+      await onSuspend(store.id);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleReactivate() {
+    setBusy(true);
+    try {
+      await onReactivate(store.id);
     } finally {
       setBusy(false);
     }
@@ -161,6 +184,22 @@ export default function StoreRequestCard({
             disabled={busy}
           >
             رفض
+          </button>
+        </div>
+      )}
+
+      {store.status === 'active' && (
+        <div className="actions-row">
+          <button className="danger" onClick={handleSuspend} disabled={busy}>
+            إيقاف المحل
+          </button>
+        </div>
+      )}
+
+      {store.status === 'suspended' && (
+        <div className="actions-row">
+          <button className="primary" onClick={handleReactivate} disabled={busy}>
+            إعادة تفعيل المحل
           </button>
         </div>
       )}

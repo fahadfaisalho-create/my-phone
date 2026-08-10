@@ -22,6 +22,14 @@ export class SupportTicketsController {
       : this.ticketsService.createAsMerchant(user.id, dto);
   }
 
+  @Get('me')
+  @Roles('consumer', 'merchant_rep')
+  listMine(@CurrentUser() user: AuthenticatedUser) {
+    return user.role === 'consumer'
+      ? this.ticketsService.listMineAsConsumer(user.id)
+      : this.ticketsService.listMineAsMerchant(user.id);
+  }
+
   @Get()
   @Roles('admin')
   list(@Query('status') status?: TicketStatus, @Query('relatedType') relatedType?: TicketRelatedType) {

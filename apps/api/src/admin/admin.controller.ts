@@ -26,4 +26,14 @@ export class AdminController {
   reject(@Param('id') id: string, @Body() dto: RejectStoreDto) {
     return this.adminService.rejectStore(id, dto.reason);
   }
+
+  @Patch(':id/suspend')
+  suspend(@Param('id') id: string) {
+    return this.adminService.suspendStore(id);
+  }
+
+  @Patch(':id/reactivate')
+  reactivate(@Param('id') id: string) {
+    return this.adminService.reactivateStore(id);
+  }
 }

@@ -28,6 +28,21 @@ export class SupportTicketsService {
     });
   }
 
+  listMineAsConsumer(consumerId: string) {
+    return this.prisma.supportTicket.findMany({
+      where: { relatedType: 'consumer', relatedId: consumerId },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async listMineAsMerchant(ownerUserId: string) {
+    const store = await getOwnedStoreOrThrow(this.prisma, ownerUserId);
+    return this.prisma.supportTicket.findMany({
+      where: { relatedType: 'store', relatedId: store.id },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
   async updateStatus(id: string, status: TicketStatus) {
     const ticket = await this.prisma.supportTicket.findUnique({ where: { id } });
     if (!ticket) throw new NotFoundException('التذكرة غير موجودة');

@@ -70,6 +70,9 @@ export default function HomeScreen({ navigation }: Props) {
         <Pressable style={styles.quickLink} onPress={() => navigation.navigate('MyOrders')}>
           <Text style={styles.quickLinkText}>🧾 طلباتي</Text>
         </Pressable>
+        <Pressable style={styles.quickLink} onPress={() => navigation.navigate('Support')}>
+          <Text style={styles.quickLinkText}>🆘 الدعم</Text>
+        </Pressable>
       </View>
 
       <TextInput

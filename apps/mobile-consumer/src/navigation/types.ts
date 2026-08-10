@@ -9,4 +9,5 @@ export type RootStackParamList = {
   Booking: { storeId: string; storeName: string; serviceId: string; serviceName: string };
   Cart: { storeId: string; storeName: string };
   MyOrders: undefined;
+  Support: undefined;
 };

@@ -42,6 +42,24 @@ export class AdminService {
     });
   }
 
+  async suspendStore(id: string) {
+    const store = await this.prisma.store.findUnique({ where: { id } });
+    if (!store) throw new NotFoundException('المحل غير موجود');
+    if (store.status !== 'active') {
+      throw new BadRequestException('لا يمكن إيقاف محل ليس نشطاً');
+    }
+    return this.prisma.store.update({ where: { id }, data: { status: 'suspended' } });
+  }
+
+  async reactivateStore(id: string) {
+    const store = await this.prisma.store.findUnique({ where: { id } });
+    if (!store) throw new NotFoundException('المحل غير موجود');
+    if (store.status !== 'suspended') {
+      throw new BadRequestException('لا يمكن إعادة تفعيل محل ليس موقوفاً');
+    }
+    return this.prisma.store.update({ where: { id }, data: { status: 'active' } });
+  }
+
   // تأكيد/إلغاء تأكيد استلام دفع فاتورة الاشتراك يدوياً من الإدمن
   // (بديل مؤقت لحد ربط بوابة دفع فعلية — مطابق لملاحظة "الدفع يُحدَّد لاحقاً" في المواصفات)
   async setSubscriptionPaid(subscriptionId: string, paid: boolean) {

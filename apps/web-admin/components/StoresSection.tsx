@@ -58,6 +58,16 @@ export default function StoresSection() {
     await load();
   }
 
+  async function handleSuspend(id: string) {
+    await apiFetch(`/admin/stores/${id}/suspend`, { method: 'PATCH' });
+    await load();
+  }
+
+  async function handleReactivate(id: string) {
+    await apiFetch(`/admin/stores/${id}/reactivate`, { method: 'PATCH' });
+    await load();
+  }
+
   return (
     <div>
       <div className="tabs">
@@ -86,6 +96,8 @@ export default function StoresSection() {
             onApprove={handleApprove}
             onReject={handleReject}
             onTogglePayment={handleTogglePayment}
+            onSuspend={handleSuspend}
+            onReactivate={handleReactivate}
           />
         ))
       )}
