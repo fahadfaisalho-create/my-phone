@@ -100,7 +100,7 @@ export default function StoreDetailScreen({ route, navigation }: Props) {
         </View>
         <View style={{ flex: 1 }}>
           <Text style={styles.storeName}>{store.name}</Text>
-          <Stars rating={store.avgRating} />
+          <Stars rating={store.avgRating} reviewsCount={store.reviewsCount} />
           {!store.available && (
             <View style={{ marginTop: 6 }}>
               <Badge label="غير متاح الآن" tone="red" />

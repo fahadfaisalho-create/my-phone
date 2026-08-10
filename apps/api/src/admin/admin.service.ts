@@ -1,10 +1,14 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { StoreStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class AdminService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly mail: MailService,
+  ) {}
 
   listStores(status?: StoreStatus) {
     return this.prisma.store.findMany({
@@ -18,28 +22,36 @@ export class AdminService {
   }
 
   async approveStore(id: string) {
-    const store = await this.prisma.store.findUnique({ where: { id } });
+    const store = await this.prisma.store.findUnique({ where: { id }, include: { owner: true } });
     if (!store) throw new NotFoundException('المحل غير موجود');
     if (store.status !== 'pending') {
       throw new BadRequestException('لا يمكن قبول طلب ليس قيد المراجعة');
     }
-    return this.prisma.store.update({
+    const updated = await this.prisma.store.update({
       where: { id },
       data: { status: 'active', rejectionReason: null },
     });
+    if (store.owner.email) {
+      this.mail.sendStoreApproval(store.owner.email, store.name).catch(() => undefined);
+    }
+    return updated;
   }
 
   async rejectStore(id: string, reason: string) {
-    const store = await this.prisma.store.findUnique({ where: { id } });
+    const store = await this.prisma.store.findUnique({ where: { id }, include: { owner: true } });
     if (!store) throw new NotFoundException('المحل غير موجود');
     if (store.status !== 'pending') {
       throw new BadRequestException('لا يمكن رفض طلب ليس قيد المراجعة');
     }
-    return this.prisma.store.update({
+    const updated = await this.prisma.store.update({
       where: { id },
       data: { status: 'rejected', rejectionReason: reason },
-      // TODO: عند ربط خدمة البريد، يُرسل بريد للتاجر بالسبب هنا (حسب قاعدة العمل المحسومة)
     });
+    // حسب قاعدة العمل المحسومة: عند الرفض يُرسل بريد بالسبب للتاجر
+    if (store.owner.email) {
+      this.mail.sendStoreRejection(store.owner.email, store.name, reason).catch(() => undefined);
+    }
+    return updated;
   }
 
   async suspendStore(id: string) {

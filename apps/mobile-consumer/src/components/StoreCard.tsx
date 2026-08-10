@@ -21,7 +21,7 @@ export default function StoreCard({ store, onPress }: { store: StoreListItem; on
           {store.name}
         </Text>
         <View style={{ marginVertical: 4 }}>
-          <Stars rating={store.avgRating} size={12} />
+          <Stars rating={store.avgRating} size={12} reviewsCount={store.reviewsCount} />
         </View>
         <Text style={styles.meta}>
           {store.servicesCount} خدمة · {store.productsCount} منتج

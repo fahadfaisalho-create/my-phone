@@ -59,7 +59,15 @@ export function Badge({ label, tone }: { label: string; tone: 'green' | 'amber' 
   );
 }
 
-export function Stars({ rating, size = 14 }: { rating: number | null; size?: number }) {
+export function Stars({
+  rating,
+  size = 14,
+  reviewsCount,
+}: {
+  rating: number | null;
+  size?: number;
+  reviewsCount?: number;
+}) {
   if (rating === null) {
     return <Text style={[styles.muted, { fontSize: size - 1 }]}>لا يوجد تقييمات بعد</Text>;
   }
@@ -68,7 +76,10 @@ export function Stars({ rating, size = 14 }: { rating: number | null; size?: num
   return (
     <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 4 }}>
       <Text style={{ color: colors.star, fontSize: size, letterSpacing: 1 }}>{str}</Text>
-      <Text style={[styles.muted, { fontSize: size - 2 }]}>{rating.toFixed(1)}</Text>
+      <Text style={[styles.muted, { fontSize: size - 2 }]}>
+        {rating.toFixed(1)}
+        {typeof reviewsCount === 'number' ? ` (${reviewsCount})` : ''}
+      </Text>
     </View>
   );
 }
