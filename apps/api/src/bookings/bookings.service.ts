@@ -26,13 +26,28 @@ export class BookingsService {
       throw new BadRequestException('الفرع غير تابع لهذا المحل');
     }
 
+    const scheduledAt = new Date(dto.scheduledAt);
+
+    // يمنع نفس المستهلك من فتح أكثر من حجز قيد الانتظار/مقبول لنفس الخدمة بنفس المحل بنفس الوقت بالضبط
+    const duplicate = await this.prisma.booking.findFirst({
+      where: {
+        consumerId,
+        serviceId: service.id,
+        scheduledAt,
+        status: { in: ['pending', 'accepted'] },
+      },
+    });
+    if (duplicate) {
+      throw new BadRequestException('لديك حجز بنفس الموعد لهذه الخدمة بالفعل');
+    }
+
     return this.prisma.booking.create({
       data: {
         consumerId,
         storeId: store.id,
         serviceId: service.id,
         branchId: branch.id,
-        scheduledAt: new Date(dto.scheduledAt),
+        scheduledAt,
         status: 'pending',
       },
     });
