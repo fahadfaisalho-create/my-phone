@@ -91,7 +91,7 @@ export default function SettingsTab() {
       </p>
 
       {error && <div className="err">{error}</div>}
-      {success && <div className="note" style={{ color: 'var(--teal, #028174)' }}>✓ تم حفظ التعديلات بنجاح</div>}
+      {success && <div className="note" style={{ color: 'var(--ink)' }}>✓ تم حفظ التعديلات بنجاح</div>}
 
       <button className="primary" type="submit" style={{ width: '100%', marginTop: 10 }} disabled={saving}>
         {saving ? 'جارٍ الحفظ...' : 'حفظ التعديلات'}

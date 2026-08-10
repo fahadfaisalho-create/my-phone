@@ -104,7 +104,7 @@ export default function BookingsTab() {
               )}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
-              <span className="badge" style={{ background: b.visitType === 'home_visit' ? '#FCEBEB' : '#EAF6F4' }}>
+              <span className="badge" style={{ background: b.visitType === 'home_visit' ? '#FCEBEB' : '#F0F0F0' }}>
                 {VISIT_LABEL[b.visitType]}
               </span>
               <span className={`badge ${STATUS_BADGE[b.status]}`}>{STATUS_LABEL[b.status]}</span>
