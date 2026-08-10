@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import * as Location from 'expo-location';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@/navigation/types';
 import { apiFetch, ApiError } from '@/lib/api';
 import { requireAuth } from '@/lib/authGuard';
 import { StoreBranch, VisitType } from '@/lib/types';
-import { colors, fonts } from '@/theme/colors';
+import { colors, fonts, radius } from '@/theme/colors';
 import { Card, ErrorText, PrimaryButton, ScreenLoading } from '@/components/ui';
 
 const VISIT_LABEL: Record<VisitType, string> = {
@@ -32,6 +33,9 @@ export default function BookingScreen({ route, navigation }: Props) {
   const [homeVisitFee, setHomeVisitFee] = useState<string | null>(null);
   const [visitType, setVisitType] = useState<VisitType>('in_store');
   const [address, setAddress] = useState('');
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [locating, setLocating] = useState(false);
+  const [locateError, setLocateError] = useState('');
   const [loading, setLoading] = useState(true);
   const [branchId, setBranchId] = useState<string | null>(null);
   const [dayOffset, setDayOffset] = useState<number | null>(null);
@@ -73,6 +77,34 @@ export default function BookingScreen({ route, navigation }: Props) {
     })();
   }, [storeId]);
 
+  // يجيب موقع الجهاز فعليًا (GPS) بدل الاعتماد على كتابة العنوان يدويًا — لدقة أعلى بالزيارة المنزلية
+  async function handleUseLocation() {
+    setLocateError('');
+    setLocating(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        setLocateError('يجب السماح بالوصول لموقعك من إعدادات الجهاز لاستخدام هذه الميزة');
+        return;
+      }
+      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+      const { latitude, longitude } = pos.coords;
+      setCoords({ lat: latitude, lng: longitude });
+      try {
+        const results = await Location.reverseGeocodeAsync({ latitude, longitude });
+        const r = results[0];
+        const formatted = r ? [r.city, r.district ?? r.subregion, r.street, r.name].filter(Boolean).join('، ') : '';
+        setAddress(formatted || `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`);
+      } catch {
+        setAddress(`${latitude.toFixed(5)}, ${longitude.toFixed(5)}`);
+      }
+    } catch {
+      setLocateError('تعذّر تحديد موقعك، تأكد من تفعيل خدمة الموقع بالجهاز');
+    } finally {
+      setLocating(false);
+    }
+  }
+
   async function handleSubmit() {
     if (!(await requireAuth(navigation, { screen: 'StoreDetail', params: { storeId } }))) return;
     if (!branchId || dayOffset === null || !time) {
@@ -98,7 +130,12 @@ export default function BookingScreen({ route, navigation }: Props) {
           branchId,
           scheduledAt: d.toISOString(),
           visitType,
-          ...(visitType === 'home_visit' ? { customerAddress: address.trim() } : {}),
+          ...(visitType === 'home_visit'
+            ? {
+                customerAddress: address.trim(),
+                ...(coords ? { customerLat: coords.lat, customerLng: coords.lng } : {}),
+              }
+            : {}),
         }),
       });
       setSuccess(true);
@@ -152,14 +189,32 @@ export default function BookingScreen({ route, navigation }: Props) {
               <Text style={styles.priceNote}>+ رسوم زيارة منزلية {homeVisitFee} ﷼</Text>
             ) : null}
             <Text style={styles.label}>عنوان الزيارة</Text>
+
+            <Pressable
+              style={({ pressed }) => [styles.locateBtn, pressed && styles.btnPressed]}
+              onPress={handleUseLocation}
+              disabled={locating}
+            >
+              {locating ? (
+                <ActivityIndicator color={colors.teal} size="small" />
+              ) : (
+                <Text style={styles.locateBtnText}>📍 استخدام موقعي الحالي</Text>
+              )}
+            </Pressable>
+            {coords && !locating && <Text style={styles.locatedNote}>✓ تم تحديد موقعك بدقة GPS</Text>}
+            {locateError ? <ErrorText>{locateError}</ErrorText> : null}
+
             <TextInput
               style={styles.addressInput}
-              placeholder="اكتب عنوانك بالتفصيل (الحي، الشارع، رقم المبنى...)"
+              placeholder="أو اكتب عنوانك بالتفصيل (الحي، الشارع، رقم المبنى...)"
               placeholderTextColor={colors.muted}
               textAlign="right"
               multiline
               value={address}
-              onChangeText={setAddress}
+              onChangeText={(t) => {
+                setAddress(t);
+                setCoords(null);
+              }}
             />
           </>
         )}
@@ -226,6 +281,26 @@ const styles = StyleSheet.create({
   chipText: { fontFamily: fonts.bodyMedium, fontSize: 12.5, color: colors.text },
   chipTextOn: { color: '#fff' },
   mutedText: { color: colors.muted, fontFamily: fonts.body, fontSize: 13, textAlign: 'right', marginBottom: 14 },
+  locateBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.tealBg,
+    borderWidth: 1,
+    borderColor: '#BFE6DF',
+    borderRadius: radius.sm,
+    paddingVertical: 11,
+    marginBottom: 8,
+  },
+  locateBtnText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.tealDark },
+  btnPressed: { opacity: 0.8 },
+  locatedNote: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.green,
+    textAlign: 'right',
+    marginBottom: 8,
+  },
   addressInput: {
     borderWidth: 1,
     borderColor: colors.border,

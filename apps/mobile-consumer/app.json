@@ -8,13 +8,25 @@
     "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.platform.mobileconsumer"
+      "bundleIdentifier": "com.platform.mobileconsumer",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "نحتاج موقعك لتحديد عنوان الزيارة المنزلية بدقة."
+      }
     },
     "android": {
-      "package": "com.platform.mobileconsumer"
+      "package": "com.platform.mobileconsumer",
+      "permissions": ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION"]
     },
     "web": {
       "bundler": "metro"
-    }
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "نحتاج موقعك لتحديد عنوان الزيارة المنزلية بدقة."
+        }
+      ]
+    ]
   }
 }

@@ -12,6 +12,8 @@ interface Booking {
   status: BookingStatus;
   visitType: VisitType;
   customerAddress: string | null;
+  customerLat: string | null;
+  customerLng: string | null;
   consumer: { name: string; phone: string | null };
   service: { name: string };
   branch: { name: string };
@@ -101,6 +103,16 @@ export default function BookingsTab() {
                 <div style={{ fontSize: 12, color: 'var(--ink)', marginTop: 4 }}>
                   📍 {b.customerAddress}
                 </div>
+              )}
+              {b.visitType === 'home_visit' && b.customerLat && b.customerLng && (
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${b.customerLat},${b.customerLng}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ fontSize: 12, color: 'var(--teal-d, var(--ink))', marginTop: 2, display: 'inline-block' }}
+                >
+                  🗺️ فتح الموقع بالخرائط (دقة GPS)
+                </a>
               )}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>

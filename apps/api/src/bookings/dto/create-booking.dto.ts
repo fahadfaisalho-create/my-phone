@@ -1,4 +1,4 @@
-import { IsDateString, IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsDateString, IsEnum, IsLatitude, IsLongitude, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import { VisitType } from '@prisma/client';
 
 export class CreateBookingDto {
@@ -26,4 +26,13 @@ export class CreateBookingDto {
   @IsOptional()
   @IsString()
   customerAddress?: string;
+
+  // إحداثيات دقيقة اختيارية (من موقع الجهاز مباشرة) لزيادة دقة الزيارة المنزلية
+  @IsOptional()
+  @IsLatitude({ message: 'إحداثية خط العرض غير صحيحة' })
+  customerLat?: number;
+
+  @IsOptional()
+  @IsLongitude({ message: 'إحداثية خط الطول غير صحيحة' })
+  customerLng?: number;
 }

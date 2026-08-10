@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@/navigation/types';
 import { apiFetch, ApiError } from '@/lib/api';
@@ -15,6 +15,8 @@ interface BookingItem {
   status: 'pending' | 'accepted' | 'completed' | 'cancelled';
   visitType: 'in_store' | 'home_visit';
   customerAddress: string | null;
+  customerLat: number | string | null;
+  customerLng: number | string | null;
   store: { name: string };
   service: { name: string };
   branch: { name: string };
@@ -37,6 +39,11 @@ const STATUS_TONE: Record<BookingItem['status'], 'green' | 'amber' | 'red'> = {
   completed: 'green',
   cancelled: 'red',
 };
+
+function openInMaps(lat: number, lng: number) {
+  const url = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+  Linking.openURL(url).catch(() => undefined);
+}
 
 export default function MyBookingsScreen({}: Props) {
   const [bookings, setBookings] = useState<BookingItem[]>([]);
@@ -107,6 +114,14 @@ export default function MyBookingsScreen({}: Props) {
             {item.visitType === 'home_visit' && item.customerAddress && (
               <Text style={styles.address}>📍 {item.customerAddress}</Text>
             )}
+            {item.visitType === 'home_visit' && item.customerLat != null && item.customerLng != null && (
+              <Pressable
+                onPress={() => openInMaps(Number(item.customerLat), Number(item.customerLng))}
+                style={styles.mapsLink}
+              >
+                <Text style={styles.mapsLinkText}>🗺️ عرض الموقع بالخرائط</Text>
+              </Pressable>
+            )}
             {item.status === 'pending' && (
               <Pressable
                 style={styles.cancelBtn}
@@ -141,6 +156,8 @@ const styles = StyleSheet.create({
   date: { fontFamily: fonts.bodyMedium, fontSize: 12, color: colors.ink, textAlign: 'right' },
   visitType: { fontFamily: fonts.bodyMedium, fontSize: 11.5, color: colors.tealDark, textAlign: 'right', marginTop: 4 },
   address: { fontFamily: fonts.body, fontSize: 11.5, color: colors.muted, textAlign: 'right', marginTop: 2 },
+  mapsLink: { alignSelf: 'flex-end', marginTop: 4 },
+  mapsLinkText: { fontFamily: fonts.bodyMedium, fontSize: 11.5, color: colors.tealDark, textDecorationLine: 'underline' },
   empty: { textAlign: 'center', color: colors.muted, fontFamily: fonts.body, marginTop: 40 },
   cancelBtn: {
     marginTop: 10,

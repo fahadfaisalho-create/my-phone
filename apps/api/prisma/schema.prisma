@@ -218,6 +218,9 @@ model Booking {
   // نوع الحجز: بالمحل أو زيارة منزلية — وعنوان المستهلك إلزامي عند الزيارة المنزلية
   visitType       VisitType @default(in_store) @map("visit_type")
   customerAddress String?   @map("customer_address")
+  // إحداثيات دقيقة (اختيارية) لموقع الزيارة المنزلية — مأخوذة من موقع الجهاز مباشرة
+  customerLat     Decimal?  @map("customer_lat") @db.Decimal(10, 7)
+  customerLng     Decimal?  @map("customer_lng") @db.Decimal(10, 7)
 
   @@map("bookings")
 }

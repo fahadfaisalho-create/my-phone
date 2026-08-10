@@ -64,6 +64,8 @@ export class BookingsService {
         status: 'pending',
         visitType,
         customerAddress: visitType === 'home_visit' ? dto.customerAddress!.trim() : null,
+        customerLat: visitType === 'home_visit' ? dto.customerLat ?? null : null,
+        customerLng: visitType === 'home_visit' ? dto.customerLng ?? null : null,
       },
     });
   }
