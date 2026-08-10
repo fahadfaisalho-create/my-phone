@@ -4,15 +4,23 @@ import { useEffect, useState } from 'react';
 import { apiFetch, ApiError } from '@/lib/api';
 
 type BookingStatus = 'pending' | 'accepted' | 'completed' | 'cancelled';
+type VisitType = 'in_store' | 'home_visit';
 
 interface Booking {
   id: string;
   scheduledAt: string;
   status: BookingStatus;
+  visitType: VisitType;
+  customerAddress: string | null;
   consumer: { name: string; phone: string | null };
   service: { name: string };
   branch: { name: string };
 }
+
+const VISIT_LABEL: Record<VisitType, string> = {
+  in_store: '🏬 بالمحل',
+  home_visit: '🚗 زيارة منزلية',
+};
 
 const STATUS_LABEL: Record<BookingStatus, string> = {
   pending: 'قيد المراجعة',
@@ -89,8 +97,16 @@ export default function BookingsTab() {
                   minute: '2-digit',
                 })}
               </div>
+              {b.visitType === 'home_visit' && b.customerAddress && (
+                <div style={{ fontSize: 12, color: 'var(--ink)', marginTop: 4 }}>
+                  📍 {b.customerAddress}
+                </div>
+              )}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+              <span className="badge" style={{ background: b.visitType === 'home_visit' ? '#FCEBEB' : '#EAF6F4' }}>
+                {VISIT_LABEL[b.visitType]}
+              </span>
               <span className={`badge ${STATUS_BADGE[b.status]}`}>{STATUS_LABEL[b.status]}</span>
               {b.status === 'pending' && (
                 <div style={{ display: 'flex', gap: 6 }}>

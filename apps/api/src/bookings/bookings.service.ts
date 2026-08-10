@@ -26,6 +26,19 @@ export class BookingsService {
       throw new BadRequestException('الفرع غير تابع لهذا المحل');
     }
 
+    const visitType = dto.visitType ?? 'in_store';
+    if (visitType === 'in_store' && !service.supportsInStore) {
+      throw new BadRequestException('هذه الخدمة لا تدعم الحجز بالمحل');
+    }
+    if (visitType === 'home_visit') {
+      if (!service.supportsHomeVisit) {
+        throw new BadRequestException('هذه الخدمة لا تدعم الزيارة المنزلية');
+      }
+      if (!dto.customerAddress?.trim()) {
+        throw new BadRequestException('عنوان الزيارة مطلوب عند اختيار الزيارة المنزلية');
+      }
+    }
+
     const scheduledAt = new Date(dto.scheduledAt);
 
     // يمنع نفس المستهلك من فتح أكثر من حجز قيد الانتظار/مقبول لنفس الخدمة بنفس المحل بنفس الوقت بالضبط
@@ -49,6 +62,8 @@ export class BookingsService {
         branchId: branch.id,
         scheduledAt,
         status: 'pending',
+        visitType,
+        customerAddress: visitType === 'home_visit' ? dto.customerAddress!.trim() : null,
       },
     });
   }

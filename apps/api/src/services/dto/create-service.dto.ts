@@ -1,4 +1,4 @@
-import { IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import { IsBoolean, IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 import { DeviceSupport } from '@prisma/client';
 
@@ -20,4 +20,19 @@ export class CreateServiceDto {
   @IsOptional()
   @IsString()
   linkedProductId?: string;
+
+  // نوع الحجز المدعوم لهذه الخدمة — لازم واحد منهم على الأقل true
+  @IsOptional()
+  @IsBoolean({ message: 'قيمة "يدعم الحجز بالمحل" يجب أن تكون true/false' })
+  supportsInStore?: boolean;
+
+  @IsOptional()
+  @IsBoolean({ message: 'قيمة "يدعم الزيارة المنزلية" يجب أن تكون true/false' })
+  supportsHomeVisit?: boolean;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({}, { message: 'رسوم الزيارة المنزلية يجب أن تكون رقماً' })
+  @Min(0)
+  homeVisitFee?: number;
 }

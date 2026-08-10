@@ -78,6 +78,12 @@ enum TicketStatus {
   closed
 }
 
+// نوع الحجز: المستهلك يروح للمحل، أو موظف/فني المحل يروح لعنوان المستهلك
+enum VisitType {
+  in_store
+  home_visit
+}
+
 // ---------- Models ----------
 
 model User {
@@ -168,6 +174,11 @@ model Service {
   laborPrice       Decimal       @db.Decimal(10, 2) @map("labor_price")
   linkedProductId  String?       @map("linked_product_id")
   linkedProduct    Product?      @relation(fields: [linkedProductId], references: [id])
+  // أنواع الحجز المدعومة لهذه الخدمة — لازم واحد منهم على الأقل مفعّل
+  supportsInStore   Boolean      @default(true) @map("supports_in_store")
+  supportsHomeVisit Boolean      @default(false) @map("supports_home_visit")
+  // رسوم إضافية اختيارية تُضاف فقط عند اختيار الزيارة المنزلية (فوق سعر شغل اليد)
+  homeVisitFee      Decimal?     @db.Decimal(10, 2) @map("home_visit_fee")
 
   bookings Booking[]
 
@@ -204,6 +215,9 @@ model Booking {
   branch      Branch        @relation(fields: [branchId], references: [id])
   scheduledAt DateTime      @map("scheduled_at")
   status      BookingStatus @default(pending)
+  // نوع الحجز: بالمحل أو زيارة منزلية — وعنوان المستهلك إلزامي عند الزيارة المنزلية
+  visitType       VisitType @default(in_store) @map("visit_type")
+  customerAddress String?   @map("customer_address")
 
   @@map("bookings")
 }

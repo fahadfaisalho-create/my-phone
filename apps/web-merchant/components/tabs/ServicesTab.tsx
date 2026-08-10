@@ -52,7 +52,17 @@ export default function ServicesTab() {
     }
   }
 
-  async function updateService(id: string, patch: Partial<{ deviceSupport: DeviceSupport; laborPrice: number; linkedProductId: string }>) {
+  async function updateService(
+    id: string,
+    patch: Partial<{
+      deviceSupport: DeviceSupport;
+      laborPrice: number;
+      linkedProductId: string;
+      supportsInStore: boolean;
+      supportsHomeVisit: boolean;
+      homeVisitFee: number | null;
+    }>,
+  ) {
     try {
       await apiFetch(`/stores/me/services/${id}`, {
         method: 'PATCH',
@@ -120,6 +130,41 @@ export default function ServicesTab() {
                   </option>
                 ))}
               </select>
+
+              <label>نوع الحجز المدعوم</label>
+              <div style={{ display: 'flex', gap: 16, marginBottom: 8 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 400 }}>
+                  <input
+                    type="checkbox"
+                    checked={sv.supportsInStore}
+                    onChange={(e) => updateService(sv.id, { supportsInStore: e.target.checked })}
+                  />
+                  🏬 بالمحل
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 400 }}>
+                  <input
+                    type="checkbox"
+                    checked={sv.supportsHomeVisit}
+                    onChange={(e) => updateService(sv.id, { supportsHomeVisit: e.target.checked })}
+                  />
+                  🚗 زيارة منزلية
+                </label>
+              </div>
+              {sv.supportsHomeVisit && (
+                <>
+                  <label>رسوم إضافية للزيارة المنزلية (اختياري، ﷼)</label>
+                  <input
+                    type="number"
+                    defaultValue={sv.homeVisitFee || ''}
+                    placeholder="بدون رسوم إضافية"
+                    onBlur={(e) =>
+                      updateService(sv.id, {
+                        homeVisitFee: e.target.value ? Number(e.target.value) : null,
+                      })
+                    }
+                  />
+                </>
+              )}
             </div>
           ))
         )}

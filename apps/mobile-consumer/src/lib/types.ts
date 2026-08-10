@@ -11,12 +11,17 @@ export interface StoreListItem {
 
 export type DeviceSupport = 'all' | 'apple' | 'samsung';
 
+export type VisitType = 'in_store' | 'home_visit';
+
 export interface StoreService {
   id: string;
   name: string;
   deviceSupport: DeviceSupport;
   laborPrice: string;
   linkedProductId: string | null;
+  supportsInStore: boolean;
+  supportsHomeVisit: boolean;
+  homeVisitFee: string | null;
 }
 
 export interface StoreProduct {

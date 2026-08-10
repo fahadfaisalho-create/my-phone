@@ -56,6 +56,9 @@ export interface Service {
   deviceSupport: DeviceSupport;
   laborPrice: string;
   linkedProductId: string | null;
+  supportsInStore: boolean;
+  supportsHomeVisit: boolean;
+  homeVisitFee: string | null;
 }
 
 export interface Chat {

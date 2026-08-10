@@ -13,10 +13,17 @@ interface BookingItem {
   id: string;
   scheduledAt: string;
   status: 'pending' | 'accepted' | 'completed' | 'cancelled';
+  visitType: 'in_store' | 'home_visit';
+  customerAddress: string | null;
   store: { name: string };
   service: { name: string };
   branch: { name: string };
 }
+
+const VISIT_LABEL: Record<BookingItem['visitType'], string> = {
+  in_store: '🏬 بالمحل',
+  home_visit: '🚗 زيارة منزلية',
+};
 
 const STATUS_LABEL: Record<BookingItem['status'], string> = {
   pending: 'قيد المراجعة',
@@ -96,6 +103,10 @@ export default function MyBookingsScreen({}: Props) {
                 minute: '2-digit',
               })}
             </Text>
+            <Text style={styles.visitType}>{VISIT_LABEL[item.visitType]}</Text>
+            {item.visitType === 'home_visit' && item.customerAddress && (
+              <Text style={styles.address}>📍 {item.customerAddress}</Text>
+            )}
             {item.status === 'pending' && (
               <Pressable
                 style={styles.cancelBtn}
@@ -128,6 +139,8 @@ const styles = StyleSheet.create({
   store: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.text },
   service: { fontFamily: fonts.body, fontSize: 12.5, color: colors.muted, textAlign: 'right', marginBottom: 4 },
   date: { fontFamily: fonts.bodyMedium, fontSize: 12, color: colors.ink, textAlign: 'right' },
+  visitType: { fontFamily: fonts.bodyMedium, fontSize: 11.5, color: colors.tealDark, textAlign: 'right', marginTop: 4 },
+  address: { fontFamily: fonts.body, fontSize: 11.5, color: colors.muted, textAlign: 'right', marginTop: 2 },
   empty: { textAlign: 'center', color: colors.muted, fontFamily: fonts.body, marginTop: 40 },
   cancelBtn: {
     marginTop: 10,

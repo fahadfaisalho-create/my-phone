@@ -1,11 +1,16 @@
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@/navigation/types';
 import { apiFetch, ApiError } from '@/lib/api';
-import { StoreBranch } from '@/lib/types';
+import { StoreBranch, VisitType } from '@/lib/types';
 import { colors, fonts } from '@/theme/colors';
 import { Card, ErrorText, PrimaryButton, ScreenLoading } from '@/components/ui';
+
+const VISIT_LABEL: Record<VisitType, string> = {
+  in_store: '🏬 بالمحل',
+  home_visit: '🚗 زيارة منزلية',
+};
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Booking'>;
 
@@ -21,6 +26,11 @@ export default function BookingScreen({ route, navigation }: Props) {
   const { storeId, serviceId, serviceName } = route.params;
   const [branches, setBranches] = useState<StoreBranch[]>([]);
   const [laborPrice, setLaborPrice] = useState<string | null>(null);
+  const [supportsInStore, setSupportsInStore] = useState(true);
+  const [supportsHomeVisit, setSupportsHomeVisit] = useState(false);
+  const [homeVisitFee, setHomeVisitFee] = useState<string | null>(null);
+  const [visitType, setVisitType] = useState<VisitType>('in_store');
+  const [address, setAddress] = useState('');
   const [loading, setLoading] = useState(true);
   const [branchId, setBranchId] = useState<string | null>(null);
   const [dayOffset, setDayOffset] = useState<number | null>(null);
@@ -36,12 +46,24 @@ export default function BookingScreen({ route, navigation }: Props) {
       try {
         const store = await apiFetch<{
           branches: StoreBranch[];
-          services: { id: string; laborPrice: string }[];
+          services: {
+            id: string;
+            laborPrice: string;
+            supportsInStore: boolean;
+            supportsHomeVisit: boolean;
+            homeVisitFee: string | null;
+          }[];
         }>(`/catalog/stores/${storeId}`);
         setBranches(store.branches);
         if (store.branches.length === 1) setBranchId(store.branches[0].id);
         const svc = store.services.find((s) => s.id === serviceId);
-        if (svc) setLaborPrice(svc.laborPrice);
+        if (svc) {
+          setLaborPrice(svc.laborPrice);
+          setSupportsInStore(svc.supportsInStore);
+          setSupportsHomeVisit(svc.supportsHomeVisit);
+          setHomeVisitFee(svc.homeVisitFee);
+          setVisitType(svc.supportsInStore ? 'in_store' : 'home_visit');
+        }
       } catch (err) {
         setError(err instanceof ApiError ? err.message : 'تعذّر تحميل الفروع');
       } finally {
@@ -55,6 +77,10 @@ export default function BookingScreen({ route, navigation }: Props) {
       setError('اختر الفرع والتاريخ والوقت');
       return;
     }
+    if (visitType === 'home_visit' && !address.trim()) {
+      setError('اكتب عنوان الزيارة');
+      return;
+    }
     setError('');
     setSubmitting(true);
     try {
@@ -64,7 +90,14 @@ export default function BookingScreen({ route, navigation }: Props) {
       d.setHours(h, m, 0, 0);
       await apiFetch('/bookings', {
         method: 'POST',
-        body: JSON.stringify({ storeId, serviceId, branchId, scheduledAt: d.toISOString() }),
+        body: JSON.stringify({
+          storeId,
+          serviceId,
+          branchId,
+          scheduledAt: d.toISOString(),
+          visitType,
+          ...(visitType === 'home_visit' ? { customerAddress: address.trim() } : {}),
+        }),
       });
       setSuccess(true);
     } catch (err) {
@@ -93,6 +126,41 @@ export default function BookingScreen({ route, navigation }: Props) {
       <Card>
         <Text style={styles.title}>حجز: {serviceName}</Text>
         {laborPrice ? <Text style={styles.priceNote}>شغل يد {laborPrice} ﷼ (قد يضاف سعر قطع الغيار عند الفحص)</Text> : null}
+
+        {supportsInStore && supportsHomeVisit && (
+          <>
+            <Text style={styles.label}>نوع الحجز</Text>
+            <View style={styles.chipsRow}>
+              {(['in_store', 'home_visit'] as VisitType[]).map((v) => (
+                <Pressable
+                  key={v}
+                  style={[styles.chip, visitType === v && styles.chipOn]}
+                  onPress={() => setVisitType(v)}
+                >
+                  <Text style={[styles.chipText, visitType === v && styles.chipTextOn]}>{VISIT_LABEL[v]}</Text>
+                </Pressable>
+              ))}
+            </View>
+          </>
+        )}
+
+        {visitType === 'home_visit' && (
+          <>
+            {homeVisitFee ? (
+              <Text style={styles.priceNote}>+ رسوم زيارة منزلية {homeVisitFee} ﷼</Text>
+            ) : null}
+            <Text style={styles.label}>عنوان الزيارة</Text>
+            <TextInput
+              style={styles.addressInput}
+              placeholder="اكتب عنوانك بالتفصيل (الحي، الشارع، رقم المبنى...)"
+              placeholderTextColor={colors.muted}
+              textAlign="right"
+              multiline
+              value={address}
+              onChangeText={setAddress}
+            />
+          </>
+        )}
 
         <Text style={styles.label}>الفرع</Text>
         <View style={styles.chipsRow}>
@@ -156,5 +224,17 @@ const styles = StyleSheet.create({
   chipText: { fontFamily: fonts.bodyMedium, fontSize: 12.5, color: colors.text },
   chipTextOn: { color: '#fff' },
   mutedText: { color: colors.muted, fontFamily: fonts.body, fontSize: 13, textAlign: 'right', marginBottom: 14 },
+  addressInput: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 9,
+    padding: 12,
+    minHeight: 60,
+    backgroundColor: '#FCFBF8',
+    fontFamily: fonts.body,
+    fontSize: 14,
+    color: colors.text,
+    marginBottom: 16,
+  },
   successTitle: { fontFamily: fonts.heading, fontSize: 16, color: colors.ink, textAlign: 'center', marginBottom: 8 },
 });

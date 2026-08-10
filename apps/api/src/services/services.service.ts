@@ -28,6 +28,11 @@ export class ServicesService {
   async create(ownerUserId: string, dto: CreateServiceDto) {
     const store = await getOwnedStoreOrThrow(this.prisma, ownerUserId);
     await this.assertLinkedProductBelongs(store.id, dto.linkedProductId);
+    const supportsInStore = dto.supportsInStore ?? true;
+    const supportsHomeVisit = dto.supportsHomeVisit ?? false;
+    if (!supportsInStore && !supportsHomeVisit) {
+      throw new BadRequestException('يجب دعم نوع حجز واحد على الأقل (بالمحل أو زيارة منزلية)');
+    }
     return this.prisma.service.create({
       data: {
         storeId: store.id,
@@ -35,6 +40,9 @@ export class ServicesService {
         deviceSupport: dto.deviceSupport ?? 'all',
         laborPrice: dto.laborPrice ?? 0,
         linkedProductId: dto.linkedProductId || null,
+        supportsInStore,
+        supportsHomeVisit,
+        homeVisitFee: supportsHomeVisit ? dto.homeVisitFee ?? null : null,
       },
     });
   }
@@ -49,9 +57,14 @@ export class ServicesService {
   }
 
   async update(ownerUserId: string, serviceId: string, dto: UpdateServiceDto) {
-    const { store } = await this.findOwned(ownerUserId, serviceId);
+    const { store, service } = await this.findOwned(ownerUserId, serviceId);
     if (dto.linkedProductId !== undefined) {
       await this.assertLinkedProductBelongs(store.id, dto.linkedProductId);
+    }
+    const supportsInStore = dto.supportsInStore ?? service.supportsInStore;
+    const supportsHomeVisit = dto.supportsHomeVisit ?? service.supportsHomeVisit;
+    if (!supportsInStore && !supportsHomeVisit) {
+      throw new BadRequestException('يجب دعم نوع حجز واحد على الأقل (بالمحل أو زيارة منزلية)');
     }
     return this.prisma.service.update({
       where: { id: serviceId },
@@ -59,6 +72,9 @@ export class ServicesService {
         deviceSupport: dto.deviceSupport,
         laborPrice: dto.laborPrice,
         linkedProductId: dto.linkedProductId === undefined ? undefined : dto.linkedProductId || null,
+        supportsInStore: dto.supportsInStore,
+        supportsHomeVisit: dto.supportsHomeVisit,
+        homeVisitFee: supportsHomeVisit ? dto.homeVisitFee : null,
       },
     });
   }
