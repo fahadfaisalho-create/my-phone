@@ -38,6 +38,18 @@ export class BookingsService {
     });
   }
 
+  // المستهلك يقدر يلغي حجزه بنفسه طالما لسه قيد الانتظار (لم يقبله المحل بعد)
+  async cancelMine(consumerId: string, bookingId: string) {
+    const booking = await this.prisma.booking.findUnique({ where: { id: bookingId } });
+    if (!booking || booking.consumerId !== consumerId) {
+      throw new NotFoundException('الحجز غير موجود');
+    }
+    if (booking.status !== 'pending') {
+      throw new ForbiddenException('لا يمكن إلغاء حجز تم قبوله أو إنهاؤه بالفعل');
+    }
+    return this.prisma.booking.update({ where: { id: bookingId }, data: { status: 'cancelled' } });
+  }
+
   listMine(consumerId: string) {
     return this.prisma.booking.findMany({
       where: { consumerId },

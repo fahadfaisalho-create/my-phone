@@ -62,9 +62,12 @@ export default function LoginPage() {
         <button className="primary" type="submit" style={{ width: '100%' }} disabled={loading}>
           {loading ? 'جارٍ الدخول...' : 'دخول'}
         </button>
-        <div style={{ marginTop: 12 }}>
+        <div style={{ marginTop: 12, display: 'flex', justifyContent: 'space-between' }}>
           <button type="button" className="link" onClick={() => router.push('/entry')}>
             رجوع
+          </button>
+          <button type="button" className="link" onClick={() => router.push('/forgot-password')}>
+            نسيت كلمة السر؟
           </button>
         </div>
       </form>

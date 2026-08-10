@@ -1,15 +1,22 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
+import { randomBytes } from 'crypto';
 import { SubscriptionPlan, UserRole } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { RegisterMerchantDto } from './dto/register-merchant.dto';
 import { LoginDto } from './dto/login.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import { JwtPayload } from './types';
+import { MailService } from '../mail/mail.service';
+
+const RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // ساعة واحدة
 
 // أسعار الباقات حسب المواصفات (300 / 1,200 / 2,000 ﷼)
 const PLAN_PRICE: Record<SubscriptionPlan, number> = {
@@ -37,6 +44,7 @@ export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
+    private readonly mail: MailService,
   ) {}
 
   private async issueToken(user: {
@@ -150,5 +158,33 @@ export class AuthService {
       },
       store: { id: result.store.id, status: result.store.status },
     };
+  }
+
+  // نسيت كلمة السر (تاجر/إدمن فقط): يرسل رمز استعادة بالبريد إن وُجد الحساب
+  // — الرد دائماً عام (لا يفصح إن كان البريد مسجّلاً أم لا) لتفادي تسريب المعلومات
+  async forgotPassword(dto: ForgotPasswordDto) {
+    const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    if (user && user.passwordHash && user.role !== 'consumer') {
+      const token = randomBytes(24).toString('hex');
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { resetToken: token, resetTokenExpiry: new Date(Date.now() + RESET_TOKEN_TTL_MS) },
+      });
+      this.mail.sendPasswordResetToken(user.email!, token).catch(() => undefined);
+    }
+    return { message: 'إذا كان البريد مسجلاً لدينا، ستصلك رسالة برمز الاستعادة' };
+  }
+
+  async resetPassword(dto: ResetPasswordDto) {
+    const user = await this.prisma.user.findUnique({ where: { resetToken: dto.token } });
+    if (!user || !user.resetTokenExpiry || user.resetTokenExpiry.getTime() < Date.now()) {
+      throw new BadRequestException('رمز الاستعادة غير صحيح أو منتهي الصلاحية');
+    }
+    const passwordHash = await bcrypt.hash(dto.newPassword, 10);
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { passwordHash, resetToken: null, resetTokenExpiry: null },
+    });
+    return { message: 'تم تحديث كلمة السر بنجاح' };
   }
 }

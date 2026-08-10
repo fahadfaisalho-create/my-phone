@@ -52,6 +52,30 @@ export class OrdersService {
     });
   }
 
+  // المستهلك يقدر يلغي طلبه بنفسه طالما لسه قيد الانتظار وغير مدفوع (لم يبدأ المحل تجهيزه بعد)
+  // — تُعاد الكمية المخصومة من المخزون تلقائياً ضمن نفس المعاملة
+  async cancelMine(consumerId: string, orderId: string) {
+    const order = await this.prisma.order.findUnique({ where: { id: orderId }, include: { items: true } });
+    if (!order || order.consumerId !== consumerId) {
+      throw new NotFoundException('الطلب غير موجود');
+    }
+    if (order.status !== 'pending') {
+      throw new BadRequestException('لا يمكن إلغاء طلب بدأ تجهيزه أو تم إنهاؤه بالفعل');
+    }
+    if (order.paymentStatus === 'paid') {
+      throw new BadRequestException('الطلب مدفوع بالفعل — تواصل مع الدعم لإلغائه واسترجاع المبلغ');
+    }
+    return this.prisma.$transaction(async (tx) => {
+      for (const item of order.items) {
+        await tx.product.update({
+          where: { id: item.productId },
+          data: { quantity: { increment: item.qty } },
+        });
+      }
+      return tx.order.update({ where: { id: orderId }, data: { status: 'cancelled' } });
+    });
+  }
+
   listMine(consumerId: string) {
     return this.prisma.order.findMany({
       where: { consumerId },

@@ -26,6 +26,12 @@ export class BookingsController {
     return this.bookingsService.listMine(user.id);
   }
 
+  @Patch('bookings/:id/cancel')
+  @Roles('consumer')
+  cancelMine(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
+    return this.bookingsService.cancelMine(user.id, id);
+  }
+
   // --- التاجر ---
   @Get('stores/me/bookings')
   @Roles('merchant_rep')

@@ -26,6 +26,12 @@ export class OrdersController {
     return this.ordersService.listMine(user.id);
   }
 
+  @Patch('orders/:id/cancel')
+  @Roles('consumer')
+  cancelMine(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
+    return this.ordersService.cancelMine(user.id, id);
+  }
+
   // محاكاة دفع فوري (بوابة الدفع الفعلية غير مربوطة بعد) — الإدمن يقدر أيضاً
   // يؤكد/يلغي التأكيد يدوياً من AdminOrdersController كخيار احتياطي
   @Post('orders/:id/confirm-payment')

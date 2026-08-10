@@ -11,6 +11,8 @@ import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { AuthService, UploadedFiles as UploadedFilesType } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterMerchantDto } from './dto/register-merchant.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import { registrationFilesStorage, fileFilter, MAX_FILE_SIZE_BYTES } from '../common/multer.config';
 
 @Controller('auth')
@@ -45,5 +47,18 @@ export class AuthController {
     @UploadedFiles() files: UploadedFilesType,
   ) {
     return this.authService.registerMerchant(dto, files);
+  }
+
+  // استعادة كلمة السر (تاجر/إدمن): يرسل رمز بالبريد إن وُجد الحساب
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  forgotPassword(@Body() dto: ForgotPasswordDto) {
+    return this.authService.forgotPassword(dto);
+  }
+
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.authService.resetPassword(dto);
   }
 }

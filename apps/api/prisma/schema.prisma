@@ -89,6 +89,10 @@ model User {
   passwordHash String?  @map("password_hash")
   createdAt    DateTime @default(now()) @map("created_at")
 
+  // استعادة كلمة السر (تاجر/إدمن فقط — المستهلك يدخل بـ OTP وما يحتاجها)
+  resetToken       String?   @unique @map("reset_token")
+  resetTokenExpiry DateTime? @map("reset_token_expiry")
+
   stores       Store[]         @relation("StoreOwner")
   bookings     Booking[]       @relation("ConsumerBookings")
   orders       Order[]         @relation("ConsumerOrders")
