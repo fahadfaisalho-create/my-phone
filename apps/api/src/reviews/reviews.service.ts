@@ -17,4 +17,12 @@ export class ReviewsService {
       create: { consumerId, storeId, rating: dto.rating, comment: dto.comment },
     });
   }
+
+  listMine(consumerId: string) {
+    return this.prisma.review.findMany({
+      where: { consumerId },
+      orderBy: { createdAt: 'desc' },
+      include: { store: { select: { id: true, name: true, logoUrl: true } } },
+    });
+  }
 }

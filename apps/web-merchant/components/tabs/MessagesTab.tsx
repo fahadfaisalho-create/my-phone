@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Socket } from 'socket.io-client';
-import { apiFetch, ApiError } from '@/lib/api';
+import { apiFetch, ApiError, fileUrl } from '@/lib/api';
 import { getSocket } from '@/lib/socket';
 import { Chat, Message } from '@/lib/types';
 
@@ -14,8 +14,10 @@ export default function MessagesTab() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [text, setText] = useState('');
   const [connected, setConnected] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const socketRef = useRef<Socket | null>(null);
   const activeChatIdRef = useRef<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   async function loadChats() {
     setLoading(true);
@@ -77,6 +79,33 @@ export default function MessagesTab() {
     setText('');
   }
 
+  async function handleAttach(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || !activeChatId || !socketRef.current) return;
+    setUploading(true);
+    setError('');
+    try {
+      const form = new FormData();
+      form.append('chatImage', file);
+      const res = await apiFetch<{ imageUrl: string }>(`/chats/${activeChatId}/upload-image`, {
+        method: 'POST',
+        body: form,
+      });
+      socketRef.current.emit(
+        'message',
+        { chatId: activeChatId, imageUrl: res.imageUrl },
+        (ack: { ok: boolean; message?: string }) => {
+          if (!ack.ok) setError(typeof ack.message === 'string' ? ack.message : 'تعذّر إرسال الصورة');
+        },
+      );
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'تعذّر رفع الصورة');
+    } finally {
+      setUploading(false);
+    }
+  }
+
   if (loading) return <div className="card spinner-wrap">جارٍ التحميل...</div>;
 
   return (
@@ -117,11 +146,27 @@ export default function MessagesTab() {
                 <div className="chat-thread">
                   {messages.map((m) => (
                     <div key={m.id} className={`msg ${m.senderType === 'merchant' ? 'merchant' : 'consumer'}`}>
+                      {m.imageUrl && (
+                        <img
+                          src={fileUrl(m.imageUrl) || ''}
+                          alt="صورة"
+                          style={{ maxWidth: 180, borderRadius: 8, display: 'block', marginBottom: m.text ? 6 : 0 }}
+                        />
+                      )}
                       {m.text}
                     </div>
                   ))}
                 </div>
                 <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                  <input type="file" accept="image/*" ref={fileInputRef} style={{ display: 'none' }} onChange={handleAttach} />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                    style={{ padding: '0 12px' }}
+                  >
+                    {uploading ? '...' : '📎'}
+                  </button>
                   <input
                     placeholder="اكتب ردك..."
                     value={text}

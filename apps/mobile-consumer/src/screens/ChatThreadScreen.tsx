@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { FlatList, StyleSheet, Text, TextInput, View } from 'react-native';
+import { FlatList, Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import type { Socket } from 'socket.io-client';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@/navigation/types';
 import { getSocket } from '@/lib/socket';
+import { apiFetch, ApiError, fileUrl } from '@/lib/api';
 import { ChatMessage } from '@/lib/types';
 import { colors, fonts } from '@/theme/colors';
 import { ErrorText, PrimaryButton, ScreenLoading } from '@/components/ui';
@@ -17,6 +19,7 @@ export default function ChatThreadScreen({ route, navigation }: Props) {
   const [loading, setLoading] = useState(true);
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState('');
+  const [uploading, setUploading] = useState(false);
   const socketRef = useRef<Socket | null>(null);
   const listRef = useRef<FlatList>(null);
 
@@ -75,6 +78,53 @@ export default function ChatThreadScreen({ route, navigation }: Props) {
     setText('');
   }, [chatId, text]);
 
+  const handleAttach = useCallback(async () => {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (perm.status !== 'granted') {
+      setError('نحتاج إذن الوصول للصور لإرفاق صورة');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.7,
+    });
+    if (result.canceled || !result.assets?.[0]) return;
+    const asset = result.assets[0] as ImagePicker.ImagePickerAsset & { file?: File };
+
+    setUploading(true);
+    setError('');
+    try {
+      const form = new FormData();
+      if (asset.file) {
+        // ويب (Expo Web): الملف الفعلي متوفر جاهز
+        form.append('chatImage', asset.file);
+      } else {
+        // جوال (iOS/Android): نبني كائن الملف من الـ uri
+        form.append('chatImage', {
+          uri: asset.uri,
+          name: asset.fileName || 'chat-image.jpg',
+          type: asset.mimeType || 'image/jpeg',
+        } as unknown as Blob);
+      }
+      const res = await apiFetch<{ imageUrl: string }>(`/chats/${chatId}/upload-image`, {
+        method: 'POST',
+        body: form,
+      });
+      if (!socketRef.current) throw new Error('غير متصل');
+      socketRef.current.emit(
+        'message',
+        { chatId, imageUrl: res.imageUrl },
+        (ack: { ok: boolean; message?: string }) => {
+          if (!ack.ok) setError(typeof ack.message === 'string' ? ack.message : 'تعذّر إرسال الصورة');
+        },
+      );
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'تعذّر رفع الصورة');
+    } finally {
+      setUploading(false);
+    }
+  }, [chatId]);
+
   if (loading) return <ScreenLoading />;
 
   return (
@@ -89,14 +139,22 @@ export default function ChatThreadScreen({ route, navigation }: Props) {
         onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}
         renderItem={({ item }) => (
           <View style={[styles.bubble, item.senderType === 'consumer' ? styles.bubbleMine : styles.bubbleTheirs]}>
-            <Text style={item.senderType === 'consumer' ? styles.bubbleTextMine : styles.bubbleTextTheirs}>
-              {item.text}
-            </Text>
+            {item.imageUrl ? (
+              <Image source={{ uri: fileUrl(item.imageUrl) || undefined }} style={styles.bubbleImage} resizeMode="cover" />
+            ) : null}
+            {item.text ? (
+              <Text style={item.senderType === 'consumer' ? styles.bubbleTextMine : styles.bubbleTextTheirs}>
+                {item.text}
+              </Text>
+            ) : null}
           </View>
         )}
         ListEmptyComponent={<Text style={styles.empty}>ابدأ المحادثة بإرسال رسالة</Text>}
       />
       <View style={styles.inputRow}>
+        <Pressable style={styles.attachBtn} onPress={handleAttach} disabled={uploading}>
+          <Text style={styles.attachBtnText}>{uploading ? '...' : '📎'}</Text>
+        </Pressable>
         <TextInput
           style={styles.input}
           placeholder="اكتب رسالتك..."
@@ -120,6 +178,7 @@ const styles = StyleSheet.create({
   bubbleTheirs: { backgroundColor: colors.chipBg, alignSelf: 'flex-end', borderBottomRightRadius: 3 },
   bubbleTextMine: { color: '#fff', fontFamily: fonts.body, fontSize: 13.5, textAlign: 'right' },
   bubbleTextTheirs: { color: colors.text, fontFamily: fonts.body, fontSize: 13.5, textAlign: 'right' },
+  bubbleImage: { width: 180, height: 180, borderRadius: 10, marginBottom: 4 },
   empty: { textAlign: 'center', color: colors.muted, fontFamily: fonts.body, marginTop: 30 },
   inputRow: {
     flexDirection: 'row-reverse',
@@ -142,4 +201,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.text,
   },
+  attachBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FCFBF8',
+  },
+  attachBtnText: { fontSize: 18 },
 });

@@ -74,6 +74,11 @@ export class ChatService {
     return this.prisma.message.findMany({ where: { chatId }, orderBy: { createdAt: 'asc' } });
   }
 
+  // يستخدمه endpoint رفع صورة الشات للتحقق أن المستخدم طرف في المحادثة قبل قبول الملف
+  async assertParticipant(chatId: string, opts: { consumerId?: string; merchantOwnerUserId?: string }) {
+    await this.getChatForParticipant(chatId, opts);
+  }
+
   async sendMessage(
     chatId: string,
     senderType: SenderType,

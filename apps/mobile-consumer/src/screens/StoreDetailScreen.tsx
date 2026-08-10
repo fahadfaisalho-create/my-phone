@@ -19,6 +19,7 @@ export default function StoreDetailScreen({ route, navigation }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [reviewError, setReviewError] = useState('');
   const [contacting, setContacting] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const cart = useCart();
 
   async function load() {
@@ -86,6 +87,12 @@ export default function StoreDetailScreen({ route, navigation }: Props) {
 
   const logo = fileUrl(store.logoUrl);
   const showCartBar = cart.storeId === storeId && cart.items.length > 0;
+  const categories = Array.from(
+    new Set(store.products.map((p) => p.category?.trim()).filter((c): c is string => !!c)),
+  );
+  const visibleProducts = selectedCategory
+    ? store.products.filter((p) => (p.category?.trim() || null) === selectedCategory)
+    : store.products;
 
   return (
     <View style={styles.flex}>
@@ -151,8 +158,30 @@ export default function StoreDetailScreen({ route, navigation }: Props) {
         {store.products.length === 0 ? (
           <Text style={styles.mutedText}>لا يوجد منتجات</Text>
         ) : (
+          <>
+            {categories.length > 1 && (
+              <View style={styles.categoryRow}>
+                <Pressable
+                  style={[styles.categoryChip, !selectedCategory && styles.categoryChipOn]}
+                  onPress={() => setSelectedCategory(null)}
+                >
+                  <Text style={[styles.categoryChipText, !selectedCategory && styles.categoryChipTextOn]}>الكل</Text>
+                </Pressable>
+                {categories.map((c) => (
+                  <Pressable
+                    key={c}
+                    style={[styles.categoryChip, selectedCategory === c && styles.categoryChipOn]}
+                    onPress={() => setSelectedCategory(c)}
+                  >
+                    <Text style={[styles.categoryChipText, selectedCategory === c && styles.categoryChipTextOn]}>
+                      {c}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            )}
           <View style={styles.productGrid}>
-            {store.products.map((p) => {
+            {visibleProducts.map((p) => {
               const img = fileUrl(p.imageUrl);
               const inCart = cart.storeId === storeId && cart.items.some((i) => i.productId === p.id);
               return (
@@ -178,6 +207,7 @@ export default function StoreDetailScreen({ route, navigation }: Props) {
               );
             })}
           </View>
+          </>
         )}
       </Card>
 
@@ -260,6 +290,18 @@ const styles = StyleSheet.create({
     paddingRight: 8,
   },
   mutedText: { color: colors.muted, fontFamily: fonts.body, fontSize: 13, textAlign: 'right' },
+  categoryRow: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
+  categoryChip: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    backgroundColor: colors.card,
+  },
+  categoryChipOn: { backgroundColor: colors.teal, borderColor: colors.teal },
+  categoryChipText: { fontFamily: fonts.bodyMedium, fontSize: 12, color: colors.text },
+  categoryChipTextOn: { color: '#fff' },
   serviceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   serviceCard: { backgroundColor: colors.chipBg, borderRadius: 12, padding: 12, minWidth: 140, flexGrow: 1 },
   serviceName: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.text, textAlign: 'right' },

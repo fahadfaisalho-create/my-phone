@@ -7,7 +7,7 @@ import { AppModule } from './app.module';
 import { UPLOADS_ROOT } from './common/multer.config';
 
 function ensureUploadFolders() {
-  for (const sub of ['logos', 'cr', 'bank', 'products', 'misc']) {
+  for (const sub of ['logos', 'cr', 'bank', 'products', 'chat', 'misc']) {
     mkdirSync(join(process.cwd(), UPLOADS_ROOT, sub), { recursive: true });
   }
 }

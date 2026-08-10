@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@/navigation/types';
-import { apiFetch, ApiError, clearSession, getUser } from '@/lib/api';
+import { apiFetch, ApiError, getUser } from '@/lib/api';
 import { StoreListItem } from '@/lib/types';
 import { colors, fonts } from '@/theme/colors';
 import StoreCard from '@/components/StoreCard';
@@ -43,11 +43,6 @@ export default function HomeScreen({ navigation }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function handleLogout() {
-    await clearSession();
-    navigation.reset({ index: 0, routes: [{ name: 'OtpRequest' }] });
-  }
-
   return (
     <View style={styles.flex}>
       <View style={styles.topbar}>
@@ -55,8 +50,8 @@ export default function HomeScreen({ navigation }: Props) {
           <Text style={styles.brand}>منصة صيانة وبيع الجوالات</Text>
           {userName ? <Text style={styles.hello}>مرحباً {userName}</Text> : null}
         </View>
-        <Text style={styles.logout} onPress={handleLogout}>
-          خروج
+        <Text style={styles.logout} onPress={() => navigation.navigate('Profile')}>
+          👤 حسابي
         </Text>
       </View>
 

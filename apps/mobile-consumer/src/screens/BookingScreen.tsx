@@ -20,6 +20,7 @@ function dateLabel(offsetDays: number) {
 export default function BookingScreen({ route, navigation }: Props) {
   const { storeId, serviceId, serviceName } = route.params;
   const [branches, setBranches] = useState<StoreBranch[]>([]);
+  const [laborPrice, setLaborPrice] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [branchId, setBranchId] = useState<string | null>(null);
   const [dayOffset, setDayOffset] = useState<number | null>(null);
@@ -33,9 +34,14 @@ export default function BookingScreen({ route, navigation }: Props) {
   useEffect(() => {
     (async () => {
       try {
-        const store = await apiFetch<{ branches: StoreBranch[] }>(`/catalog/stores/${storeId}`);
+        const store = await apiFetch<{
+          branches: StoreBranch[];
+          services: { id: string; laborPrice: string }[];
+        }>(`/catalog/stores/${storeId}`);
         setBranches(store.branches);
         if (store.branches.length === 1) setBranchId(store.branches[0].id);
+        const svc = store.services.find((s) => s.id === serviceId);
+        if (svc) setLaborPrice(svc.laborPrice);
       } catch (err) {
         setError(err instanceof ApiError ? err.message : 'تعذّر تحميل الفروع');
       } finally {
@@ -86,6 +92,7 @@ export default function BookingScreen({ route, navigation }: Props) {
     <ScrollView style={styles.flex} contentContainerStyle={{ padding: 16 }}>
       <Card>
         <Text style={styles.title}>حجز: {serviceName}</Text>
+        {laborPrice ? <Text style={styles.priceNote}>شغل يد {laborPrice} ﷼ (قد يضاف سعر قطع الغيار عند الفحص)</Text> : null}
 
         <Text style={styles.label}>الفرع</Text>
         <View style={styles.chipsRow}>
@@ -133,7 +140,8 @@ export default function BookingScreen({ route, navigation }: Props) {
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg, padding: 20 },
-  title: { fontFamily: fonts.heading, fontSize: 16, color: colors.ink, textAlign: 'right', marginBottom: 16 },
+  title: { fontFamily: fonts.heading, fontSize: 16, color: colors.ink, textAlign: 'right', marginBottom: 4 },
+  priceNote: { fontFamily: fonts.body, fontSize: 12, color: colors.muted, textAlign: 'right', marginBottom: 16 },
   label: { fontFamily: fonts.bodyMedium, fontSize: 12.5, color: colors.muted, textAlign: 'right', marginBottom: 8 },
   chipsRow: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
   chip: {

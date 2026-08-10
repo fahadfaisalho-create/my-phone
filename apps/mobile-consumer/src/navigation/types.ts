@@ -10,4 +10,5 @@ export type RootStackParamList = {
   Cart: { storeId: string; storeName: string };
   MyOrders: undefined;
   Support: undefined;
+  Profile: undefined;
 };

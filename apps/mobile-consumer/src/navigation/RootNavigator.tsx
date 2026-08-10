@@ -12,6 +12,7 @@ import MyBookingsScreen from '@/screens/MyBookingsScreen';
 import CartScreen from '@/screens/CartScreen';
 import MyOrdersScreen from '@/screens/MyOrdersScreen';
 import SupportScreen from '@/screens/SupportScreen';
+import ProfileScreen from '@/screens/ProfileScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -38,6 +39,7 @@ export default function RootNavigator({ initialRoute }: { initialRoute: 'Home' |
       <Stack.Screen name="Cart" component={CartScreen} options={{ title: 'السلة' }} />
       <Stack.Screen name="MyOrders" component={MyOrdersScreen} options={{ title: 'طلباتي' }} />
       <Stack.Screen name="Support" component={SupportScreen} options={{ title: 'الدعم' }} />
+      <Stack.Screen name="Profile" component={ProfileScreen} options={{ title: 'حسابي' }} />
     </Stack.Navigator>
   );
 }
