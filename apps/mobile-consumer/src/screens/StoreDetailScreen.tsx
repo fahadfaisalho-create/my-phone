@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Image, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@/navigation/types';
 import { apiFetch, ApiError, fileUrl } from '@/lib/api';
@@ -92,6 +92,11 @@ export default function StoreDetailScreen({ route, navigation }: Props) {
     cart.addItem(storeId, store.name, product);
   }
 
+  function openInMaps(query: string) {
+    const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+    Linking.openURL(url).catch(() => undefined);
+  }
+
   if (error) {
     return (
       <View style={styles.center}>
@@ -138,6 +143,32 @@ export default function StoreDetailScreen({ route, navigation }: Props) {
             <SecondaryButton title={contacting ? 'جارٍ الفتح...' : '💬 تواصل مع المحل'} onPress={handleContact} />
           )}
           <View style={{ height: 14 }} />
+
+          {store.branches.length > 0 && (
+            <Card>
+              <Text style={styles.sectionTitle}>الفروع</Text>
+              {store.branches.map((b) => (
+                <View style={styles.branchRow} key={b.id}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.branchName}>📍 {b.name}</Text>
+                    {b.address ? (
+                      <Text style={styles.branchAddress}>{b.address}</Text>
+                    ) : (
+                      <Text style={styles.branchAddressMuted}>لم يحدد المحل عنوان هذا الفرع بعد</Text>
+                    )}
+                  </View>
+                  {b.address && (
+                    <Pressable
+                      style={styles.mapsBtn}
+                      onPress={() => openInMaps(`${store.name} ${b.address}`)}
+                    >
+                      <Text style={styles.mapsBtnText}>افتح بالخرائط</Text>
+                    </Pressable>
+                  )}
+                </View>
+              ))}
+            </Card>
+          )}
 
           <Card>
             <Text style={styles.sectionTitle}>الخدمات</Text>
@@ -319,6 +350,33 @@ const styles = StyleSheet.create({
     paddingRight: 8,
   },
   mutedText: { color: colors.muted, fontFamily: fonts.body, fontSize: 13, textAlign: 'right' },
+  branchRow: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  branchName: { fontFamily: fonts.bodySemi, fontSize: 13.5, color: colors.text, textAlign: 'right' },
+  branchAddress: { fontFamily: fonts.body, fontSize: 12, color: colors.muted, textAlign: 'right', marginTop: 3 },
+  branchAddressMuted: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.muted,
+    textAlign: 'right',
+    marginTop: 3,
+    fontStyle: 'italic',
+  },
+  mapsBtn: {
+    borderWidth: 1,
+    borderColor: colors.teal,
+    borderRadius: radius.sm,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  mapsBtnText: { color: colors.tealDark, fontFamily: fonts.bodyMedium, fontSize: 11.5 },
   categoryRow: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
   categoryChip: {
     borderWidth: 1,
