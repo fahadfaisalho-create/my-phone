@@ -15,6 +15,7 @@ import OrdersTab from '@/components/tabs/OrdersTab';
 import MessagesTab from '@/components/tabs/MessagesTab';
 import StatsTab from '@/components/tabs/StatsTab';
 import SupportTab from '@/components/tabs/SupportTab';
+import SettingsTab from '@/components/tabs/SettingsTab';
 
 const TABS = [
   { key: 'branches', label: 'الفروع' },
@@ -26,6 +27,7 @@ const TABS = [
   { key: 'messages', label: 'الرسائل' },
   { key: 'stats', label: 'الإحصائيات' },
   { key: 'support', label: 'الدعم' },
+  { key: 'settings', label: 'الإعدادات' },
 ] as const;
 
 type TabKey = (typeof TABS)[number]['key'];
@@ -114,6 +116,7 @@ export default function DashboardPage() {
       {tab === 'messages' && <MessagesTab />}
       {tab === 'stats' && <StatsTab />}
       {tab === 'support' && <SupportTab />}
+      {tab === 'settings' && <SettingsTab />}
     </div>
   );
 }

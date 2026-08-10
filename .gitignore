@@ -13,3 +13,4 @@ apps/api/uploads/
 next-env.d.ts
 expo-env.d.ts
 web-build/
+*.tsbuildinfo

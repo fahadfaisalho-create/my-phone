@@ -72,6 +72,46 @@ export class AdminService {
     return this.prisma.store.update({ where: { id }, data: { status: 'active' } });
   }
 
+  // تقارير/إحصائيات عامة للإدمن: أعداد المحلات حسب الحالة، الطلبات، الحجوزات،
+  // إيراد الاشتراكات والطلبات المدفوعة، وتذاكر الدعم حسب الحالة.
+  async getStats() {
+    const [
+      storesByStatus,
+      ordersCount,
+      paidOrders,
+      bookingsByStatus,
+      paidSubscriptions,
+      unpaidSubscriptions,
+      ticketsByStatus,
+    ] = await Promise.all([
+      this.prisma.store.groupBy({ by: ['status'], _count: { _all: true } }),
+      this.prisma.order.count(),
+      this.prisma.order.findMany({ where: { paymentStatus: 'paid' }, select: { total: true } }),
+      this.prisma.booking.groupBy({ by: ['status'], _count: { _all: true } }),
+      this.prisma.subscription.findMany({ where: { paidAt: { not: null } }, select: { price: true } }),
+      this.prisma.subscription.count({ where: { paidAt: null } }),
+      this.prisma.supportTicket.groupBy({ by: ['status'], _count: { _all: true } }),
+    ]);
+
+    const countByKey = <K extends string>(rows: { status: K; _count: { _all: number } }[]) =>
+      rows.reduce((acc, r) => ({ ...acc, [r.status]: r._count._all }), {} as Record<K, number>);
+
+    const sum = (rows: { total?: unknown; price?: unknown }[], key: 'total' | 'price') =>
+      rows.reduce((acc, r) => acc + Number(r[key] ?? 0), 0);
+
+    return {
+      stores: countByKey(storesByStatus as any),
+      orders: { total: ordersCount, paidCount: paidOrders.length, paidRevenue: sum(paidOrders, 'total') },
+      bookings: countByKey(bookingsByStatus as any),
+      subscriptions: {
+        paidCount: paidSubscriptions.length,
+        paidRevenue: sum(paidSubscriptions, 'price'),
+        unpaidCount: unpaidSubscriptions,
+      },
+      supportTickets: countByKey(ticketsByStatus as any),
+    };
+  }
+
   // تأكيد/إلغاء تأكيد استلام دفع فاتورة الاشتراك يدوياً من الإدمن
   // (بديل مؤقت لحد ربط بوابة دفع فعلية — مطابق لملاحظة "الدفع يُحدَّد لاحقاً" في المواصفات)
   async setSubscriptionPaid(subscriptionId: string, paid: boolean) {
