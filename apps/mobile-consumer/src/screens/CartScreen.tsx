@@ -3,6 +3,7 @@ import { FlatList, StyleSheet, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@/navigation/types';
 import { apiFetch, ApiError } from '@/lib/api';
+import { requireAuth } from '@/lib/authGuard';
 import { colors, fonts } from '@/theme/colors';
 import { Card, ErrorText, PrimaryButton, SecondaryButton } from '@/components/ui';
 import { useCart } from '@/lib/CartContext';
@@ -25,6 +26,7 @@ export default function CartScreen({ route, navigation }: Props) {
   const [paid, setPaid] = useState(false);
 
   async function handlePlaceOrder() {
+    if (!(await requireAuth(navigation, { screen: 'Cart', params: { storeId, storeName: route.params.storeName } }))) return;
     setError('');
     setPlacing(true);
     try {

@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@/navigation/types';
 import { apiFetch, ApiError } from '@/lib/api';
+import { requireAuth } from '@/lib/authGuard';
 import { StoreBranch, VisitType } from '@/lib/types';
 import { colors, fonts } from '@/theme/colors';
 import { Card, ErrorText, PrimaryButton, ScreenLoading } from '@/components/ui';
@@ -73,6 +74,7 @@ export default function BookingScreen({ route, navigation }: Props) {
   }, [storeId]);
 
   async function handleSubmit() {
+    if (!(await requireAuth(navigation, { screen: 'StoreDetail', params: { storeId } }))) return;
     if (!branchId || dayOffset === null || !time) {
       setError('اختر الفرع والتاريخ والوقت');
       return;

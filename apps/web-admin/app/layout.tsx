@@ -17,7 +17,7 @@ const ibmPlexArabic = IBM_Plex_Sans_Arabic({
 });
 
 export const metadata: Metadata = {
-  title: 'لوحة تحكم الإدارة — منصة صيانة وبيع الجوالات',
+  title: 'لوحة تحكم الإدارة — My Phone',
   description: 'مراجعة طلبات تسجيل المحلات وإدارة الاشتراكات',
 };
 

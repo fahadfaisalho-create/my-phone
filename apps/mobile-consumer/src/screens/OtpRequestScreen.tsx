@@ -4,12 +4,13 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@/navigation/types';
 import { apiFetch, ApiError } from '@/lib/api';
 import { colors, fonts } from '@/theme/colors';
-import { Card, ErrorText, Note, PrimaryButton } from '@/components/ui';
+import { Card, ErrorText, LinkButton, Note, PrimaryButton } from '@/components/ui';
 import TextField from '@/components/TextField';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'OtpRequest'>;
 
-export default function OtpRequestScreen({ navigation }: Props) {
+export default function OtpRequestScreen({ navigation, route }: Props) {
+  const returnTo = route.params?.returnTo;
   const [phone, setPhone] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -26,7 +27,7 @@ export default function OtpRequestScreen({ navigation }: Props) {
         method: 'POST',
         body: JSON.stringify({ phone: phone.trim() }),
       });
-      navigation.navigate('OtpVerify', { phone: phone.trim(), devOtp: res.devOtp });
+      navigation.navigate('OtpVerify', { phone: phone.trim(), devOtp: res.devOtp, returnTo });
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'تعذّر الاتصال بالخادم');
     } finally {
@@ -40,7 +41,7 @@ export default function OtpRequestScreen({ navigation }: Props) {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.brand}>منصة صيانة وبيع الجوالات</Text>
+        <Text style={styles.brand}>📱 My Phone</Text>
         <Card style={{ marginTop: 30 }}>
           <Text style={styles.title}>تسجيل الدخول</Text>
           <Note>سنرسل لك رمز تحقق مكوّن من 6 أرقام عبر رسالة SMS</Note>
@@ -53,6 +54,7 @@ export default function OtpRequestScreen({ navigation }: Props) {
           />
           {error ? <ErrorText>{error}</ErrorText> : null}
           <PrimaryButton title="إرسال رمز التحقق" onPress={handleSubmit} loading={loading} />
+          {navigation.canGoBack() && <LinkButton title="متابعة التصفح بدون تسجيل" onPress={() => navigation.goBack()} />}
         </Card>
       </ScrollView>
     </KeyboardAvoidingView>

@@ -15,7 +15,7 @@ interface VerifyResponse {
 }
 
 export default function OtpVerifyScreen({ route, navigation }: Props) {
-  const { phone, devOtp } = route.params;
+  const { phone, devOtp, returnTo } = route.params;
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
   const [error, setError] = useState('');
@@ -34,7 +34,14 @@ export default function OtpVerifyScreen({ route, navigation }: Props) {
         body: JSON.stringify({ phone, code: code.trim(), name: name.trim() || undefined }),
       });
       await setSession(res.accessToken, res.user);
-      navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
+      if (returnTo) {
+        navigation.reset({
+          index: 1,
+          routes: [{ name: 'Home' }, { name: returnTo.screen, params: returnTo.params } as never],
+        });
+      } else {
+        navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
+      }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'تعذّر التحقق من الرمز');
     } finally {

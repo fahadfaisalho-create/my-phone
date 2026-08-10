@@ -1,9 +1,40 @@
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, fonts } from '@/theme/colors';
+import { useEffect, useRef } from 'react';
+import { Animated, ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { colors, fonts, radius } from '@/theme/colors';
 import { cardShadow } from '@/theme/shadow';
 
 export function Card({ children, style }: { children: React.ReactNode; style?: any }) {
   return <View style={[styles.card, style]}>{children}</View>;
+}
+
+// حالة فارغة موحّدة (أيقونة + نص) بدل نص باهت وحيد — تُستخدم بكل القوائم الفاضية
+export function EmptyState({ icon = '📭', text }: { icon?: string; text: string }) {
+  return (
+    <View style={styles.emptyState}>
+      <Text style={styles.emptyIcon}>{icon}</Text>
+      <Text style={styles.emptyText}>{text}</Text>
+    </View>
+  );
+}
+
+// شريط تحميل نابض بديل عن سبينر وحيد — يعطي إحساس أحدث أثناء تحميل القوائم
+export function Skeleton({ width = '100%', height = 14, style }: { width?: number | string; height?: number; style?: any }) {
+  const opacity = useRef(new Animated.Value(0.4)).current;
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(opacity, { toValue: 1, duration: 650, useNativeDriver: true }),
+        Animated.timing(opacity, { toValue: 0.4, duration: 650, useNativeDriver: true }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [opacity]);
+  return (
+    <Animated.View
+      style={[{ width: width as any, height, borderRadius: 8, backgroundColor: colors.chipBg, opacity }, style]}
+    />
+  );
 }
 
 export function PrimaryButton({
@@ -109,15 +140,18 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 14,
+    borderRadius: radius.md,
     padding: 18,
     marginBottom: 14,
     ...cardShadow,
   },
+  emptyState: { alignItems: 'center', paddingVertical: 36 },
+  emptyIcon: { fontSize: 34, marginBottom: 10, opacity: 0.55 },
+  emptyText: { color: colors.muted, fontFamily: fonts.body, fontSize: 13, textAlign: 'center' },
   primaryBtn: {
     backgroundColor: colors.teal,
-    borderRadius: 10,
-    paddingVertical: 13,
+    borderRadius: radius.sm,
+    paddingVertical: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -126,7 +160,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 10,
+    borderRadius: radius.sm,
     paddingVertical: 12,
     alignItems: 'center',
     justifyContent: 'center',
@@ -152,7 +186,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.tealBg,
     borderWidth: 1,
     borderColor: '#BFE6DF',
-    borderRadius: 10,
+    borderRadius: radius.sm,
     padding: 12,
     marginBottom: 14,
   },

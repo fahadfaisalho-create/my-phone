@@ -4,7 +4,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@/navigation/types';
 import { apiFetch, ApiError, clearSession, getUser } from '@/lib/api';
 import { colors, fonts } from '@/theme/colors';
-import { Card, ErrorText, PrimaryButton, Stars } from '@/components/ui';
+import { Card, EmptyState, ErrorText, PrimaryButton, Stars } from '@/components/ui';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Profile'>;
 
@@ -66,7 +66,7 @@ export default function ProfileScreen({ navigation }: Props) {
           </>
         }
         ListEmptyComponent={
-          !loading ? <Text style={styles.empty}>لم تقيّم أي محل بعد</Text> : null
+          !loading ? <EmptyState icon="⭐" text="لم تقيّم أي محل بعد" /> : null
         }
         renderItem={({ item }) => (
           <View style={styles.reviewCard}>

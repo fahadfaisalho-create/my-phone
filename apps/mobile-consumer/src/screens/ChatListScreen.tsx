@@ -5,7 +5,7 @@ import type { RootStackParamList } from '@/navigation/types';
 import { apiFetch, ApiError, fileUrl } from '@/lib/api';
 import { ChatListItem } from '@/lib/types';
 import { colors, fonts } from '@/theme/colors';
-import { ErrorText, ScreenLoading } from '@/components/ui';
+import { EmptyState, ErrorText, ScreenLoading } from '@/components/ui';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ChatList'>;
 
@@ -39,7 +39,7 @@ export default function ChatListScreen({ navigation }: Props) {
         data={chats}
         keyExtractor={(c) => c.id}
         contentContainerStyle={{ padding: 12 }}
-        ListEmptyComponent={<Text style={styles.empty}>لا يوجد محادثات بعد</Text>}
+        ListEmptyComponent={<EmptyState icon="💬" text="لا يوجد محادثات بعد" />}
         renderItem={({ item }) => {
           const logo = fileUrl(item.store.logoUrl);
           const last = item.messages?.[0];

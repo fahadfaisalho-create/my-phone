@@ -2,7 +2,7 @@
   "name": "api",
   "version": "0.1.0",
   "private": true,
-  "description": "Backend API لمنصة صيانة وبيع الجوالات (NestJS + Prisma + PostgreSQL)",
+  "description": "Backend API لمنصة My Phone لصيانة وبيع الجوالات (NestJS + Prisma + PostgreSQL)",
   "scripts": {
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\"",

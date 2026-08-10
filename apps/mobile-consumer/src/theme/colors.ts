@@ -21,6 +21,14 @@ export const colors = {
   white: '#FFFFFF',
 };
 
+// مقياس انحناء موحّد للبطاقات والأزرار — يعطي شكل أحدث وأكثر نعومة
+export const radius = {
+  sm: 10,
+  md: 14,
+  lg: 20,
+  xl: 26,
+};
+
 export const fonts = {
   heading: 'Cairo_700Bold',
   headingExtra: 'Cairo_800ExtraBold',

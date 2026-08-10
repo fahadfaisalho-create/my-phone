@@ -2,13 +2,21 @@ import { useCallback, useEffect, useState } from 'react';
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@/navigation/types';
-import { apiFetch, ApiError, getUser } from '@/lib/api';
+import { apiFetch, ApiError, getToken, getUser } from '@/lib/api';
+import { requireAuth } from '@/lib/authGuard';
 import { StoreListItem } from '@/lib/types';
-import { colors, fonts } from '@/theme/colors';
+import { colors, fonts, radius } from '@/theme/colors';
 import StoreCard from '@/components/StoreCard';
-import { ErrorText } from '@/components/ui';
+import { EmptyState, ErrorText, Skeleton } from '@/components/ui';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
+
+const QUICK_LINKS: { icon: string; label: string; screen: keyof RootStackParamList }[] = [
+  { icon: '💬', label: 'محادثاتي', screen: 'ChatList' },
+  { icon: '📅', label: 'حجوزاتي', screen: 'MyBookings' },
+  { icon: '🧾', label: 'طلباتي', screen: 'MyOrders' },
+  { icon: '🆘', label: 'الدعم', screen: 'Support' },
+];
 
 export default function HomeScreen({ navigation }: Props) {
   const [stores, setStores] = useState<StoreListItem[]>([]);
@@ -17,10 +25,18 @@ export default function HomeScreen({ navigation }: Props) {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [userName, setUserName] = useState('');
+  const [loggedIn, setLoggedIn] = useState(false);
+
+  const refreshSession = useCallback(() => {
+    getUser().then((u) => setUserName(u?.name || ''));
+    getToken().then((t) => setLoggedIn(!!t));
+  }, []);
 
   useEffect(() => {
-    getUser().then((u) => setUserName(u?.name || ''));
-  }, []);
+    const unsub = navigation.addListener('focus', refreshSession);
+    refreshSession();
+    return unsub;
+  }, [navigation, refreshSession]);
 
   const load = useCallback(async (query?: string) => {
     setError('');
@@ -43,45 +59,61 @@ export default function HomeScreen({ navigation }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  async function handleProfilePress() {
+    if (!(await requireAuth(navigation, { screen: 'Home' }))) return;
+    navigation.navigate('Profile');
+  }
+
+  async function handleQuickLink(screen: keyof RootStackParamList) {
+    if (!(await requireAuth(navigation, { screen }))) return;
+    navigation.navigate(screen as never);
+  }
+
   return (
     <View style={styles.flex}>
       <View style={styles.topbar}>
         <View>
-          <Text style={styles.brand}>منصة صيانة وبيع الجوالات</Text>
-          {userName ? <Text style={styles.hello}>مرحباً {userName}</Text> : null}
+          <Text style={styles.brand}>📱 My Phone</Text>
+          <Text style={styles.hello}>{loggedIn && userName ? `مرحباً، ${userName}` : 'مرحباً بك 👋'}</Text>
         </View>
-        <Text style={styles.logout} onPress={() => navigation.navigate('Profile')}>
-          👤 حسابي
-        </Text>
+        <Pressable
+          style={({ pressed }) => [styles.profileBtn, pressed && { opacity: 0.85 }]}
+          onPress={handleProfilePress}
+        >
+          <Text style={styles.profileBtnText}>👤 {loggedIn ? 'حسابي' : 'دخول'}</Text>
+        </Pressable>
+      </View>
+
+      <View style={styles.searchWrap}>
+        <Text style={styles.searchIcon}>🔍</Text>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="ابحث عن محل صيانة أو بيع جوالات..."
+          placeholderTextColor={colors.muted}
+          textAlign="right"
+          value={search}
+          onChangeText={setSearch}
+          onSubmitEditing={() => load(search)}
+          returnKeyType="search"
+        />
       </View>
 
       <View style={styles.quickLinks}>
-        <Pressable style={styles.quickLink} onPress={() => navigation.navigate('ChatList')}>
-          <Text style={styles.quickLinkText}>💬 محادثاتي</Text>
-        </Pressable>
-        <Pressable style={styles.quickLink} onPress={() => navigation.navigate('MyBookings')}>
-          <Text style={styles.quickLinkText}>📅 حجوزاتي</Text>
-        </Pressable>
-        <Pressable style={styles.quickLink} onPress={() => navigation.navigate('MyOrders')}>
-          <Text style={styles.quickLinkText}>🧾 طلباتي</Text>
-        </Pressable>
-        <Pressable style={styles.quickLink} onPress={() => navigation.navigate('Support')}>
-          <Text style={styles.quickLinkText}>🆘 الدعم</Text>
-        </Pressable>
+        {QUICK_LINKS.map((q) => (
+          <Pressable
+            key={q.screen}
+            style={({ pressed }) => [styles.quickLink, pressed && styles.quickLinkPressed]}
+            onPress={() => handleQuickLink(q.screen)}
+          >
+            <Text style={styles.quickLinkIcon}>{q.icon}</Text>
+            <Text style={styles.quickLinkText}>{q.label}</Text>
+          </Pressable>
+        ))}
       </View>
 
-      <TextInput
-        style={styles.search}
-        placeholder="ابحث عن محل..."
-        placeholderTextColor={colors.muted}
-        textAlign="right"
-        value={search}
-        onChangeText={setSearch}
-        onSubmitEditing={() => load(search)}
-        returnKeyType="search"
-      />
-
       {error ? <ErrorText>{error}</ErrorText> : null}
+
+      <Text style={styles.listTitle}>المحلات المتاحة</Text>
 
       <FlatList
         data={stores}
@@ -102,11 +134,24 @@ export default function HomeScreen({ navigation }: Props) {
           <StoreCard store={item} onPress={() => navigation.navigate('StoreDetail', { storeId: item.id })} />
         )}
         ListEmptyComponent={
-          !loading ? (
-            <Text style={styles.empty}>
-              {search ? 'لا يوجد نتائج مطابقة' : 'لا يوجد محلات نشطة بعد'}
-            </Text>
-          ) : null
+          loading ? (
+            <View style={styles.skeletonGrid}>
+              {[1, 2, 3, 4].map((n) => (
+                <View key={n} style={styles.skeletonCard}>
+                  <Skeleton height={108} style={{ borderRadius: 0 }} />
+                  <View style={{ padding: 12, gap: 8 }}>
+                    <Skeleton height={13} width="70%" />
+                    <Skeleton height={11} width="50%" />
+                  </View>
+                </View>
+              ))}
+            </View>
+          ) : (
+            <EmptyState
+              icon={search ? '🔍' : '🏬'}
+              text={search ? 'لا يوجد نتائج مطابقة' : 'لا يوجد محلات نشطة بعد'}
+            />
+          )
         }
       />
     </View>
@@ -122,55 +167,77 @@ const styles = StyleSheet.create({
     backgroundColor: colors.ink,
     paddingHorizontal: 18,
     paddingTop: 54,
-    paddingBottom: 16,
+    paddingBottom: 22,
+    borderBottomLeftRadius: radius.lg,
+    borderBottomRightRadius: radius.lg,
   },
-  brand: { fontFamily: fonts.headingSemi, fontSize: 15, color: '#fff', textAlign: 'right' },
-  hello: { fontFamily: fonts.body, fontSize: 12, color: 'rgba(255,255,255,0.75)', textAlign: 'right', marginTop: 2 },
-  logout: {
-    color: '#fff',
-    fontFamily: fonts.bodyMedium,
-    fontSize: 13,
-    backgroundColor: 'rgba(255,255,255,0.12)',
+  brand: { fontFamily: fonts.headingExtra, fontSize: 18, color: '#fff', textAlign: 'right' },
+  hello: { fontFamily: fonts.body, fontSize: 12.5, color: 'rgba(255,255,255,0.75)', textAlign: 'right', marginTop: 3 },
+  profileBtn: {
+    backgroundColor: 'rgba(255,255,255,0.14)',
     paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 8,
-    overflow: 'hidden',
+    paddingVertical: 9,
+    borderRadius: radius.sm,
+  },
+  profileBtnText: { color: '#fff', fontFamily: fonts.bodyMedium, fontSize: 13 },
+  searchWrap: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    backgroundColor: colors.card,
+    marginHorizontal: 16,
+    marginTop: -22,
+    borderRadius: radius.md,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
+    boxShadow: '0 6px 16px rgba(16,27,46,0.10)',
+  } as any,
+  searchIcon: { fontSize: 15, marginLeft: 8 },
+  searchInput: {
+    flex: 1,
+    paddingVertical: 13,
+    fontFamily: fonts.body,
+    fontSize: 14,
+    color: colors.text,
   },
   quickLinks: {
     flexDirection: 'row-reverse',
     gap: 10,
     paddingHorizontal: 16,
-    paddingTop: 14,
+    paddingTop: 16,
   },
   quickLink: {
     flex: 1,
     backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 10,
-    paddingVertical: 10,
+    borderRadius: radius.md,
+    paddingVertical: 12,
     alignItems: 'center',
+    gap: 4,
   },
-  quickLinkText: { fontFamily: fonts.bodyMedium, fontSize: 12, color: colors.text },
-  search: {
-    margin: 16,
-    marginBottom: 8,
+  quickLinkPressed: { backgroundColor: colors.chipBg },
+  quickLinkIcon: { fontSize: 18 },
+  quickLinkText: { fontFamily: fonts.bodyMedium, fontSize: 11.5, color: colors.text },
+  listTitle: {
+    fontFamily: fonts.headingSemi,
+    fontSize: 15,
+    color: colors.ink,
+    textAlign: 'right',
+    marginTop: 20,
+    marginBottom: 4,
+    paddingHorizontal: 16,
+  },
+  listContent: { paddingHorizontal: 10, paddingBottom: 30, paddingTop: 6 },
+  skeletonGrid: { flexDirection: 'row', flexWrap: 'wrap' },
+  skeletonCard: {
+    flex: 1,
+    minWidth: '45%',
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    overflow: 'hidden',
+    margin: 6,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    backgroundColor: '#fff',
-    fontFamily: fonts.body,
-    fontSize: 14,
-    color: colors.text,
-  },
-  listContent: { paddingHorizontal: 10, paddingBottom: 30 },
-  empty: {
-    textAlign: 'center',
-    color: colors.muted,
-    fontFamily: fonts.body,
-    fontSize: 13,
-    marginTop: 40,
   },
 });

@@ -5,7 +5,7 @@ import type { RootStackParamList } from '@/navigation/types';
 import { apiFetch, ApiError } from '@/lib/api';
 import { confirmAsync } from '@/lib/confirm';
 import { colors, fonts } from '@/theme/colors';
-import { Badge, ErrorText, ScreenLoading } from '@/components/ui';
+import { Badge, EmptyState, ErrorText, ScreenLoading } from '@/components/ui';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'MyBookings'>;
 
@@ -86,7 +86,7 @@ export default function MyBookingsScreen({}: Props) {
         data={bookings}
         keyExtractor={(b) => b.id}
         contentContainerStyle={{ padding: 14 }}
-        ListEmptyComponent={<Text style={styles.empty}>لا يوجد حجوزات بعد</Text>}
+        ListEmptyComponent={<EmptyState icon="📅" text="لا يوجد حجوزات بعد" />}
         renderItem={({ item }) => (
           <View style={styles.card}>
             <View style={styles.rowTop}>

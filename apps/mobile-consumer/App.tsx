@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import { I18nManager } from 'react-native';
@@ -16,7 +15,6 @@ import {
 } from '@expo-google-fonts/ibm-plex-sans-arabic';
 import RootNavigator from '@/navigation/RootNavigator';
 import { ScreenLoading } from '@/components/ui';
-import { getToken } from '@/lib/api';
 import { CartProvider } from '@/lib/CartContext';
 
 // يُفعَّل RTL على مستوى نظام التشغيل عند البناء الأصلي (يحتاج إعادة تشغيل)؛
@@ -30,21 +28,17 @@ export default function App() {
     IBMPlexSansArabic_500Medium,
     IBMPlexSansArabic_600SemiBold,
   });
-  const [initialRoute, setInitialRoute] = useState<'Home' | 'OtpRequest' | null>(null);
-
-  useEffect(() => {
-    getToken().then((token) => setInitialRoute(token ? 'Home' : 'OtpRequest'));
-  }, []);
-
-  if (!cairoLoaded || !ibmLoaded || !initialRoute) {
+  if (!cairoLoaded || !ibmLoaded) {
     return <ScreenLoading />;
   }
 
+  // التصفح مفتوح للجميع بدون تسجيل دخول — الشاشة الرئيسية دائماً نقطة البداية.
+  // تسجيل الدخول يُطلب فقط عند إجراء فعلي (إضافة للسلة، حجز، شات، تقييم...) عبر requireAuth.
   return (
     <CartProvider>
       <NavigationContainer>
         <StatusBar style="light" />
-        <RootNavigator initialRoute={initialRoute} />
+        <RootNavigator initialRoute="Home" />
       </NavigationContainer>
     </CartProvider>
   );

@@ -4,7 +4,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@/navigation/types';
 import { apiFetch, ApiError } from '@/lib/api';
 import { colors, fonts } from '@/theme/colors';
-import { Badge, Card, ErrorText, PrimaryButton } from '@/components/ui';
+import { Badge, Card, EmptyState, ErrorText, PrimaryButton } from '@/components/ui';
 import TextField from '@/components/TextField';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Support'>;
@@ -89,7 +89,7 @@ export default function SupportScreen({}: Props) {
           </Card>
         }
         ListEmptyComponent={
-          !loading ? <Text style={styles.empty}>لا يوجد تذاكر بعد</Text> : null
+          !loading ? <EmptyState icon="🆘" text="لا يوجد تذاكر بعد" /> : null
         }
         renderItem={({ item }) => (
           <View style={styles.row}>

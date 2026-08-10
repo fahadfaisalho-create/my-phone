@@ -3,8 +3,9 @@ import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@/navigation/types';
 import { apiFetch, ApiError, fileUrl } from '@/lib/api';
+import { requireAuth } from '@/lib/authGuard';
 import { DEVICE_LABEL, StoreDetail } from '@/lib/types';
-import { colors, fonts } from '@/theme/colors';
+import { colors, fonts, radius } from '@/theme/colors';
 import { Badge, Card, ErrorText, PrimaryButton, ScreenLoading, SecondaryButton, Stars } from '@/components/ui';
 import { useCart } from '@/lib/CartContext';
 
@@ -41,6 +42,7 @@ export default function StoreDetailScreen({ route, navigation }: Props) {
   }, [store, navigation]);
 
   async function submitReview() {
+    if (!(await requireAuth(navigation, { screen: 'StoreDetail', params: { storeId } }))) return;
     if (!chosenRating) {
       setReviewError('اختر عدد النجوم أولاً');
       return;
@@ -53,6 +55,7 @@ export default function StoreDetailScreen({ route, navigation }: Props) {
         body: JSON.stringify({ rating: chosenRating, comment: comment.trim() || undefined }),
       });
       setComment('');
+      setChosenRating(0);
       await load();
     } catch (err) {
       setReviewError(err instanceof ApiError ? err.message : 'تعذّر إرسال التقييم');
@@ -62,6 +65,7 @@ export default function StoreDetailScreen({ route, navigation }: Props) {
   }
 
   async function handleContact() {
+    if (!(await requireAuth(navigation, { screen: 'StoreDetail', params: { storeId } }))) return;
     setContacting(true);
     try {
       const chat = await apiFetch<{ id: string }>('/chats', {
@@ -76,9 +80,22 @@ export default function StoreDetailScreen({ route, navigation }: Props) {
     }
   }
 
+  async function handleBook(serviceId: string, serviceName: string) {
+    if (!store) return;
+    if (!(await requireAuth(navigation, { screen: 'StoreDetail', params: { storeId } }))) return;
+    navigation.navigate('Booking', { storeId, storeName: store.name, serviceId, serviceName });
+  }
+
+  async function handleAddToCart(product: StoreDetail['products'][number]) {
+    if (!store) return;
+    if (!(await requireAuth(navigation, { screen: 'StoreDetail', params: { storeId } }))) return;
+    cart.addItem(storeId, store.name, product);
+  }
+
   if (error) {
     return (
       <View style={styles.center}>
+        <Text style={styles.errorIcon}>😕</Text>
         <ErrorText>{error}</ErrorText>
       </View>
     );
@@ -96,169 +113,168 @@ export default function StoreDetailScreen({ route, navigation }: Props) {
 
   return (
     <View style={styles.flex}>
-    <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: showCartBar ? 90 : 16 }}>
-      <Card style={styles.header}>
-        <View style={styles.logoWrap}>
-          {logo ? (
-            <Image source={{ uri: logo }} style={styles.logoImg} />
-          ) : (
-            <Text style={styles.logoFallback}>{store.name.trim()[0] || 'م'}</Text>
-          )}
-        </View>
-        <View style={{ flex: 1 }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: showCartBar ? 96 : 20 }} showsVerticalScrollIndicator={false}>
+        <View style={styles.hero}>
+          <View style={styles.heroLogoWrap}>
+            {logo ? (
+              <Image source={{ uri: logo }} style={styles.logoImg} />
+            ) : (
+              <Text style={styles.logoFallback}>{store.name.trim()[0] || 'م'}</Text>
+            )}
+          </View>
           <Text style={styles.storeName}>{store.name}</Text>
-          <Stars rating={store.avgRating} reviewsCount={store.reviewsCount} />
+          <View style={{ marginTop: 4 }}>
+            <Stars rating={store.avgRating} reviewsCount={store.reviewsCount} />
+          </View>
           {!store.available && (
-            <View style={{ marginTop: 6 }}>
+            <View style={{ marginTop: 8 }}>
               <Badge label="غير متاح الآن" tone="red" />
             </View>
           )}
         </View>
-      </Card>
 
-      {store.available && (
-        <SecondaryButton title={contacting ? 'جارٍ الفتح...' : '💬 تواصل مع المحل'} onPress={handleContact} />
-      )}
-      <View style={{ height: 14 }} />
+        <View style={{ paddingHorizontal: 16 }}>
+          {store.available && (
+            <SecondaryButton title={contacting ? 'جارٍ الفتح...' : '💬 تواصل مع المحل'} onPress={handleContact} />
+          )}
+          <View style={{ height: 14 }} />
 
-      <Card>
-        <Text style={styles.sectionTitle}>الخدمات</Text>
-        {store.services.length === 0 ? (
-          <Text style={styles.mutedText}>لا يوجد خدمات</Text>
-        ) : (
-          <View style={styles.serviceGrid}>
-            {store.services.map((sv) => (
-              <View style={styles.serviceCard} key={sv.id}>
-                <Text style={styles.serviceName}>{sv.name}</Text>
-                <Text style={styles.serviceMeta}>{DEVICE_LABEL[sv.deviceSupport]}</Text>
-                <Text style={styles.servicePrice}>شغل يد {sv.laborPrice} ﷼</Text>
-                {store.available && (
-                  <Pressable
-                    style={styles.bookBtn}
-                    onPress={() =>
-                      navigation.navigate('Booking', {
-                        storeId,
-                        storeName: store.name,
-                        serviceId: sv.id,
-                        serviceName: sv.name,
-                      })
-                    }
-                  >
-                    <Text style={styles.bookBtnText}>احجز موعد</Text>
-                  </Pressable>
-                )}
-              </View>
-            ))}
-          </View>
-        )}
-      </Card>
-
-      <Card>
-        <Text style={styles.sectionTitle}>المنتجات</Text>
-        {store.products.length === 0 ? (
-          <Text style={styles.mutedText}>لا يوجد منتجات</Text>
-        ) : (
-          <>
-            {categories.length > 1 && (
-              <View style={styles.categoryRow}>
-                <Pressable
-                  style={[styles.categoryChip, !selectedCategory && styles.categoryChipOn]}
-                  onPress={() => setSelectedCategory(null)}
-                >
-                  <Text style={[styles.categoryChipText, !selectedCategory && styles.categoryChipTextOn]}>الكل</Text>
-                </Pressable>
-                {categories.map((c) => (
-                  <Pressable
-                    key={c}
-                    style={[styles.categoryChip, selectedCategory === c && styles.categoryChipOn]}
-                    onPress={() => setSelectedCategory(c)}
-                  >
-                    <Text style={[styles.categoryChipText, selectedCategory === c && styles.categoryChipTextOn]}>
-                      {c}
-                    </Text>
-                  </Pressable>
+          <Card>
+            <Text style={styles.sectionTitle}>الخدمات</Text>
+            {store.services.length === 0 ? (
+              <Text style={styles.mutedText}>لا يوجد خدمات بعد</Text>
+            ) : (
+              <View style={styles.serviceGrid}>
+                {store.services.map((sv) => (
+                  <View style={styles.serviceCard} key={sv.id}>
+                    <Text style={styles.serviceName}>{sv.name}</Text>
+                    <Text style={styles.serviceMeta}>{DEVICE_LABEL[sv.deviceSupport]}</Text>
+                    <Text style={styles.servicePrice}>شغل يد {sv.laborPrice} ﷼</Text>
+                    {store.available && (
+                      <Pressable style={styles.bookBtn} onPress={() => handleBook(sv.id, sv.name)}>
+                        <Text style={styles.bookBtnText}>احجز موعد</Text>
+                      </Pressable>
+                    )}
+                  </View>
                 ))}
               </View>
             )}
-          <View style={styles.productGrid}>
-            {visibleProducts.map((p) => {
-              const img = fileUrl(p.imageUrl);
-              const inCart = cart.storeId === storeId && cart.items.some((i) => i.productId === p.id);
-              return (
-                <View style={styles.productCard} key={p.id}>
-                  <View style={styles.productImgWrap}>
-                    {img ? (
-                      <Image source={{ uri: img }} style={styles.productImg} />
-                    ) : (
-                      <Text style={styles.productImgFallback}>لا صورة</Text>
-                    )}
-                  </View>
-                  <Text style={styles.productName} numberOfLines={2}>
-                    {p.name}
-                  </Text>
-                  <Text style={styles.productPrice}>{p.price} ﷼</Text>
-                  {store.available && p.quantity > 0 && (
-                    <Pressable style={styles.addCartBtn} onPress={() => cart.addItem(storeId, store.name, p)}>
-                      <Text style={styles.addCartBtnText}>{inCart ? '✓ في السلة' : '+ أضف للسلة'}</Text>
+          </Card>
+
+          <Card>
+            <Text style={styles.sectionTitle}>المنتجات</Text>
+            {store.products.length === 0 ? (
+              <Text style={styles.mutedText}>لا يوجد منتجات بعد</Text>
+            ) : (
+              <>
+                {categories.length > 1 && (
+                  <View style={styles.categoryRow}>
+                    <Pressable
+                      style={[styles.categoryChip, !selectedCategory && styles.categoryChipOn]}
+                      onPress={() => setSelectedCategory(null)}
+                    >
+                      <Text style={[styles.categoryChipText, !selectedCategory && styles.categoryChipTextOn]}>
+                        الكل
+                      </Text>
                     </Pressable>
-                  )}
-                  {p.quantity <= 0 && <Text style={styles.outOfStock}>نفدت الكمية</Text>}
+                    {categories.map((c) => (
+                      <Pressable
+                        key={c}
+                        style={[styles.categoryChip, selectedCategory === c && styles.categoryChipOn]}
+                        onPress={() => setSelectedCategory(c)}
+                      >
+                        <Text style={[styles.categoryChipText, selectedCategory === c && styles.categoryChipTextOn]}>
+                          {c}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                )}
+                <View style={styles.productGrid}>
+                  {visibleProducts.map((p) => {
+                    const img = fileUrl(p.imageUrl);
+                    const inCart = cart.storeId === storeId && cart.items.some((i) => i.productId === p.id);
+                    return (
+                      <View style={styles.productCard} key={p.id}>
+                        <View style={styles.productImgWrap}>
+                          {img ? (
+                            <Image source={{ uri: img }} style={styles.productImg} />
+                          ) : (
+                            <Text style={styles.productImgFallback}>📦</Text>
+                          )}
+                        </View>
+                        <Text style={styles.productName} numberOfLines={2}>
+                          {p.name}
+                        </Text>
+                        <Text style={styles.productPrice}>{p.price} ﷼</Text>
+                        {store.available && p.quantity > 0 && (
+                          <Pressable
+                            style={[styles.addCartBtn, inCart && styles.addCartBtnOn]}
+                            onPress={() => handleAddToCart(p)}
+                          >
+                            <Text style={[styles.addCartBtnText, inCart && styles.addCartBtnTextOn]}>
+                              {inCart ? '✓ في السلة' : '+ أضف للسلة'}
+                            </Text>
+                          </Pressable>
+                        )}
+                        {p.quantity <= 0 && <Text style={styles.outOfStock}>نفدت الكمية</Text>}
+                      </View>
+                    );
+                  })}
                 </View>
-              );
-            })}
-          </View>
-          </>
-        )}
-      </Card>
+              </>
+            )}
+          </Card>
 
-      <Card>
-        <Text style={styles.sectionTitle}>قيّم هذا المحل</Text>
-        <View style={styles.starPicker}>
-          {[1, 2, 3, 4, 5].map((n) => (
-            <Pressable key={n} onPress={() => setChosenRating(n)}>
-              <Text style={[styles.starPick, n <= chosenRating && styles.starPickOn]}>
-                {n <= chosenRating ? '★' : '☆'}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-        <TextInput
-          style={styles.commentInput}
-          placeholder="تعليقك (اختياري)"
-          placeholderTextColor={colors.muted}
-          textAlign="right"
-          multiline
-          value={comment}
-          onChangeText={setComment}
-        />
-        {reviewError ? <ErrorText>{reviewError}</ErrorText> : null}
-        <PrimaryButton title="إرسال التقييم" onPress={submitReview} loading={submitting} />
+          <Card>
+            <Text style={styles.sectionTitle}>قيّم هذا المحل</Text>
+            <View style={styles.starPicker}>
+              {[1, 2, 3, 4, 5].map((n) => (
+                <Pressable key={n} onPress={() => setChosenRating(n)} hitSlop={6}>
+                  <Text style={[styles.starPick, n <= chosenRating && styles.starPickOn]}>
+                    {n <= chosenRating ? '★' : '☆'}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+            <TextInput
+              style={styles.commentInput}
+              placeholder="تعليقك (اختياري)"
+              placeholderTextColor={colors.muted}
+              textAlign="right"
+              multiline
+              value={comment}
+              onChangeText={setComment}
+            />
+            {reviewError ? <ErrorText>{reviewError}</ErrorText> : null}
+            <PrimaryButton title="إرسال التقييم" onPress={submitReview} loading={submitting} />
 
-        <View style={{ marginTop: 14 }}>
-          {store.reviews.length === 0 ? (
-            <Text style={styles.mutedText}>لا يوجد تقييمات بعد</Text>
-          ) : (
-            store.reviews.map((r) => (
-              <View style={styles.reviewRow} key={r.id}>
-                <Stars rating={r.rating} size={12} />
-                {r.comment ? <Text style={styles.reviewComment}>{r.comment}</Text> : null}
-              </View>
-            ))
-          )}
+            <View style={{ marginTop: 14 }}>
+              {store.reviews.length === 0 ? (
+                <Text style={styles.mutedText}>لا يوجد تقييمات بعد — كن أول من يقيّم</Text>
+              ) : (
+                store.reviews.map((r) => (
+                  <View style={styles.reviewRow} key={r.id}>
+                    <Stars rating={r.rating} size={12} />
+                    {r.comment ? <Text style={styles.reviewComment}>{r.comment}</Text> : null}
+                  </View>
+                ))
+              )}
+            </View>
+          </Card>
         </View>
-      </Card>
-    </ScrollView>
-    {showCartBar && (
-      <Pressable
-        style={styles.cartBar}
-        onPress={() => navigation.navigate('Cart', { storeId, storeName: store.name })}
-      >
-        <Text style={styles.cartBarText}>
-          🛒 {cart.items.reduce((n, i) => n + i.qty, 0)} منتج — {cart.total} ﷼
-        </Text>
-        <Text style={styles.cartBarAction}>عرض السلة</Text>
-      </Pressable>
-    )}
+      </ScrollView>
+      {showCartBar && (
+        <Pressable
+          style={({ pressed }) => [styles.cartBar, pressed && { opacity: 0.9 }]}
+          onPress={() => navigation.navigate('Cart', { storeId, storeName: store.name })}
+        >
+          <Text style={styles.cartBarText}>
+            🛒 {cart.items.reduce((n, i) => n + i.qty, 0)} منتج — {cart.total} ﷼
+          </Text>
+          <Text style={styles.cartBarAction}>عرض السلة ←</Text>
+        </Pressable>
+      )}
     </View>
   );
 }
@@ -266,19 +282,32 @@ export default function StoreDetailScreen({ route, navigation }: Props) {
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg, padding: 20 },
-  header: { flexDirection: 'row-reverse', alignItems: 'center', gap: 14 },
-  logoWrap: {
-    width: 62,
-    height: 62,
-    borderRadius: 16,
+  errorIcon: { fontSize: 40, marginBottom: 8 },
+  hero: {
+    backgroundColor: colors.ink,
+    alignItems: 'center',
+    paddingTop: 22,
+    paddingBottom: 26,
+    paddingHorizontal: 20,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+    marginBottom: 16,
+  },
+  heroLogoWrap: {
+    width: 76,
+    height: 76,
+    borderRadius: 22,
     backgroundColor: colors.tealBg,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
+    borderWidth: 3,
+    borderColor: 'rgba(255,255,255,0.15)',
+    marginBottom: 10,
   },
   logoImg: { width: '100%', height: '100%' },
-  logoFallback: { fontSize: 24, fontFamily: fonts.headingExtra, color: colors.tealDark },
-  storeName: { fontFamily: fonts.heading, fontSize: 17, color: colors.ink, textAlign: 'right', marginBottom: 4 },
+  logoFallback: { fontSize: 28, fontFamily: fonts.headingExtra, color: colors.tealDark },
+  storeName: { fontFamily: fonts.heading, fontSize: 18, color: '#fff', textAlign: 'center' },
   sectionTitle: {
     fontFamily: fonts.headingSemi,
     fontSize: 15,
@@ -303,15 +332,21 @@ const styles = StyleSheet.create({
   categoryChipText: { fontFamily: fonts.bodyMedium, fontSize: 12, color: colors.text },
   categoryChipTextOn: { color: '#fff' },
   serviceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  serviceCard: { backgroundColor: colors.chipBg, borderRadius: 12, padding: 12, minWidth: 140, flexGrow: 1 },
+  serviceCard: {
+    backgroundColor: colors.chipBg,
+    borderRadius: radius.md,
+    padding: 12,
+    minWidth: 140,
+    flexGrow: 1,
+  },
   serviceName: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.text, textAlign: 'right' },
   serviceMeta: { fontFamily: fonts.body, fontSize: 11, color: colors.muted, textAlign: 'right', marginTop: 4 },
   servicePrice: { fontFamily: fonts.bodyMedium, fontSize: 12, color: colors.ink, textAlign: 'right', marginTop: 2 },
   bookBtn: {
     marginTop: 8,
     backgroundColor: colors.teal,
-    borderRadius: 8,
-    paddingVertical: 7,
+    borderRadius: radius.sm,
+    paddingVertical: 8,
     alignItems: 'center',
   },
   bookBtnText: { color: '#fff', fontFamily: fonts.bodySemi, fontSize: 11.5 },
@@ -320,11 +355,13 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     borderWidth: 1,
     borderColor: colors.teal,
-    borderRadius: 8,
-    paddingVertical: 6,
+    borderRadius: radius.sm,
+    paddingVertical: 7,
     alignItems: 'center',
   },
+  addCartBtnOn: { backgroundColor: colors.tealBg },
   addCartBtnText: { color: colors.tealDark, fontFamily: fonts.bodyMedium, fontSize: 11 },
+  addCartBtnTextOn: { color: colors.tealDark },
   outOfStock: { color: colors.red, fontFamily: fonts.body, fontSize: 10.5, textAlign: 'center', marginBottom: 8 },
   cartBar: {
     position: 'absolute',
@@ -336,7 +373,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 18,
-    paddingVertical: 14,
+    paddingVertical: 16,
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
   },
   cartBarText: { color: '#fff', fontFamily: fonts.bodySemi, fontSize: 13 },
   cartBarAction: { color: colors.teal, fontFamily: fonts.bodySemi, fontSize: 13 },
@@ -345,7 +384,7 @@ const styles = StyleSheet.create({
     width: '31%',
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 12,
+    borderRadius: radius.md,
     overflow: 'hidden',
     backgroundColor: '#fff',
   },
@@ -356,7 +395,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   productImg: { width: '100%', height: '100%' },
-  productImgFallback: { fontSize: 10, color: colors.muted, fontFamily: fonts.body },
+  productImgFallback: { fontSize: 24, opacity: 0.4 },
   productName: { fontSize: 11.5, fontFamily: fonts.bodyMedium, color: colors.text, padding: 6, textAlign: 'right' },
   productPrice: {
     fontFamily: fonts.heading,
@@ -372,7 +411,7 @@ const styles = StyleSheet.create({
   commentInput: {
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 9,
+    borderRadius: radius.sm,
     padding: 12,
     minHeight: 60,
     backgroundColor: '#FCFBF8',
