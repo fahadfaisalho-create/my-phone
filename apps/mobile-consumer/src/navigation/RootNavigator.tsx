@@ -11,6 +11,7 @@ import BookingScreen from '@/screens/BookingScreen';
 import MyBookingsScreen from '@/screens/MyBookingsScreen';
 import CartScreen from '@/screens/CartScreen';
 import MyOrdersScreen from '@/screens/MyOrdersScreen';
+import InvoiceScreen from '@/screens/InvoiceScreen';
 import SupportScreen from '@/screens/SupportScreen';
 import ProfileScreen from '@/screens/ProfileScreen';
 
@@ -38,6 +39,7 @@ export default function RootNavigator({ initialRoute }: { initialRoute: 'Home' |
       <Stack.Screen name="MyBookings" component={MyBookingsScreen} options={{ title: 'حجوزاتي' }} />
       <Stack.Screen name="Cart" component={CartScreen} options={{ title: 'السلة' }} />
       <Stack.Screen name="MyOrders" component={MyOrdersScreen} options={{ title: 'طلباتي' }} />
+      <Stack.Screen name="Invoice" component={InvoiceScreen} options={{ title: 'الفاتورة' }} />
       <Stack.Screen name="Support" component={SupportScreen} options={{ title: 'الدعم' }} />
       <Stack.Screen name="Profile" component={ProfileScreen} options={{ title: 'حسابي' }} />
     </Stack.Navigator>

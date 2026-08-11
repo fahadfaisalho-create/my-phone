@@ -18,6 +18,7 @@ interface OrderItem {
   deliveryAddress: string | null;
   deliveryLat: number | string | null;
   deliveryLng: number | string | null;
+  courierProvider: 'aramex' | 'fedex' | null;
   store: { name: string };
   items: { qty: number; product: { name: string } }[];
 }
@@ -25,6 +26,11 @@ interface OrderItem {
 const DELIVERY_LABEL: Record<OrderItem['deliveryType'], string> = {
   pickup: '🏬 استلام من الفرع',
   delivery: '🚚 توصيل',
+};
+
+const COURIER_LABEL: Record<NonNullable<OrderItem['courierProvider']>, string> = {
+  aramex: '📦 أرامكس',
+  fedex: '📦 فيدكس',
 };
 
 function openInMaps(lat: number, lng: number) {
@@ -50,7 +56,7 @@ const PAY_LABEL: Record<OrderItem['paymentStatus'], string> = {
   refunded: 'مسترجع',
 };
 
-export default function MyOrdersScreen({}: Props) {
+export default function MyOrdersScreen({ navigation }: Props) {
   const [orders, setOrders] = useState<OrderItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -109,6 +115,9 @@ export default function MyOrdersScreen({}: Props) {
               {item.items.map((i) => `${i.product.name} ×${i.qty}`).join('، ')}
             </Text>
             <Text style={styles.deliveryType}>{DELIVERY_LABEL[item.deliveryType]}</Text>
+            {item.deliveryType === 'delivery' && item.courierProvider && (
+              <Text style={styles.deliveryType}>{COURIER_LABEL[item.courierProvider]}</Text>
+            )}
             {item.deliveryType === 'delivery' && item.deliveryAddress && (
               <Text style={styles.address}>📍 {item.deliveryAddress}</Text>
             )}
@@ -124,6 +133,14 @@ export default function MyOrdersScreen({}: Props) {
               <Text style={styles.pay}>{PAY_LABEL[item.paymentStatus]}</Text>
               <Text style={styles.total}>{item.total} ﷼</Text>
             </View>
+            {item.paymentStatus === 'paid' && (
+              <Pressable
+                style={styles.invoiceBtn}
+                onPress={() => navigation.navigate('Invoice', { orderId: item.id })}
+              >
+                <Text style={styles.invoiceBtnText}>🧾 عرض الفاتورة</Text>
+              </Pressable>
+            )}
             {item.status === 'pending' && item.paymentStatus === 'unpaid' && (
               <Pressable
                 style={styles.cancelBtn}
@@ -172,4 +189,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cancelBtnText: { color: colors.red, fontFamily: fonts.bodyMedium, fontSize: 12 },
+  invoiceBtn: {
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: colors.tealDark,
+    borderRadius: 8,
+    paddingVertical: 7,
+    alignItems: 'center',
+  },
+  invoiceBtnText: { color: colors.tealDark, fontFamily: fonts.bodyMedium, fontSize: 12 },
 });

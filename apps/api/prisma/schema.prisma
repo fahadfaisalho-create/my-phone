@@ -91,6 +91,13 @@ enum DeliveryType {
   delivery
 }
 
+// شركة الشحن التي يختارها المستهلك عند التوصيل — بيانات فقط حالياً
+// (بدون ربط API فعلي مع أي شركة)
+enum CourierProvider {
+  aramex
+  fedex
+}
+
 // ---------- Models ----------
 
 model User {
@@ -248,12 +255,18 @@ model Order {
   paymentStatus PaymentStatus @default(unpaid) @map("payment_status")
   // الإدمن يقدر يؤكد الدفع يدوياً (fallback)، أو تلقائياً عبر Moyasar (invoice + webhook)
   gatewayInvoiceId String?    @map("gateway_invoice_id")
+  createdAt        DateTime   @default(now()) @map("created_at")
+  // لحظة اكتمال الدفع فعلياً — تُستخدم كتاريخ إصدار الفاتورة (لا فاتورة قبل هذا)
+  paidAt            DateTime? @map("paid_at")
 
   // طريقة الاستلام: من الفرع أو توصيل — والعنوان/الإحداثيات إلزامية عند التوصيل
-  deliveryType    DeliveryType @default(pickup) @map("delivery_type")
-  deliveryAddress String?      @map("delivery_address")
-  deliveryLat     Decimal?     @map("delivery_lat") @db.Decimal(10, 7)
-  deliveryLng     Decimal?     @map("delivery_lng") @db.Decimal(10, 7)
+  deliveryType     DeliveryType     @default(pickup) @map("delivery_type")
+  deliveryAddress  String?          @map("delivery_address")
+  deliveryLat      Decimal?         @map("delivery_lat") @db.Decimal(10, 7)
+  deliveryLng      Decimal?         @map("delivery_lng") @db.Decimal(10, 7)
+  // نسخة من رسوم التوصيل وقت الطلب (لا تتأثر لو التاجر غيّر الرسوم لاحقاً) + شركة الشحن المختارة
+  deliveryFee      Decimal?         @map("delivery_fee") @db.Decimal(10, 2)
+  courierProvider  CourierProvider? @map("courier_provider")
 
   items OrderItem[]
 

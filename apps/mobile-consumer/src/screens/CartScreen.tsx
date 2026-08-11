@@ -11,10 +11,16 @@ import { useCart } from '@/lib/CartContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Cart'>;
 type DeliveryType = 'pickup' | 'delivery';
+type CourierProvider = 'aramex' | 'fedex';
 
 const DELIVERY_LABEL: Record<DeliveryType, string> = {
   pickup: '🏬 استلام من الفرع',
   delivery: '🚚 توصيل',
+};
+
+const COURIER_LABEL: Record<CourierProvider, string> = {
+  aramex: '📦 أرامكس',
+  fedex: '📦 فيدكس',
 };
 
 interface OrderResponse {
@@ -35,6 +41,7 @@ export default function CartScreen({ route, navigation }: Props) {
   const [supportsDelivery, setSupportsDelivery] = useState(false);
   const [deliveryFee, setDeliveryFee] = useState<string | null>(null);
   const [deliveryType, setDeliveryType] = useState<DeliveryType>('pickup');
+  const [courierProvider, setCourierProvider] = useState<CourierProvider>('aramex');
   const [address, setAddress] = useState('');
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [locating, setLocating] = useState(false);
@@ -103,6 +110,7 @@ export default function CartScreen({ route, navigation }: Props) {
           ...(deliveryType === 'delivery'
             ? {
                 deliveryAddress: address.trim(),
+                courierProvider,
                 ...(coords ? { deliveryLat: coords.lat, deliveryLng: coords.lng } : {}),
               }
             : {}),
@@ -197,8 +205,24 @@ export default function CartScreen({ route, navigation }: Props) {
                     <Text style={styles.priceNote}>+ رسوم توصيل {deliveryFee} ﷼</Text>
                   ) : null}
                   <Text style={styles.note2}>
-                    التوصيل حالياً يدوي (عبر أرامكس) — المحل يتواصل معك لترتيب موعد التسليم.
+                    التوصيل حالياً يدوي — المحل يتواصل معك لترتيب موعد التسليم مع شركة الشحن.
                   </Text>
+
+                  <Text style={styles.label}>شركة الشحن</Text>
+                  <View style={styles.chipsRow}>
+                    {(['aramex', 'fedex'] as CourierProvider[]).map((c) => (
+                      <Pressable
+                        key={c}
+                        style={[styles.chip, courierProvider === c && styles.chipOn]}
+                        onPress={() => setCourierProvider(c)}
+                      >
+                        <Text style={[styles.chipText, courierProvider === c && styles.chipTextOn]}>
+                          {COURIER_LABEL[c]}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+
                   <Text style={styles.label}>عنوان التوصيل</Text>
 
                   <Pressable

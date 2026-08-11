@@ -32,6 +32,13 @@ export class OrdersController {
     return this.ordersService.cancelMine(user.id, id);
   }
 
+  // فاتورة الطلب — تصدر فقط بعد اكتمال الدفع (يتحقق منه الباك إند وليس الواجهة فقط)
+  @Get('orders/:id/invoice')
+  @Roles('consumer')
+  getInvoice(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
+    return this.ordersService.getInvoiceForConsumer(user.id, id);
+  }
+
   // محاكاة دفع فوري (بوابة الدفع الفعلية غير مربوطة بعد) — الإدمن يقدر أيضاً
   // يؤكد/يلغي التأكيد يدوياً من AdminOrdersController كخيار احتياطي
   @Post('orders/:id/confirm-payment')
@@ -55,5 +62,11 @@ export class OrdersController {
     @Body() dto: UpdateOrderStatusDto,
   ) {
     return this.ordersService.updateStatus(user.id, id, dto.status);
+  }
+
+  @Get('stores/me/orders/:id/invoice')
+  @Roles('merchant_rep')
+  getInvoiceForMerchant(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
+    return this.ordersService.getInvoiceForMerchant(user.id, id);
   }
 }

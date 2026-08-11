@@ -25,10 +25,16 @@ export class OrdersService {
       if (!dto.deliveryAddress?.trim()) {
         throw new BadRequestException('عنوان التوصيل مطلوب عند اختيار التوصيل');
       }
+      if (!dto.courierProvider) {
+        throw new BadRequestException('اختر شركة الشحن عند طلب التوصيل');
+      }
     }
 
+    // نسخة رسوم التوصيل وقت الطلب — لا تتأثر لو التاجر غيّر الرسوم لاحقاً
+    const deliveryFee = deliveryType === 'delivery' ? Number(store.deliveryFee ?? 0) : null;
+
     return this.prisma.$transaction(async (tx) => {
-      let total = deliveryType === 'delivery' ? Number(store.deliveryFee ?? 0) : 0;
+      let total = deliveryFee ?? 0;
       const itemsData: { productId: string; qty: number; price: number }[] = [];
 
       for (const item of dto.items) {
@@ -59,6 +65,8 @@ export class OrdersService {
           deliveryAddress: deliveryType === 'delivery' ? dto.deliveryAddress!.trim() : null,
           deliveryLat: deliveryType === 'delivery' ? dto.deliveryLat ?? null : null,
           deliveryLng: deliveryType === 'delivery' ? dto.deliveryLng ?? null : null,
+          deliveryFee,
+          courierProvider: deliveryType === 'delivery' ? dto.courierProvider ?? null : null,
           items: { create: itemsData },
         },
         include: { items: true },
@@ -119,7 +127,7 @@ export class OrdersService {
     }
     return this.prisma.order.update({
       where: { id: orderId },
-      data: { paymentStatus: 'paid' },
+      data: { paymentStatus: 'paid', paidAt: new Date() },
     });
   }
 
@@ -151,7 +159,61 @@ export class OrdersService {
     if (!order) throw new NotFoundException('الطلب غير موجود');
     return this.prisma.order.update({
       where: { id: orderId },
-      data: { paymentStatus: paid ? 'paid' : 'unpaid' },
+      data: { paymentStatus: paid ? 'paid' : 'unpaid', paidAt: paid ? new Date() : null },
     });
+  }
+
+  // --- الفاتورة: لا تصدر أبداً قبل اكتمال الدفع فعلياً — التحقق هنا بالباك إند
+  // مو مجرد إخفاء بالواجهة، حتى لو حاول أحد الوصول للرابط مباشرة ---
+  private async buildInvoice(orderId: string) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        items: { include: { product: true } },
+        consumer: { select: { name: true, phone: true } },
+        store: { select: { name: true, taxNo: true, commercialRegisterNo: true } },
+      },
+    });
+    if (!order) throw new NotFoundException('الطلب غير موجود');
+    if (order.paymentStatus !== 'paid' || !order.paidAt) {
+      throw new BadRequestException('الفاتورة تصدر فقط بعد اكتمال الدفع');
+    }
+    const subtotal = order.items.reduce((sum, i) => sum + Number(i.price) * i.qty, 0);
+    return {
+      invoiceNo: `INV-${order.id.slice(-8).toUpperCase()}`,
+      issuedAt: order.paidAt,
+      createdAt: order.createdAt,
+      store: {
+        name: order.store.name,
+        taxNo: order.store.taxNo,
+        commercialRegisterNo: order.store.commercialRegisterNo,
+      },
+      consumer: order.consumer,
+      items: order.items.map((i) => ({
+        name: i.product.name,
+        qty: i.qty,
+        price: Number(i.price),
+        lineTotal: Number(i.price) * i.qty,
+      })),
+      subtotal,
+      deliveryType: order.deliveryType,
+      deliveryFee: order.deliveryFee ? Number(order.deliveryFee) : null,
+      courierProvider: order.courierProvider,
+      deliveryAddress: order.deliveryAddress,
+      total: Number(order.total),
+    };
+  }
+
+  async getInvoiceForConsumer(consumerId: string, orderId: string) {
+    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    if (!order || order.consumerId !== consumerId) throw new NotFoundException('الطلب غير موجود');
+    return this.buildInvoice(orderId);
+  }
+
+  async getInvoiceForMerchant(ownerUserId: string, orderId: string) {
+    const store = await getOwnedStoreOrThrow(this.prisma, ownerUserId);
+    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    if (!order || order.storeId !== store.id) throw new NotFoundException('الطلب غير موجود');
+    return this.buildInvoice(orderId);
   }
 }

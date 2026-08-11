@@ -122,4 +122,21 @@ td{padding:10px 8px;border-bottom:1px solid var(--border)}
 .chat-thread{display:flex;flex-direction:column;max-height:360px;overflow-y:auto;padding:6px 2px}
 .step-indicator{display:flex;justify-content:center;gap:8px;margin-bottom:18px}
 .step-dot{width:8px;height:8px;border-radius:50%;background:var(--border)}
+
+/* مودال الفاتورة القابلة للطباعة */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:50;padding:20px}
+.modal-box{background:#fff;border-radius:18px;max-width:480px;width:100%;max-height:90vh;overflow-y:auto;padding:22px;box-shadow:var(--shadow)}
+.modal-close{position:sticky;top:0;float:left;background:none;border:none;font-size:20px;color:var(--muted);cursor:pointer}
+.invoice-head{text-align:center;margin-bottom:14px}
+.invoice-meta{background:#F5F5F5;border-radius:12px;padding:12px;font-size:13px;line-height:1.9}
+.invoice-item{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px}
+.invoice-sum{display:flex;justify-content:space-between;font-size:13px;margin-top:4px}
+.invoice-total{display:flex;justify-content:space-between;font-size:16px;font-weight:700;color:var(--ink);margin-top:10px}
+
+@media print{
+  body *{visibility:hidden}
+  #invoice-print,#invoice-print *{visibility:visible}
+  #invoice-print{position:absolute;inset:0;width:100%}
+  .modal-close,.no-print{display:none !important}
+}
 .step-dot.on{background:var(--ink)}
