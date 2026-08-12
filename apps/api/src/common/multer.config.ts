@@ -18,6 +18,9 @@ const FIELD_SUBFOLDER: Record<string, string> = {
   image: 'products',
   productImage: 'products',
   chatImage: 'chat',
+  photo: 'technicians',
+  freelanceLicenseFile: 'licenses',
+  certificateFile: 'certificates',
 };
 
 export const registrationFilesStorage = diskStorage({

@@ -150,8 +150,39 @@ model Store {
   orders        Order[]
   chats         Chat[]
   reviews       Review[]
+  technicians   Technician[]
 
   @@map("stores")
+}
+
+// فريق الصيانة — يضيفهم التاجر لبناء مصداقية عند المستهلك (اسم، جنسية، خبرة،
+// رخصة عمل حر اختيارية، شهادات متعددة)
+model Technician {
+  id                      String   @id @default(cuid())
+  storeId                 String   @map("store_id")
+  store                   Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  name                    String
+  nationality             String
+  experienceYears         Int?     @map("experience_years")
+  photoUrl                String?  @map("photo_url")
+  freelanceLicenseNo      String?  @map("freelance_license_no")
+  freelanceLicenseFileUrl String?  @map("freelance_license_file_url")
+  createdAt               DateTime @default(now()) @map("created_at")
+
+  certificates TechnicianCertificate[]
+
+  @@map("technicians")
+}
+
+model TechnicianCertificate {
+  id           String     @id @default(cuid())
+  technicianId String     @map("technician_id")
+  technician   Technician @relation(fields: [technicianId], references: [id], onDelete: Cascade)
+  title        String
+  fileUrl      String?    @map("file_url")
+  createdAt    DateTime   @default(now()) @map("created_at")
+
+  @@map("technician_certificates")
 }
 
 model Branch {

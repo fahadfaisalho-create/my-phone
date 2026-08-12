@@ -47,6 +47,23 @@ export interface StoreReview {
   createdAt: string;
 }
 
+export interface TechnicianCertificate {
+  id: string;
+  title: string;
+  fileUrl: string | null;
+}
+
+export interface Technician {
+  id: string;
+  name: string;
+  nationality: string;
+  experienceYears: number | null;
+  photoUrl: string | null;
+  freelanceLicenseNo: string | null;
+  freelanceLicenseFileUrl: string | null;
+  certificates: TechnicianCertificate[];
+}
+
 export interface StoreDetail {
   id: string;
   name: string;
@@ -55,6 +72,7 @@ export interface StoreDetail {
   services: StoreService[];
   products: StoreProduct[];
   reviews: StoreReview[];
+  technicians: Technician[];
   avgRating: number | null;
   reviewsCount: number;
   available: boolean;

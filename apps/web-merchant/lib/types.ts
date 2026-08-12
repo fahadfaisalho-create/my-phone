@@ -63,6 +63,27 @@ export interface Service {
   homeVisitFee: string | null;
 }
 
+export interface TechnicianCertificate {
+  id: string;
+  technicianId: string;
+  title: string;
+  fileUrl: string | null;
+  createdAt: string;
+}
+
+export interface Technician {
+  id: string;
+  storeId: string;
+  name: string;
+  nationality: string;
+  experienceYears: number | null;
+  photoUrl: string | null;
+  freelanceLicenseNo: string | null;
+  freelanceLicenseFileUrl: string | null;
+  createdAt: string;
+  certificates: TechnicianCertificate[];
+}
+
 export interface Chat {
   id: string;
   consumerId: string;

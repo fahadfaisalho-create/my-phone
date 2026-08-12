@@ -170,6 +170,64 @@ export default function StoreDetailScreen({ route, navigation }: Props) {
             </Card>
           )}
 
+          {store.technicians.length > 0 && (
+            <Card>
+              <Text style={styles.sectionTitle}>🛠️ فريق الصيانة</Text>
+              {store.technicians.map((t) => {
+                const photo = fileUrl(t.photoUrl);
+                return (
+                  <View style={styles.techRow} key={t.id}>
+                    <View style={styles.techPhotoWrap}>
+                      {photo ? (
+                        <Image source={{ uri: photo }} style={styles.techPhoto} />
+                      ) : (
+                        <Text style={styles.techPhotoFallback}>👤</Text>
+                      )}
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.techName}>{t.name}</Text>
+                      <Text style={styles.techMeta}>
+                        {t.nationality}
+                        {t.experienceYears != null ? ` · خبرة ${t.experienceYears} سنة` : ''}
+                      </Text>
+                      {t.freelanceLicenseNo && (
+                        <Pressable
+                          disabled={!t.freelanceLicenseFileUrl}
+                          onPress={() => {
+                            const url = fileUrl(t.freelanceLicenseFileUrl);
+                            if (url) Linking.openURL(url).catch(() => undefined);
+                          }}
+                        >
+                          <Text style={styles.techLicense}>
+                            📄 رخصة عمل حر: {t.freelanceLicenseNo}
+                            {t.freelanceLicenseFileUrl ? ' (عرض الملف)' : ''}
+                          </Text>
+                        </Pressable>
+                      )}
+                      {t.certificates.length > 0 && (
+                        <View style={styles.techCerts}>
+                          {t.certificates.map((c) => (
+                            <Pressable
+                              key={c.id}
+                              disabled={!c.fileUrl}
+                              onPress={() => {
+                                const url = fileUrl(c.fileUrl);
+                                if (url) Linking.openURL(url).catch(() => undefined);
+                              }}
+                              style={styles.certChip}
+                            >
+                              <Text style={styles.certChipText}>🎓 {c.title}</Text>
+                            </Pressable>
+                          ))}
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                );
+              })}
+            </Card>
+          )}
+
           <Card>
             <Text style={styles.sectionTitle}>الخدمات</Text>
             {store.services.length === 0 ? (
@@ -377,6 +435,35 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
   },
   mapsBtnText: { color: colors.tealDark, fontFamily: fonts.bodyMedium, fontSize: 11.5 },
+  techRow: {
+    flexDirection: 'row-reverse',
+    gap: 10,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  techPhotoWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: radius.sm,
+    backgroundColor: colors.chipBg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  techPhoto: { width: '100%', height: '100%' },
+  techPhotoFallback: { fontSize: 20 },
+  techName: { fontFamily: fonts.bodySemi, fontSize: 13.5, color: colors.text, textAlign: 'right' },
+  techMeta: { fontFamily: fonts.body, fontSize: 12, color: colors.muted, textAlign: 'right', marginTop: 2 },
+  techLicense: { fontFamily: fonts.body, fontSize: 11.5, color: colors.tealDark, textAlign: 'right', marginTop: 4 },
+  techCerts: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: 6, marginTop: 6 },
+  certChip: {
+    backgroundColor: colors.tealBg,
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  certChipText: { fontFamily: fonts.bodyMedium, fontSize: 11, color: colors.tealDark },
   categoryRow: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
   categoryChip: {
     borderWidth: 1,

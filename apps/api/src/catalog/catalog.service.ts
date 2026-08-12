@@ -50,6 +50,7 @@ export class CatalogService {
         products: true,
         reviews: { orderBy: { createdAt: 'desc' }, take: 50 },
         subscriptions: { orderBy: { startDate: 'desc' }, take: 1 },
+        technicians: { orderBy: { createdAt: 'asc' }, include: { certificates: { orderBy: { createdAt: 'asc' } } } },
       },
     });
     if (!store || store.status !== 'active') {
@@ -67,6 +68,7 @@ export class CatalogService {
       services: store.services,
       products: store.products,
       reviews: store.reviews,
+      technicians: store.technicians,
       supportsDelivery: store.supportsDelivery,
       deliveryFee: store.deliveryFee,
       avgRating: avg,
