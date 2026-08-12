@@ -1,4 +1,4 @@
-import { NavigationContainer } from '@react-navigation/native';
+import { LinkingOptions, NavigationContainer } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import { I18nManager } from 'react-native';
 import {
@@ -16,6 +16,20 @@ import {
 import RootNavigator from '@/navigation/RootNavigator';
 import { ScreenLoading } from '@/components/ui';
 import { CartProvider } from '@/lib/CartContext';
+import type { RootStackParamList } from '@/navigation/types';
+
+// رابط مباشر لصفحة محل معيّن — يقدر التاجر يشاركه (يفتح مباشرة على صفحة محله
+// حتى لو زائر بدون تسجيل دخول، لأن StoreDetail عام أصلاً). "myphone://" لبناء
+// التطبيق الأصلي مستقبلاً، والباقي يغطي فتح الرابط من متصفح الويب مباشرة.
+const linking: LinkingOptions<RootStackParamList> = {
+  prefixes: ['myphone://', 'http://localhost:3003', 'https://localhost:3003'],
+  config: {
+    screens: {
+      Home: '',
+      StoreDetail: 'store/:storeId',
+    },
+  },
+};
 
 // يُفعَّل RTL على مستوى نظام التشغيل عند البناء الأصلي (يحتاج إعادة تشغيل)؛
 // في وضع التطوير/الويب نعتمد على تنسيقات row-reverse/textAlign يدوياً لضمان ثبات المعاينة.
@@ -36,7 +50,7 @@ export default function App() {
   // تسجيل الدخول يُطلب فقط عند إجراء فعلي (إضافة للسلة، حجز، شات، تقييم...) عبر requireAuth.
   return (
     <CartProvider>
-      <NavigationContainer>
+      <NavigationContainer linking={linking} fallback={<ScreenLoading />}>
         <StatusBar style="light" />
         <RootNavigator initialRoute="Home" />
       </NavigationContainer>

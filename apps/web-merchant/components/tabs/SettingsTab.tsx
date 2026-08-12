@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { apiFetch, ApiError, fileUrl } from '@/lib/api';
+import { apiFetch, ApiError, fileUrl, CONSUMER_APP_ORIGIN } from '@/lib/api';
 import { Store } from '@/lib/types';
 import FileField from '@/components/FileField';
 
@@ -11,6 +11,7 @@ export default function SettingsTab() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [store, setStore] = useState<Store | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const [storeName, setStoreName] = useState('');
   const [tax, setTax] = useState('');
@@ -70,9 +71,34 @@ export default function SettingsTab() {
   if (!store) return null;
 
   const logoUrl = fileUrl(store.logoUrl);
+  const storeLink = `${CONSUMER_APP_ORIGIN}/store/${store.id}`;
+
+  async function handleCopyLink() {
+    try {
+      await navigator.clipboard.writeText(storeLink);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // بعض المتصفحات تمنع الوصول للحافظة بدون HTTPS — نتجاهل بصمت، الرابط ظاهر أصلاً للنسخ اليدوي
+    }
+  }
 
   return (
-    <form className="card card-narrow" onSubmit={handleSubmit}>
+    <>
+      <div className="card card-narrow">
+        <h3 style={{ marginBottom: 8 }}>رابط مشاركة المحل</h3>
+        <p className="note" style={{ marginBottom: 10 }}>
+          شارك هذا الرابط مع عملائك — يفتح مباشرة على صفحة محلك داخل التطبيق، حتى لو ما كانوا مسجّلين دخول.
+        </p>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <input readOnly value={storeLink} style={{ flex: 1, minWidth: 220 }} onFocus={(e) => e.target.select()} />
+          <button type="button" className="secondary" onClick={handleCopyLink}>
+            {copied ? '✓ تم النسخ' : '📋 نسخ الرابط'}
+          </button>
+        </div>
+      </div>
+
+      <form className="card card-narrow" onSubmit={handleSubmit}>
       <h3 style={{ marginBottom: 12 }}>إعدادات المحل</h3>
 
       <div className="filebox">
@@ -130,6 +156,7 @@ export default function SettingsTab() {
       <button className="primary" type="submit" style={{ width: '100%', marginTop: 10 }} disabled={saving}>
         {saving ? 'جارٍ الحفظ...' : 'حفظ التعديلات'}
       </button>
-    </form>
+      </form>
+    </>
   );
 }

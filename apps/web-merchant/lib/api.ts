@@ -1,5 +1,7 @@
 export const API_ORIGIN = process.env.NEXT_PUBLIC_API_ORIGIN || 'http://localhost:3000';
 export const API_BASE = `${API_ORIGIN}/api`;
+// رابط تطبيق المستهلك (ويب) — يُستخدم لبناء رابط مشاركة صفحة المحل
+export const CONSUMER_APP_ORIGIN = process.env.NEXT_PUBLIC_CONSUMER_APP_ORIGIN || 'http://localhost:3003';
 
 const TOKEN_KEY = 'merchant_token';
 const USER_KEY = 'merchant_user';

@@ -2,6 +2,7 @@
   "expo": {
     "name": "My Phone",
     "slug": "mobile-consumer",
+    "scheme": "myphone",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
