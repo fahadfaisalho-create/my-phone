@@ -33,6 +33,23 @@ export class StoresService {
     const bankFile = files.bankFile?.[0];
     const wasRejected = store.status === 'rejected';
 
+    const supportsAgentDelivery = dto.supportsAgentDelivery ?? store.supportsAgentDelivery;
+    const agentZoneLat = dto.agentZoneLat ?? store.agentZoneLat ?? undefined;
+    const agentZoneLng = dto.agentZoneLng ?? store.agentZoneLng ?? undefined;
+    const agentZoneRadiusKm = dto.agentZoneRadiusKm ?? store.agentZoneRadiusKm ?? undefined;
+    const agentDeliveryFee = dto.agentDeliveryFee ?? store.agentDeliveryFee ?? undefined;
+    if (
+      supportsAgentDelivery &&
+      (agentZoneLat === undefined ||
+        agentZoneLng === undefined ||
+        agentZoneRadiusKm === undefined ||
+        agentDeliveryFee === undefined)
+    ) {
+      throw new BadRequestException(
+        'لتفعيل توصيل مناديب المحل، حدد نطاق التغطية على الخريطة ونصف القطر والسعر',
+      );
+    }
+
     return this.prisma.store.update({
       where: { id: store.id },
       data: {
@@ -49,6 +66,11 @@ export class StoresService {
         supportsDelivery: dto.supportsDelivery ?? store.supportsDelivery,
         deliveryFee:
           dto.supportsDelivery === false ? null : dto.deliveryFee ?? store.deliveryFee,
+        supportsAgentDelivery,
+        agentZoneLat: supportsAgentDelivery ? agentZoneLat : null,
+        agentZoneLng: supportsAgentDelivery ? agentZoneLng : null,
+        agentZoneRadiusKm: supportsAgentDelivery ? agentZoneRadiusKm : null,
+        agentDeliveryFee: supportsAgentDelivery ? agentDeliveryFee : null,
         ...(wasRejected ? { status: 'pending', rejectionReason: null } : {}),
       },
     });

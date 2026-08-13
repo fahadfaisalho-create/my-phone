@@ -105,6 +105,13 @@ enum CourierProvider {
   fedex
 }
 
+// طريقة تنفيذ التوصيل: شركة شحن خارجية (يدوي، بيانات فقط)، أو مندوب تابع للمحل
+// نفسه (يتحقق النظام تلقائياً أن عنوان المستهلك داخل نطاق تغطية المحل)
+enum DeliveryMethod {
+  courier
+  store_agent
+}
+
 // ---------- Models ----------
 
 model User {
@@ -153,17 +160,39 @@ model Store {
   supportsDelivery Boolean  @default(false) @map("supports_delivery")
   deliveryFee      Decimal? @map("delivery_fee") @db.Decimal(10, 2)
 
-  branches      Branch[]
-  subscriptions Subscription[]
-  services      Service[]
-  products      Product[]
-  bookings      Booking[]
-  orders        Order[]
-  chats         Chat[]
-  reviews       Review[]
-  technicians   Technician[]
+  // توصيل داخلي بمناديب المحل نفسه: نطاق تغطية دائري (نقطة مركزية + نصف قطر
+  // بالكيلومتر) وسعر ثابت — النظام يتحقق تلقائياً أن موقع المستهلك داخل النطاق
+  supportsAgentDelivery Boolean  @default(false) @map("supports_agent_delivery")
+  agentDeliveryFee      Decimal? @map("agent_delivery_fee") @db.Decimal(10, 2)
+  agentZoneLat          Float?   @map("agent_zone_lat")
+  agentZoneLng          Float?   @map("agent_zone_lng")
+  agentZoneRadiusKm     Float?   @map("agent_zone_radius_km")
+
+  branches       Branch[]
+  subscriptions  Subscription[]
+  services       Service[]
+  products       Product[]
+  bookings       Booking[]
+  orders         Order[]
+  chats          Chat[]
+  reviews        Review[]
+  technicians    Technician[]
+  deliveryAgents DeliveryAgent[]
 
   @@map("stores")
+}
+
+// مناديب التوصيل التابعين للمحل — قائمة بسيطة يديرها التاجر (اسم ورقم جوال)
+model DeliveryAgent {
+  id        String   @id @default(cuid())
+  storeId   String   @map("store_id")
+  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  name      String
+  phone     String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("delivery_agents")
 }
 
 // فريق الصيانة — يضيفهم التاجر لبناء مصداقية عند المستهلك (اسم، جنسية، خبرة،
@@ -314,6 +343,8 @@ model Order {
   // نسخة من رسوم التوصيل وقت الطلب (لا تتأثر لو التاجر غيّر الرسوم لاحقاً) + شركة الشحن المختارة
   deliveryFee      Decimal?         @map("delivery_fee") @db.Decimal(10, 2)
   courierProvider  CourierProvider? @map("courier_provider")
+  // طريقة تنفيذ التوصيل: شركة شحن خارجية أو مندوب المحل — فارغ لطلبات "استلام من الفرع"
+  deliveryMethod   DeliveryMethod?  @map("delivery_method")
 
   // الفرع الذي اختاره المستهلك للتسوق منه (عند تعدد فروع المحل) — مرجعي لتحديد
   // المنتجات المتاحة والفرز عند التاجر، غير إلزامي (محل بفرع واحد لا يحتاجه)

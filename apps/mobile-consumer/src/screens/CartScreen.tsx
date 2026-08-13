@@ -12,6 +12,7 @@ import { useCart } from '@/lib/CartContext';
 type Props = NativeStackScreenProps<RootStackParamList, 'Cart'>;
 type DeliveryType = 'pickup' | 'delivery';
 type CourierProvider = 'aramex' | 'fedex';
+type DeliveryMethod = 'courier' | 'store_agent';
 
 const DELIVERY_LABEL: Record<DeliveryType, string> = {
   pickup: '🏬 استلام من الفرع',
@@ -23,10 +24,40 @@ const COURIER_LABEL: Record<CourierProvider, string> = {
   fedex: '📦 فيدكس',
 };
 
+const DELIVERY_METHOD_LABEL: Record<DeliveryMethod, string> = {
+  courier: '📦 شركة شحن',
+  store_agent: '🛵 توصيل من المحل',
+};
+
 interface OrderResponse {
   id: string;
   total: string;
   paymentStatus: string;
+}
+
+interface StoreDeliveryInfo {
+  supportsDelivery: boolean;
+  deliveryFee: string | null;
+  supportsAgentDelivery: boolean;
+  agentDeliveryFee: string | null;
+  agentZoneLat: number | null;
+  agentZoneLng: number | null;
+  agentZoneRadiusKm: number | null;
+}
+
+// حساب المسافة بين نقطتين جغرافيتين (كم) — صيغة Haversine، نفس المستخدمة بالباك إند
+function distanceKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLng / 2) *
+      Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
 }
 
 export default function CartScreen({ route, navigation }: Props) {
@@ -38,9 +69,9 @@ export default function CartScreen({ route, navigation }: Props) {
   const [paying, setPaying] = useState(false);
   const [paid, setPaid] = useState(false);
 
-  const [supportsDelivery, setSupportsDelivery] = useState(false);
-  const [deliveryFee, setDeliveryFee] = useState<string | null>(null);
+  const [storeInfo, setStoreInfo] = useState<StoreDeliveryInfo | null>(null);
   const [deliveryType, setDeliveryType] = useState<DeliveryType>('pickup');
+  const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>('courier');
   const [courierProvider, setCourierProvider] = useState<CourierProvider>('aramex');
   const [address, setAddress] = useState('');
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
@@ -50,18 +81,35 @@ export default function CartScreen({ route, navigation }: Props) {
   useEffect(() => {
     (async () => {
       try {
-        const store = await apiFetch<{ supportsDelivery: boolean; deliveryFee: string | null }>(
-          `/catalog/stores/${storeId}`,
-        );
-        setSupportsDelivery(store.supportsDelivery);
-        setDeliveryFee(store.deliveryFee);
+        const store = await apiFetch<StoreDeliveryInfo>(`/catalog/stores/${storeId}`);
+        setStoreInfo(store);
+        // لو التوصيل المدعوم نوع واحد فقط، نختاره تلقائياً بدون إزعاج المستهلك بخطوة اختيار
+        if (!store.supportsDelivery && store.supportsAgentDelivery) setDeliveryMethod('store_agent');
       } catch {
         // تجاهل — لو فشل التحميل نبقى بخيار "استلام من الفرع" الافتراضي
       }
     })();
   }, [storeId]);
 
-  const feeAmount = deliveryType === 'delivery' ? Number(deliveryFee || 0) : 0;
+  const supportsDelivery = storeInfo?.supportsDelivery ?? false;
+  const supportsAgentDelivery = storeInfo?.supportsAgentDelivery ?? false;
+  const bothDeliveryMethods = supportsDelivery && supportsAgentDelivery;
+
+  // أهلية توصيل مناديب المحل: يتحقق فقط بعد ما المستهلك يحدد موقعه
+  const agentEligibility =
+    deliveryType === 'delivery' &&
+    deliveryMethod === 'store_agent' &&
+    coords &&
+    storeInfo?.agentZoneLat != null &&
+    storeInfo?.agentZoneLng != null &&
+    storeInfo?.agentZoneRadiusKm != null
+      ? distanceKm(coords.lat, coords.lng, storeInfo.agentZoneLat, storeInfo.agentZoneLng) <= storeInfo.agentZoneRadiusKm
+      : null;
+
+  const feeAmount =
+    deliveryType === 'delivery'
+      ? Number((deliveryMethod === 'store_agent' ? storeInfo?.agentDeliveryFee : storeInfo?.deliveryFee) || 0)
+      : 0;
   const grandTotal = cart.total + feeAmount;
 
   // يجيب موقع الجهاز فعليًا (GPS) بدل الاعتماد على كتابة العنوان يدويًا — لدقة أعلى بالتوصيل
@@ -94,9 +142,20 @@ export default function CartScreen({ route, navigation }: Props) {
 
   async function handlePlaceOrder() {
     if (!(await requireAuth(navigation, { screen: 'Cart', params: { storeId, storeName: route.params.storeName } }))) return;
-    if (deliveryType === 'delivery' && !address.trim()) {
-      setError('اكتب عنوان التوصيل');
-      return;
+    if (deliveryType === 'delivery') {
+      if (deliveryMethod === 'store_agent') {
+        if (!coords) {
+          setError('حدد موقعك أولاً للتحقق من أهليتك لتوصيل المحل');
+          return;
+        }
+        if (agentEligibility === false) {
+          setError('موقعك خارج نطاق توصيل هذا المحل — جرّب طريقة استلام أخرى');
+          return;
+        }
+      } else if (!address.trim()) {
+        setError('اكتب عنوان التوصيل');
+        return;
+      }
     }
     setError('');
     setPlacing(true);
@@ -110,8 +169,9 @@ export default function CartScreen({ route, navigation }: Props) {
           deliveryType,
           ...(deliveryType === 'delivery'
             ? {
-                deliveryAddress: address.trim(),
-                courierProvider,
+                deliveryMethod,
+                deliveryAddress: address.trim() || undefined,
+                ...(deliveryMethod === 'courier' ? { courierProvider } : {}),
                 ...(coords ? { deliveryLat: coords.lat, deliveryLng: coords.lng } : {}),
               }
             : {}),
@@ -188,7 +248,7 @@ export default function CartScreen({ route, navigation }: Props) {
         keyExtractor={(i) => i.productId}
         contentContainerStyle={{ padding: 14 }}
         ListHeaderComponent={
-          supportsDelivery ? (
+          supportsDelivery || supportsAgentDelivery ? (
             <View style={{ marginBottom: 4 }}>
               <Text style={styles.label}>طريقة الاستلام</Text>
               <View style={styles.chipsRow}>
@@ -207,56 +267,116 @@ export default function CartScreen({ route, navigation }: Props) {
 
               {deliveryType === 'delivery' && (
                 <>
-                  {deliveryFee ? (
-                    <Text style={styles.priceNote}>+ رسوم توصيل {deliveryFee} ﷼</Text>
-                  ) : null}
-                  <Text style={styles.note2}>
-                    التوصيل حالياً يدوي — المحل يتواصل معك لترتيب موعد التسليم مع شركة الشحن.
-                  </Text>
+                  {bothDeliveryMethods && (
+                    <>
+                      <Text style={styles.label}>طريقة التوصيل</Text>
+                      <View style={styles.chipsRow}>
+                        {(['courier', 'store_agent'] as DeliveryMethod[]).map((m) => (
+                          <Pressable
+                            key={m}
+                            style={[styles.chip, deliveryMethod === m && styles.chipOn]}
+                            onPress={() => {
+                              setDeliveryMethod(m);
+                              setCoords(null);
+                            }}
+                          >
+                            <Text style={[styles.chipText, deliveryMethod === m && styles.chipTextOn]}>
+                              {DELIVERY_METHOD_LABEL[m]}
+                            </Text>
+                          </Pressable>
+                        ))}
+                      </View>
+                    </>
+                  )}
 
-                  <Text style={styles.label}>شركة الشحن</Text>
-                  <View style={styles.chipsRow}>
-                    {(['aramex', 'fedex'] as CourierProvider[]).map((c) => (
+                  {deliveryMethod === 'store_agent' ? (
+                    <>
+                      {storeInfo?.agentDeliveryFee ? (
+                        <Text style={styles.priceNote}>+ رسوم توصيل {storeInfo.agentDeliveryFee} ﷼</Text>
+                      ) : null}
+                      <Text style={styles.note2}>
+                        يوصّل هذا المحل بنفسه عبر مندوبه ضمن نطاق تغطية محدد — حدد موقعك للتحقق من توفر الخدمة في
+                        منطقتك.
+                      </Text>
+
                       <Pressable
-                        key={c}
-                        style={[styles.chip, courierProvider === c && styles.chipOn]}
-                        onPress={() => setCourierProvider(c)}
+                        style={({ pressed }) => [styles.locateBtn, pressed && styles.btnPressed]}
+                        onPress={handleUseLocation}
+                        disabled={locating}
                       >
-                        <Text style={[styles.chipText, courierProvider === c && styles.chipTextOn]}>
-                          {COURIER_LABEL[c]}
-                        </Text>
+                        {locating ? (
+                          <ActivityIndicator color={colors.teal} size="small" />
+                        ) : (
+                          <Text style={styles.locateBtnText}>📍 تحديد موقعي (إلزامي)</Text>
+                        )}
                       </Pressable>
-                    ))}
-                  </View>
+                      {locateError ? <ErrorText>{locateError}</ErrorText> : null}
 
-                  <Text style={styles.label}>عنوان التوصيل</Text>
+                      {coords && !locating && agentEligibility === true && (
+                        <Text style={styles.eligibleText}>
+                          ✅ أنت ضمن نطاق التوصيل — سيصلك الطلب خلال 24 ساعة
+                        </Text>
+                      )}
+                      {coords && !locating && agentEligibility === false && (
+                        <Text style={styles.ineligibleText}>
+                          ❌ للأسف موقعك خارج نطاق توصيل هذا المحل — جرّب طريقة استلام أخرى
+                        </Text>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      {storeInfo?.deliveryFee ? (
+                        <Text style={styles.priceNote}>+ رسوم توصيل {storeInfo.deliveryFee} ﷼</Text>
+                      ) : null}
+                      <Text style={styles.note2}>
+                        التوصيل حالياً يدوي — المحل يتواصل معك لترتيب موعد التسليم مع شركة الشحن.
+                      </Text>
 
-                  <Pressable
-                    style={({ pressed }) => [styles.locateBtn, pressed && styles.btnPressed]}
-                    onPress={handleUseLocation}
-                    disabled={locating}
-                  >
-                    {locating ? (
-                      <ActivityIndicator color={colors.teal} size="small" />
-                    ) : (
-                      <Text style={styles.locateBtnText}>📍 استخدام موقعي الحالي</Text>
-                    )}
-                  </Pressable>
-                  {coords && !locating && <Text style={styles.locatedNote}>✓ تم تحديد موقعك بدقة GPS</Text>}
-                  {locateError ? <ErrorText>{locateError}</ErrorText> : null}
+                      <Text style={styles.label}>شركة الشحن</Text>
+                      <View style={styles.chipsRow}>
+                        {(['aramex', 'fedex'] as CourierProvider[]).map((c) => (
+                          <Pressable
+                            key={c}
+                            style={[styles.chip, courierProvider === c && styles.chipOn]}
+                            onPress={() => setCourierProvider(c)}
+                          >
+                            <Text style={[styles.chipText, courierProvider === c && styles.chipTextOn]}>
+                              {COURIER_LABEL[c]}
+                            </Text>
+                          </Pressable>
+                        ))}
+                      </View>
 
-                  <TextInput
-                    style={styles.addressInput}
-                    placeholder="أو اكتب عنوانك بالتفصيل (الحي، الشارع، رقم المبنى...)"
-                    placeholderTextColor={colors.muted}
-                    textAlign="right"
-                    multiline
-                    value={address}
-                    onChangeText={(t) => {
-                      setAddress(t);
-                      setCoords(null);
-                    }}
-                  />
+                      <Text style={styles.label}>عنوان التوصيل</Text>
+
+                      <Pressable
+                        style={({ pressed }) => [styles.locateBtn, pressed && styles.btnPressed]}
+                        onPress={handleUseLocation}
+                        disabled={locating}
+                      >
+                        {locating ? (
+                          <ActivityIndicator color={colors.teal} size="small" />
+                        ) : (
+                          <Text style={styles.locateBtnText}>📍 استخدام موقعي الحالي</Text>
+                        )}
+                      </Pressable>
+                      {coords && !locating && <Text style={styles.locatedNote}>✓ تم تحديد موقعك بدقة GPS</Text>}
+                      {locateError ? <ErrorText>{locateError}</ErrorText> : null}
+
+                      <TextInput
+                        style={styles.addressInput}
+                        placeholder="أو اكتب عنوانك بالتفصيل (الحي، الشارع، رقم المبنى...)"
+                        placeholderTextColor={colors.muted}
+                        textAlign="right"
+                        multiline
+                        value={address}
+                        onChangeText={(t) => {
+                          setAddress(t);
+                          setCoords(null);
+                        }}
+                      />
+                    </>
+                  )}
                 </>
               )}
             </View>
@@ -281,7 +401,12 @@ export default function CartScreen({ route, navigation }: Props) {
         )}
         <Text style={styles.total}>الإجمالي: {grandTotal} ﷼</Text>
         {error ? <ErrorText>{error}</ErrorText> : null}
-        <PrimaryButton title="إتمام الطلب" onPress={handlePlaceOrder} loading={placing} />
+        <PrimaryButton
+          title="إتمام الطلب"
+          onPress={handlePlaceOrder}
+          loading={placing}
+          disabled={deliveryType === 'delivery' && deliveryMethod === 'store_agent' && agentEligibility !== true}
+        />
       </View>
     </View>
   );
@@ -341,6 +466,26 @@ const styles = StyleSheet.create({
   locateBtnText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.tealDark },
   btnPressed: { opacity: 0.8 },
   locatedNote: { fontFamily: fonts.body, fontSize: 12, color: colors.green, textAlign: 'right', marginBottom: 8 },
+  eligibleText: {
+    fontFamily: fonts.bodySemi,
+    fontSize: 12.5,
+    color: colors.green,
+    textAlign: 'right',
+    backgroundColor: colors.greenBg,
+    padding: 10,
+    borderRadius: radius.sm,
+    marginBottom: 8,
+  },
+  ineligibleText: {
+    fontFamily: fonts.bodySemi,
+    fontSize: 12.5,
+    color: colors.red,
+    textAlign: 'right',
+    backgroundColor: colors.redBg,
+    padding: 10,
+    borderRadius: radius.sm,
+    marginBottom: 8,
+  },
   addressInput: {
     borderWidth: 1,
     borderColor: colors.border,

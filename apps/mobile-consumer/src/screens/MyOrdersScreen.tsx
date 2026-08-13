@@ -19,6 +19,7 @@ interface OrderItem {
   deliveryLat: number | string | null;
   deliveryLng: number | string | null;
   courierProvider: 'aramex' | 'fedex' | null;
+  deliveryMethod: 'courier' | 'store_agent' | null;
   store: { name: string };
   items: { qty: number; product: { name: string } }[];
 }
@@ -31,6 +32,11 @@ const DELIVERY_LABEL: Record<OrderItem['deliveryType'], string> = {
 const COURIER_LABEL: Record<NonNullable<OrderItem['courierProvider']>, string> = {
   aramex: '📦 أرامكس',
   fedex: '📦 فيدكس',
+};
+
+const DELIVERY_METHOD_LABEL: Record<NonNullable<OrderItem['deliveryMethod']>, string> = {
+  courier: '📦 شركة شحن',
+  store_agent: '🛵 مندوب المحل — خلال 24 ساعة',
 };
 
 function openInMaps(lat: number, lng: number) {
@@ -115,6 +121,9 @@ export default function MyOrdersScreen({ navigation }: Props) {
               {item.items.map((i) => `${i.product.name} ×${i.qty}`).join('، ')}
             </Text>
             <Text style={styles.deliveryType}>{DELIVERY_LABEL[item.deliveryType]}</Text>
+            {item.deliveryType === 'delivery' && item.deliveryMethod && (
+              <Text style={styles.deliveryType}>{DELIVERY_METHOD_LABEL[item.deliveryMethod]}</Text>
+            )}
             {item.deliveryType === 'delivery' && item.courierProvider && (
               <Text style={styles.deliveryType}>{COURIER_LABEL[item.courierProvider]}</Text>
             )}

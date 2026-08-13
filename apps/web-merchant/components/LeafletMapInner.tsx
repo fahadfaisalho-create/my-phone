@@ -3,7 +3,7 @@
 // المكوّن الفعلي لخريطة Leaflet — يُحمَّل من BranchMapPicker.tsx عبر next/dynamic بدون SSR فقط،
 // لأن مكتبة leaflet تستخدم window/document وقت الاستيراد وتكسر أي تصيير على السيرفر
 import { useEffect, useMemo } from 'react';
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Circle, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -42,10 +42,13 @@ export default function LeafletMapInner({
   lat,
   lng,
   onPick,
+  radiusKm,
 }: {
   lat: number;
   lng: number;
   onPick: (lat: number, lng: number) => void;
+  // نطاق تغطية دائري اختياري (بالكيلومتر) — يُرسم حول النقطة المختارة (لنطاق توصيل المناديب)
+  radiusKm?: number;
 }) {
   const center = useMemo<[number, number]>(() => [lat, lng], [lat, lng]);
 
@@ -56,6 +59,9 @@ export default function LeafletMapInner({
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       <Marker position={center} icon={markerIcon} />
+      {radiusKm && radiusKm > 0 && (
+        <Circle center={center} radius={radiusKm * 1000} pathOptions={{ color: '#111111', fillOpacity: 0.08 }} />
+      )}
       <ClickHandler onPick={onPick} />
       <RecenterOnChange center={center} />
     </MapContainer>

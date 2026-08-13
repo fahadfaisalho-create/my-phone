@@ -36,4 +36,32 @@ export class UpdateStoreDto {
   @IsNumber()
   @Min(0, { message: 'رسوم التوصيل يجب أن تكون رقماً موجباً' })
   deliveryFee?: number;
+
+  // توصيل داخلي بمناديب المحل: نطاق تغطية دائري (نقطة مركزية + نصف قطر بالكم) وسعره
+  @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === true)
+  @IsBoolean()
+  supportsAgentDelivery?: boolean;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0, { message: 'سعر توصيل المندوب يجب أن يكون رقماً موجباً' })
+  agentDeliveryFee?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  agentZoneLat?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  agentZoneLng?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0.1, { message: 'نصف قطر النطاق يجب أن يكون أكبر من صفر' })
+  agentZoneRadiusKm?: number;
 }

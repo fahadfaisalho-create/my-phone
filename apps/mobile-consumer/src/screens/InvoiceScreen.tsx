@@ -25,6 +25,7 @@ interface InvoiceData {
   deliveryType: 'pickup' | 'delivery';
   deliveryFee: number | null;
   courierProvider: CourierProvider | null;
+  deliveryMethod: 'courier' | 'store_agent' | null;
   deliveryAddress: string | null;
   total: number;
 }
@@ -115,7 +116,9 @@ export default function InvoiceScreen({ route }: Props) {
           <>
             <View style={styles.sumRow}>
               <Text style={styles.sumLabel}>
-                رسوم التوصيل{invoice.courierProvider ? ` (${COURIER_LABEL[invoice.courierProvider]})` : ''}
+                رسوم التوصيل
+                {invoice.courierProvider ? ` (${COURIER_LABEL[invoice.courierProvider]})` : ''}
+                {invoice.deliveryMethod === 'store_agent' ? ' (مندوب المحل)' : ''}
               </Text>
               <Text style={styles.sumValue}>{invoice.deliveryFee ?? 0} ﷼</Text>
             </View>

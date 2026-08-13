@@ -6,6 +6,7 @@ import { apiFetch, ApiError } from '@/lib/api';
 type OrderStatus = 'pending' | 'processing' | 'completed' | 'cancelled';
 type DeliveryType = 'pickup' | 'delivery';
 type CourierProvider = 'aramex' | 'fedex';
+type DeliveryMethod = 'courier' | 'store_agent';
 
 interface Order {
   id: string;
@@ -17,6 +18,7 @@ interface Order {
   deliveryLat: string | null;
   deliveryLng: string | null;
   courierProvider: CourierProvider | null;
+  deliveryMethod: DeliveryMethod | null;
   consumer: { name: string; phone: string | null };
   items: { qty: number; product: { name: string } }[];
   branch: { id: string; name: string } | null;
@@ -45,6 +47,11 @@ const DELIVERY_LABEL: Record<DeliveryType, string> = {
 const COURIER_LABEL: Record<CourierProvider, string> = {
   aramex: '📦 أرامكس',
   fedex: '📦 فيدكس',
+};
+
+const DELIVERY_METHOD_LABEL: Record<DeliveryMethod, string> = {
+  courier: '📦 شركة شحن',
+  store_agent: '🛵 مندوب المحل',
 };
 
 const STATUS_LABEL: Record<OrderStatus, string> = {
@@ -187,6 +194,11 @@ export default function OrdersTab() {
               <span className="badge" style={{ background: o.deliveryType === 'delivery' ? '#FCEBEB' : '#F0F0F0' }}>
                 {DELIVERY_LABEL[o.deliveryType]}
               </span>
+              {o.deliveryType === 'delivery' && o.deliveryMethod && (
+                <span className="badge" style={{ background: '#F0F0F0' }}>
+                  {DELIVERY_METHOD_LABEL[o.deliveryMethod]}
+                </span>
+              )}
               {o.deliveryType === 'delivery' && o.courierProvider && (
                 <span className="badge" style={{ background: '#F0F0F0' }}>
                   {COURIER_LABEL[o.courierProvider]}

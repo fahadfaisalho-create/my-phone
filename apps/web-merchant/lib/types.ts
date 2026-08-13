@@ -31,6 +31,21 @@ export interface Store {
   subscriptions?: Subscription[];
   supportsDelivery: boolean;
   deliveryFee: string | null;
+  // توصيل داخلي بمناديب المحل: نطاق دائري (مركز + نصف قطر بالكم) وسعره
+  supportsAgentDelivery: boolean;
+  agentDeliveryFee: string | null;
+  agentZoneLat: number | null;
+  agentZoneLng: number | null;
+  agentZoneRadiusKm: number | null;
+}
+
+export interface DeliveryAgent {
+  id: string;
+  storeId: string;
+  name: string;
+  phone: string;
+  active: boolean;
+  createdAt: string;
 }
 
 export interface Branch {

@@ -12,7 +12,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { CourierProvider, DeliveryType } from '@prisma/client';
+import { CourierProvider, DeliveryMethod, DeliveryType } from '@prisma/client';
 
 export class OrderItemInput {
   @IsString()
@@ -54,10 +54,15 @@ export class CreateOrderDto {
   @IsLongitude({ message: 'إحداثية خط الطول غير صحيحة' })
   deliveryLng?: number;
 
-  // شركة الشحن — إلزامية فقط عند اختيار التوصيل
+  // شركة الشحن — إلزامية فقط عند اختيار التوصيل بطريقة "courier"
   @IsOptional()
   @IsEnum(CourierProvider, { message: 'شركة الشحن غير صحيحة' })
   courierProvider?: CourierProvider;
+
+  // طريقة تنفيذ التوصيل: شركة شحن خارجية (افتراضي) أو مندوب المحل — إلزامية فقط عند التوصيل
+  @IsOptional()
+  @IsEnum(DeliveryMethod, { message: 'طريقة التوصيل غير صحيحة' })
+  deliveryMethod?: DeliveryMethod;
 
   // الفرع الذي اختاره المستهلك للتسوق منه — إلزامي فقط لو المحل عنده أكثر من فرع
   @IsOptional()

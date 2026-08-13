@@ -3,6 +3,7 @@ import { OrderStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { getOwnedStoreOrThrow } from '../common/get-owned-store.util';
 import { assertStoreAvailable } from '../common/store-availability.util';
+import { distanceKm } from '../common/geo.util';
 import { CreateOrderDto } from './dto/create-order.dto';
 
 @Injectable()
@@ -32,20 +33,46 @@ export class OrdersService {
     const branchId = dto.branchId ?? (store.branches.length === 1 ? store.branches[0].id : null);
 
     const deliveryType = dto.deliveryType ?? 'pickup';
+    // طريقة التوصيل: شركة شحن خارجية (افتراضي) أو مندوب المحل نفسه ضمن نطاقه الجغرافي
+    const deliveryMethod = deliveryType === 'delivery' ? dto.deliveryMethod ?? 'courier' : null;
+    let agentFee: number | null = null;
+
     if (deliveryType === 'delivery') {
-      if (!store.supportsDelivery) {
-        throw new BadRequestException('هذا المحل لا يدعم خدمة التوصيل');
-      }
-      if (!dto.deliveryAddress?.trim()) {
-        throw new BadRequestException('عنوان التوصيل مطلوب عند اختيار التوصيل');
-      }
-      if (!dto.courierProvider) {
-        throw new BadRequestException('اختر شركة الشحن عند طلب التوصيل');
+      if (deliveryMethod === 'store_agent') {
+        if (!store.supportsAgentDelivery) {
+          throw new BadRequestException('هذا المحل لا يدعم التوصيل بمناديبه الخاصين');
+        }
+        if (dto.deliveryLat === undefined || dto.deliveryLng === undefined) {
+          throw new BadRequestException('حدد موقعك للتحقق من أهليتك لتوصيل مناديب المحل');
+        }
+        if (store.agentZoneLat === null || store.agentZoneLng === null || store.agentZoneRadiusKm === null) {
+          throw new BadRequestException('المحل لم يحدد نطاق التوصيل بعد');
+        }
+        const distance = distanceKm(dto.deliveryLat, dto.deliveryLng, store.agentZoneLat, store.agentZoneLng);
+        if (distance > store.agentZoneRadiusKm) {
+          throw new BadRequestException('موقعك خارج نطاق توصيل هذا المحل — جرّب طريقة استلام أخرى');
+        }
+        agentFee = Number(store.agentDeliveryFee ?? 0);
+      } else {
+        if (!store.supportsDelivery) {
+          throw new BadRequestException('هذا المحل لا يدعم خدمة التوصيل عبر شركة شحن');
+        }
+        if (!dto.deliveryAddress?.trim()) {
+          throw new BadRequestException('عنوان التوصيل مطلوب عند اختيار التوصيل');
+        }
+        if (!dto.courierProvider) {
+          throw new BadRequestException('اختر شركة الشحن عند طلب التوصيل');
+        }
       }
     }
 
     // نسخة رسوم التوصيل وقت الطلب — لا تتأثر لو التاجر غيّر الرسوم لاحقاً
-    const deliveryFee = deliveryType === 'delivery' ? Number(store.deliveryFee ?? 0) : null;
+    const deliveryFee =
+      deliveryType === 'delivery'
+        ? deliveryMethod === 'store_agent'
+          ? agentFee
+          : Number(store.deliveryFee ?? 0)
+        : null;
 
     return this.prisma.$transaction(async (tx) => {
       let total = deliveryFee ?? 0;
@@ -80,11 +107,12 @@ export class OrdersService {
           status: 'pending',
           paymentStatus: 'unpaid',
           deliveryType,
-          deliveryAddress: deliveryType === 'delivery' ? dto.deliveryAddress!.trim() : null,
+          deliveryAddress: deliveryType === 'delivery' ? dto.deliveryAddress?.trim() ?? null : null,
           deliveryLat: deliveryType === 'delivery' ? dto.deliveryLat ?? null : null,
           deliveryLng: deliveryType === 'delivery' ? dto.deliveryLng ?? null : null,
           deliveryFee,
-          courierProvider: deliveryType === 'delivery' ? dto.courierProvider ?? null : null,
+          courierProvider: deliveryMethod === 'courier' ? dto.courierProvider ?? null : null,
+          deliveryMethod,
           branchId,
           items: { create: itemsData },
         },
@@ -223,6 +251,7 @@ export class OrdersService {
       deliveryType: order.deliveryType,
       deliveryFee: order.deliveryFee ? Number(order.deliveryFee) : null,
       courierProvider: order.courierProvider,
+      deliveryMethod: order.deliveryMethod,
       deliveryAddress: order.deliveryAddress,
       total: Number(order.total),
     };
