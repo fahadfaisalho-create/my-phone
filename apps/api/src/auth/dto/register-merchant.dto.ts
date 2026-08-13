@@ -1,9 +1,9 @@
-import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
-import { SubscriptionPlan } from '@prisma/client';
+import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, MinLength, ValidateIf } from 'class-validator';
+import { SubscriptionPlan, StoreProviderType } from '@prisma/client';
 
 // يصل عبر multipart/form-data (يرافقه ملفات: logo، crFile، bankFile)
 export class RegisterMerchantDto {
-  // بيانات ممثل الشركة
+  // بيانات ممثل الشركة / الفني المستقل نفسه
   @IsString()
   @IsNotEmpty({ message: 'اسم الممثل مطلوب' })
   repName: string;
@@ -19,14 +19,32 @@ export class RegisterMerchantDto {
   @IsString()
   phone?: string;
 
-  // البيانات الأساسية للمحل
+  // نوع مزوّد الخدمة — إذا لم يُرسل يُعتبر "محل/شركة" (السلوك القديم)
+  @IsOptional()
+  @IsEnum(StoreProviderType, { message: 'نوع الحساب غير صحيح' })
+  providerType?: StoreProviderType;
+
+  // البيانات الأساسية للمحل / اسم الفني الظاهر للعملاء
   @IsString()
   @IsNotEmpty({ message: 'اسم المحل مطلوب' })
   storeName: string;
 
+  // إلزامي للمحلات فقط
+  @ValidateIf((o) => o.providerType !== 'individual')
   @IsString()
   @IsNotEmpty({ message: 'رقم السجل التجاري مطلوب' })
-  commercialRegisterNo: string;
+  commercialRegisterNo?: string;
+
+  // إلزامي للأفراد المستقلين فقط — بديل السجل التجاري
+  @ValidateIf((o) => o.providerType === 'individual')
+  @IsString()
+  @IsNotEmpty({ message: 'رقم الهوية الوطنية مطلوب' })
+  nationalId?: string;
+
+  // المنطقة التي يخدمها الفني المستقل (تُستخدم كعنوان فرعه التلقائي)
+  @IsOptional()
+  @IsString()
+  serviceArea?: string;
 
   @IsOptional()
   @IsString()

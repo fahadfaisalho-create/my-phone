@@ -84,10 +84,15 @@ export default function DashboardPage() {
   if (!store) return <div className="app spinner-wrap">جارٍ التحميل...</div>;
 
   const sub = store.subscriptions?.[0];
+  // الفني المستقل: بدون فروع متعددة أو منتجات/مخزون أو موظفين — خدمات شخصية فقط
+  const HIDDEN_FOR_INDIVIDUAL: TabKey[] = ['branches', 'products', 'inventory', 'technicians', 'orders'];
+  const visibleTabs =
+    store.providerType === 'individual' ? TABS.filter((t) => !HIDDEN_FOR_INDIVIDUAL.includes(t.key)) : TABS;
+  const effectiveTab = visibleTabs.some((t) => t.key === tab) ? tab : visibleTabs[0].key;
 
   return (
     <div className="app">
-      <Topbar title={store.name} roleLabel="لوحة التاجر" onExit={handleExit} />
+      <Topbar title={store.name} roleLabel={store.providerType === 'individual' ? 'لوحة الفني المستقل' : 'لوحة التاجر'} onExit={handleExit} />
 
       {sub && !sub.paidAt && (
         <div className="note" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
@@ -102,24 +107,24 @@ export default function DashboardPage() {
       {payError && <div className="err">{payError}</div>}
 
       <div className="tabs">
-        {TABS.map((t) => (
-          <button key={t.key} className={tab === t.key ? 'on' : ''} onClick={() => setTab(t.key)}>
+        {visibleTabs.map((t) => (
+          <button key={t.key} className={effectiveTab === t.key ? 'on' : ''} onClick={() => setTab(t.key)}>
             {t.label}
           </button>
         ))}
       </div>
 
-      {tab === 'branches' && <BranchesTab />}
-      {tab === 'services' && <ServicesTab />}
-      {tab === 'products' && <ProductsTab />}
-      {tab === 'inventory' && <InventoryTab />}
-      {tab === 'technicians' && <TechniciansTab />}
-      {tab === 'bookings' && <BookingsTab />}
-      {tab === 'orders' && <OrdersTab />}
-      {tab === 'messages' && <MessagesTab />}
-      {tab === 'stats' && <StatsTab />}
-      {tab === 'support' && <SupportTab />}
-      {tab === 'settings' && <SettingsTab />}
+      {effectiveTab === 'branches' && <BranchesTab />}
+      {effectiveTab === 'services' && <ServicesTab />}
+      {effectiveTab === 'products' && <ProductsTab />}
+      {effectiveTab === 'inventory' && <InventoryTab />}
+      {effectiveTab === 'technicians' && <TechniciansTab />}
+      {effectiveTab === 'bookings' && <BookingsTab />}
+      {effectiveTab === 'orders' && <OrdersTab />}
+      {effectiveTab === 'messages' && <MessagesTab />}
+      {effectiveTab === 'stats' && <StatsTab />}
+      {effectiveTab === 'support' && <SupportTab />}
+      {effectiveTab === 'settings' && <SettingsTab />}
     </div>
   );
 }

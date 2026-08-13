@@ -1,6 +1,7 @@
 export type StoreStatus = 'pending' | 'active' | 'rejected' | 'suspended';
 export type SubscriptionPlan = 'monthly' | 'six_months' | 'yearly';
 export type DeviceSupport = 'all' | 'apple' | 'samsung';
+export type StoreProviderType = 'company' | 'individual';
 
 export interface Subscription {
   id: string;
@@ -17,10 +18,12 @@ export interface Store {
   ownerUserId: string;
   name: string;
   logoUrl: string | null;
-  commercialRegisterNo: string;
+  providerType: StoreProviderType;
+  commercialRegisterNo: string | null;
+  nationalId: string | null;
   taxNo: string | null;
   iban: string;
-  crFileUrl: string;
+  crFileUrl: string | null;
   bankCertificateFileUrl: string;
   status: StoreStatus;
   rejectionReason: string | null;

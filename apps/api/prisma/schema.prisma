@@ -25,6 +25,13 @@ enum StoreStatus {
   suspended
 }
 
+// نوع مزوّد الخدمة: محل/شركة له سجل تجاري، أو فرد مستقل يقدّم الصيانة بنفسه
+// (بدون سجل تجاري — يسجل برقم الهوية الوطنية بدلاً منه، بنفس تدفق مراجعة الإدمن)
+enum StoreProviderType {
+  company
+  individual
+}
+
 enum SubscriptionPlan {
   monthly
   six_months
@@ -128,10 +135,14 @@ model Store {
   owner                 User        @relation("StoreOwner", fields: [ownerUserId], references: [id])
   name                  String
   logoUrl               String?     @map("logo_url")
-  commercialRegisterNo  String      @map("commercial_register_no")
+  // فرد مستقل: بدون سجل تجاري — يُترك فارغاً ويُعبّى nationalId بدلاً منه
+  providerType          StoreProviderType @default(company) @map("provider_type")
+  commercialRegisterNo  String?     @map("commercial_register_no")
+  nationalId            String?     @map("national_id")
   taxNo                 String?     @map("tax_no")
   iban                  String
-  crFileUrl             String      @map("cr_file_url")
+  // للمحل: ملف السجل التجاري. للفرد المستقل: ملف الهوية/رخصة العمل الحر (نفس الحقل، معنى مختلف)
+  crFileUrl             String?     @map("cr_file_url")
   bankCertificateFileUrl String     @map("bank_certificate_file_url")
   status                StoreStatus @default(pending)
   rejectionReason       String?     @map("rejection_reason")

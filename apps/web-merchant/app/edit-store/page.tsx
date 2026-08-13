@@ -15,6 +15,7 @@ export default function EditStorePage() {
 
   const [storeName, setStoreName] = useState('');
   const [cr, setCr] = useState('');
+  const [nationalId, setNationalId] = useState('');
   const [tax, setTax] = useState('');
   const [iban, setIban] = useState('');
   const [logo, setLogo] = useState<File | null>(null);
@@ -31,7 +32,8 @@ export default function EditStorePage() {
         const s = await apiFetch<Store>('/stores/me');
         setStore(s);
         setStoreName(s.name);
-        setCr(s.commercialRegisterNo);
+        setCr(s.commercialRegisterNo || '');
+        setNationalId(s.nationalId || '');
         setTax(s.taxNo || '');
         setIban(s.iban);
       } catch (err) {
@@ -49,7 +51,11 @@ export default function EditStorePage() {
     try {
       const form = new FormData();
       form.append('storeName', storeName);
-      form.append('commercialRegisterNo', cr);
+      if (store?.providerType === 'individual') {
+        form.append('nationalId', nationalId);
+      } else {
+        form.append('commercialRegisterNo', cr);
+      }
       form.append('iban', iban);
       if (tax) form.append('taxNo', tax);
       if (logo) form.append('logo', logo);
@@ -75,24 +81,39 @@ export default function EditStorePage() {
         {store.rejectionReason && (
           <div className="note">سبب الرفض السابق: {store.rejectionReason}</div>
         )}
-        <label htmlFor="storeName">اسم المحل</label>
+        <label htmlFor="storeName">{store.providerType === 'individual' ? 'اسمك المهني' : 'اسم المحل'}</label>
         <input id="storeName" value={storeName} onChange={(e) => setStoreName(e.target.value)} />
-        <label htmlFor="cr">رقم السجل التجاري</label>
-        <input id="cr" value={cr} onChange={(e) => setCr(e.target.value)} />
+        {store.providerType === 'individual' ? (
+          <>
+            <label htmlFor="nationalId">رقم الهوية الوطنية / الإقامة</label>
+            <input id="nationalId" value={nationalId} onChange={(e) => setNationalId(e.target.value)} />
+          </>
+        ) : (
+          <>
+            <label htmlFor="cr">رقم السجل التجاري</label>
+            <input id="cr" value={cr} onChange={(e) => setCr(e.target.value)} />
+          </>
+        )}
         <label htmlFor="tax">الرقم الضريبي (اختياري)</label>
         <input id="tax" value={tax} onChange={(e) => setTax(e.target.value)} />
         <label htmlFor="iban">رقم الآيبان</label>
         <input id="iban" value={iban} onChange={(e) => setIban(e.target.value)} />
 
-        <FileField label="شعار المحل (استبدال)" accept="image/*" file={logo} onChange={setLogo} previewAsImage />
+        <FileField
+          label={store.providerType === 'individual' ? 'صورتك الشخصية (استبدال)' : 'شعار المحل (استبدال)'}
+          accept="image/*"
+          file={logo}
+          onChange={setLogo}
+          previewAsImage
+        />
         <div className="filebox">
-          <label>ملف السجل التجاري الحالي</label>
+          <label>{store.providerType === 'individual' ? 'ملف الهوية/الرخصة الحالي' : 'ملف السجل التجاري الحالي'}</label>
           <a href={fileUrl(store.crFileUrl) || '#'} target="_blank" rel="noreferrer" className="doclink">
             📄 عرض الملف الحالي
           </a>
         </div>
         <FileField
-          label="استبدال ملف السجل التجاري"
+          label={store.providerType === 'individual' ? 'استبدال ملف الهوية أو رخصة العمل الحر' : 'استبدال ملف السجل التجاري'}
           accept="image/*,.pdf"
           file={crFile}
           onChange={setCrFile}

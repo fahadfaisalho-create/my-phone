@@ -11,6 +11,11 @@ export class UpdateStoreDto {
   @IsString()
   commercialRegisterNo?: string;
 
+  // رقم الهوية الوطنية — للفنيين المستقلين فقط
+  @IsOptional()
+  @IsString()
+  nationalId?: string;
+
   @IsOptional()
   @IsString()
   taxNo?: string;

@@ -132,7 +132,10 @@ export default function StoreRequestCard({
             </div>
           )}
           <div>
-            <b>{store.name}</b>
+            <b>{store.name}</b>{' '}
+            <span className="badge" style={{ background: store.providerType === 'individual' ? '#E8EDF1' : '#F0F0F0' }}>
+              {store.providerType === 'individual' ? '🔧 فني مستقل' : '🏪 محل'}
+            </span>
             <div style={{ fontSize: 12, color: 'var(--muted)' }}>
               {store.owner.name} · {store.owner.email}
             </div>
@@ -142,12 +145,18 @@ export default function StoreRequestCard({
       </div>
 
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
-        <DocLink url={fileUrl(store.crFileUrl)} label="السجل التجاري" />
+        <DocLink
+          url={fileUrl(store.crFileUrl)}
+          label={store.providerType === 'individual' ? 'الهوية / رخصة العمل الحر' : 'السجل التجاري'}
+        />
         <DocLink url={fileUrl(store.bankCertificateFileUrl)} label="تصديق الحساب البنكي" />
       </div>
 
       <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 12 }}>
-        سجل تجاري: {store.commercialRegisterNo} · آيبان: {store.iban}
+        {store.providerType === 'individual'
+          ? `رقم الهوية: ${store.nationalId ?? '—'}`
+          : `سجل تجاري: ${store.commercialRegisterNo ?? '—'}`}{' '}
+        · آيبان: {store.iban}
         {sub && (
           <>
             {' '}

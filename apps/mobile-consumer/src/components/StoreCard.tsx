@@ -19,6 +19,11 @@ export default function StoreCard({ store, onPress }: { store: StoreListItem; on
             <Text style={styles.ratingBadgeText}>★ {store.avgRating.toFixed(1)}</Text>
           </View>
         )}
+        {store.providerType === 'individual' && (
+          <View style={styles.individualBadge}>
+            <Text style={styles.individualBadgeText}>🔧 فني مستقل</Text>
+          </View>
+        )}
         {!store.available && (
           <View style={styles.unavailableBadge}>
             <Text style={styles.unavailableBadgeText}>غير متاح الآن</Text>
@@ -30,7 +35,9 @@ export default function StoreCard({ store, onPress }: { store: StoreListItem; on
           {store.name}
         </Text>
         <Text style={styles.meta}>
-          🛠️ {store.servicesCount} خدمة · 📦 {store.productsCount} منتج
+          {store.providerType === 'individual'
+            ? `🛠️ ${store.servicesCount} خدمة`
+            : `🛠️ ${store.servicesCount} خدمة · 📦 ${store.productsCount} منتج`}
         </Text>
         {store.avgRating !== null && (
           <Text style={styles.reviewsMeta}>({store.reviewsCount} تقييم)</Text>
@@ -70,6 +77,16 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
   },
   ratingBadgeText: { color: colors.star, fontFamily: fonts.bodySemi, fontSize: 11 },
+  individualBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: 'rgba(16,27,46,0.78)',
+    borderRadius: 20,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  individualBadgeText: { color: '#fff', fontFamily: fonts.bodySemi, fontSize: 10 },
   unavailableBadge: {
     position: 'absolute',
     bottom: 0,

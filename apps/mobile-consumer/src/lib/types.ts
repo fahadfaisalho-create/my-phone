@@ -1,7 +1,10 @@
+export type StoreProviderType = 'company' | 'individual';
+
 export interface StoreListItem {
   id: string;
   name: string;
   logoUrl: string | null;
+  providerType: StoreProviderType;
   servicesCount: number;
   productsCount: number;
   reviewsCount: number;
@@ -68,6 +71,8 @@ export interface StoreDetail {
   id: string;
   name: string;
   logoUrl: string | null;
+  providerType: StoreProviderType;
+  idVerified: boolean;
   branches: StoreBranch[];
   services: StoreService[];
   products: StoreProduct[];

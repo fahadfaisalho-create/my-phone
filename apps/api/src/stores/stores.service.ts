@@ -38,6 +38,7 @@ export class StoresService {
       data: {
         name: dto.storeName ?? store.name,
         commercialRegisterNo: dto.commercialRegisterNo ?? store.commercialRegisterNo,
+        nationalId: dto.nationalId ?? store.nationalId,
         taxNo: dto.taxNo ?? store.taxNo,
         iban: dto.iban ?? store.iban,
         logoUrl: logo ? `/uploads/logos/${logo.filename}` : store.logoUrl,

@@ -99,19 +99,25 @@ export default function SettingsTab() {
       </div>
 
       <form className="card card-narrow" onSubmit={handleSubmit}>
-      <h3 style={{ marginBottom: 12 }}>إعدادات المحل</h3>
+      <h3 style={{ marginBottom: 12 }}>{store.providerType === 'individual' ? 'إعداداتي' : 'إعدادات المحل'}</h3>
 
       <div className="filebox">
-        <label>شعار المحل الحالي</label>
+        <label>{store.providerType === 'individual' ? 'صورتك الحالية' : 'شعار المحل الحالي'}</label>
         {logoUrl ? (
-          <img src={logoUrl} alt="الشعار الحالي" className="filepreview-img" style={{ marginBottom: 8 }} />
+          <img src={logoUrl} alt="الصورة الحالية" className="filepreview-img" style={{ marginBottom: 8 }} />
         ) : (
           <p className="note">لا يوجد شعار مرفوع بعد</p>
         )}
       </div>
-      <FileField label="تغيير الشعار" accept="image/*" file={logo} onChange={setLogo} previewAsImage />
+      <FileField
+        label={store.providerType === 'individual' ? 'تغيير الصورة' : 'تغيير الشعار'}
+        accept="image/*"
+        file={logo}
+        onChange={setLogo}
+        previewAsImage
+      />
 
-      <label htmlFor="storeName">اسم المحل</label>
+      <label htmlFor="storeName">{store.providerType === 'individual' ? 'اسمك المهني' : 'اسم المحل'}</label>
       <input id="storeName" value={storeName} onChange={(e) => setStoreName(e.target.value)} />
 
       <label htmlFor="tax">الرقم الضريبي (اختياري)</label>
@@ -120,34 +126,40 @@ export default function SettingsTab() {
       <label htmlFor="iban">رقم الآيبان</label>
       <input id="iban" value={iban} onChange={(e) => setIban(e.target.value)} />
 
-      <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 400, marginTop: 12 }}>
-        <input
-          type="checkbox"
-          checked={supportsDelivery}
-          onChange={(e) => setSupportsDelivery(e.target.checked)}
-        />
-        🚚 تفعيل خدمة التوصيل للطلبات
-      </label>
-      {supportsDelivery && (
+      {store.providerType !== 'individual' && (
         <>
-          <label htmlFor="deliveryFee">رسوم التوصيل (اختياري، ﷼)</label>
-          <input
-            id="deliveryFee"
-            type="number"
-            min="0"
-            value={deliveryFee}
-            onChange={(e) => setDeliveryFee(e.target.value)}
-            placeholder="بدون رسوم إضافية"
-          />
-          <p className="note">
-            التوصيل حالياً يدوي — المستهلك يختار شركة الشحن (أرامكس أو فيدكس) وعنوانه، وتصلك هذي البيانات مع الطلب
-            وترتب الشحن بنفسك، لين نربط التوصيل تلقائياً بالتطبيق لاحقاً.
-          </p>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 400, marginTop: 12 }}>
+            <input
+              type="checkbox"
+              checked={supportsDelivery}
+              onChange={(e) => setSupportsDelivery(e.target.checked)}
+            />
+            🚚 تفعيل خدمة التوصيل للطلبات
+          </label>
+          {supportsDelivery && (
+            <>
+              <label htmlFor="deliveryFee">رسوم التوصيل (اختياري، ﷼)</label>
+              <input
+                id="deliveryFee"
+                type="number"
+                min="0"
+                value={deliveryFee}
+                onChange={(e) => setDeliveryFee(e.target.value)}
+                placeholder="بدون رسوم إضافية"
+              />
+              <p className="note">
+                التوصيل حالياً يدوي — المستهلك يختار شركة الشحن (أرامكس أو فيدكس) وعنوانه، وتصلك هذي البيانات مع
+                الطلب وترتب الشحن بنفسك، لين نربط التوصيل تلقائياً بالتطبيق لاحقاً.
+              </p>
+            </>
+          )}
         </>
       )}
 
       <p className="note" style={{ marginTop: 8 }}>
-        لتعديل السجل التجاري أو ملف تصديق الحساب البنكي، تواصل مع الدعم — هذه البيانات تحتاج مراجعة إدارية.
+        {store.providerType === 'individual'
+          ? 'لتعديل بيانات الهوية أو ملف تصديق الحساب البنكي، تواصل مع الدعم — هذه البيانات تحتاج مراجعة إدارية.'
+          : 'لتعديل السجل التجاري أو ملف تصديق الحساب البنكي، تواصل مع الدعم — هذه البيانات تحتاج مراجعة إدارية.'}
       </p>
 
       {error && <div className="err">{error}</div>}

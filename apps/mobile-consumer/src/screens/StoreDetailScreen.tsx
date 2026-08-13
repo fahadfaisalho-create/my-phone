@@ -128,6 +128,12 @@ export default function StoreDetailScreen({ route, navigation }: Props) {
             )}
           </View>
           <Text style={styles.storeName}>{store.name}</Text>
+          {store.providerType === 'individual' && (
+            <View style={styles.individualRow}>
+              <Text style={styles.individualText}>🔧 فني مستقل</Text>
+              {store.idVerified && <Text style={styles.individualText}>· ✅ هوية موثّقة</Text>}
+            </View>
+          )}
           <View style={{ marginTop: 4 }}>
             <Stars rating={store.avgRating} reviewsCount={store.reviewsCount} />
           </View>
@@ -250,6 +256,7 @@ export default function StoreDetailScreen({ route, navigation }: Props) {
             )}
           </Card>
 
+          {store.providerType !== 'individual' && (
           <Card>
             <Text style={styles.sectionTitle}>المنتجات</Text>
             {store.products.length === 0 ? (
@@ -314,6 +321,7 @@ export default function StoreDetailScreen({ route, navigation }: Props) {
               </>
             )}
           </Card>
+          )}
 
           <Card>
             <Text style={styles.sectionTitle}>قيّم هذا المحل</Text>
@@ -397,6 +405,8 @@ const styles = StyleSheet.create({
   logoImg: { width: '100%', height: '100%' },
   logoFallback: { fontSize: 28, fontFamily: fonts.headingExtra, color: colors.tealDark },
   storeName: { fontFamily: fonts.heading, fontSize: 18, color: '#fff', textAlign: 'center' },
+  individualRow: { flexDirection: 'row', gap: 5, marginTop: 4 },
+  individualText: { fontFamily: fonts.bodyMedium, fontSize: 11.5, color: 'rgba(255,255,255,0.85)' },
   sectionTitle: {
     fontFamily: fonts.headingSemi,
     fontSize: 15,

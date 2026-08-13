@@ -95,10 +95,15 @@ export class AuthService {
       throw new ConflictException('البريد الإلكتروني مستخدم مسبقاً');
     }
 
+    const isIndividual = dto.providerType === 'individual';
+
+    // للمحل: ملف السجل التجاري. للفني المستقل: نفس حقل الرفع لكن يمثّل الهوية/رخصة العمل الحر
     const crFile = files.crFile?.[0];
     const bankFile = files.bankFile?.[0];
     if (!crFile) {
-      throw new ConflictException('ملف السجل التجاري مطلوب');
+      throw new ConflictException(
+        isIndividual ? 'ملف الهوية أو رخصة العمل الحر مطلوب' : 'ملف السجل التجاري مطلوب',
+      );
     }
     if (!bankFile) {
       throw new ConflictException('ملف تصديق الحساب البنكي مطلوب');
@@ -123,7 +128,9 @@ export class AuthService {
         data: {
           ownerUserId: user.id,
           name: dto.storeName,
-          commercialRegisterNo: dto.commercialRegisterNo,
+          providerType: dto.providerType ?? 'company',
+          commercialRegisterNo: isIndividual ? null : dto.commercialRegisterNo,
+          nationalId: isIndividual ? dto.nationalId : null,
           taxNo: dto.taxNo,
           iban: dto.iban,
           logoUrl: logo ? `/uploads/logos/${logo.filename}` : null,
@@ -132,6 +139,18 @@ export class AuthService {
           status: 'pending',
         },
       });
+
+      // الفني المستقل ما عنده فرع فعلي — نسوي له فرعاً تلقائياً يمثّل منطقة خدمته
+      // حتى يعمل نظام الحجوزات الحالي بدون أي تعديل (كل حجز يتطلب فرعاً)
+      if (isIndividual) {
+        await tx.branch.create({
+          data: {
+            storeId: store.id,
+            name: 'المنطقة التي أخدمها',
+            address: dto.serviceArea?.trim() || null,
+          },
+        });
+      }
 
       await tx.subscription.create({
         data: {

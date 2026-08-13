@@ -20,6 +20,9 @@ export class ProductsService {
 
   async create(ownerUserId: string, dto: CreateProductDto, image?: Express.Multer.File) {
     const store = await getOwnedStoreOrThrow(this.prisma, ownerUserId);
+    if (store.providerType === 'individual') {
+      throw new BadRequestException('حسابات الفنيين المستقلين تقدّم خدمات فقط، بدون منتجات');
+    }
     return this.prisma.product.create({
       data: {
         storeId: store.id,
