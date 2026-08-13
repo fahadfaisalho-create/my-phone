@@ -53,7 +53,12 @@ export default function InventoryTab() {
       ) : (
         products.map((p) => (
           <div className="rowline" key={p.id}>
-            <span>{p.name}</span>
+            <span>
+              {p.name}
+              {p.branch && (
+                <span style={{ color: 'var(--muted)', fontSize: 12 }}> · 📍 {p.branch.name}</span>
+              )}
+            </span>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <button className="qtybtn" onClick={() => adjust(p.id, -1)} disabled={busyId === p.id || p.quantity <= 0}>
                 -

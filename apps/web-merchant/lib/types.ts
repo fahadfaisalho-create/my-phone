@@ -52,6 +52,9 @@ export interface Product {
   price: string;
   quantity: number;
   createdAt: string;
+  // فرع محدد (مخزون منفصل خاص بهذا الفرع) — أو فارغ = مشترك بين كل فروع المحل
+  branchId: string | null;
+  branch?: { id: string; name: string } | null;
 }
 
 export interface Service {

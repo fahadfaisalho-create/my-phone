@@ -106,6 +106,7 @@ export default function CartScreen({ route, navigation }: Props) {
         body: JSON.stringify({
           storeId,
           items: cart.items.map((i) => ({ productId: i.productId, qty: i.qty })),
+          ...(cart.branchId ? { branchId: cart.branchId } : {}),
           deliveryType,
           ...(deliveryType === 'delivery'
             ? {
@@ -177,6 +178,11 @@ export default function CartScreen({ route, navigation }: Props) {
 
   return (
     <View style={styles.flex}>
+      {cart.branchName && (
+        <View style={styles.branchBanner}>
+          <Text style={styles.branchBannerText}>🏬 تتسوق من فرع: {cart.branchName}</Text>
+        </View>
+      )}
       <FlatList
         data={cart.items}
         keyExtractor={(i) => i.productId}
@@ -284,6 +290,8 @@ export default function CartScreen({ route, navigation }: Props) {
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg, padding: 20 },
+  branchBanner: { backgroundColor: colors.tealBg, paddingVertical: 8, paddingHorizontal: 14 },
+  branchBannerText: { fontFamily: fonts.bodyMedium, fontSize: 12.5, color: colors.tealDark, textAlign: 'right' },
   row: {
     flexDirection: 'row-reverse',
     alignItems: 'center',

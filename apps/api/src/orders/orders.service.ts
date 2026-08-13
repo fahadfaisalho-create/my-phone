@@ -12,10 +12,24 @@ export class OrdersService {
   async create(consumerId: string, dto: CreateOrderDto) {
     const store = await this.prisma.store.findUnique({
       where: { id: dto.storeId },
-      include: { subscriptions: { orderBy: { startDate: 'desc' }, take: 1 } },
+      include: { subscriptions: { orderBy: { startDate: 'desc' }, take: 1 }, branches: true },
     });
     if (!store) throw new NotFoundException('المحل غير موجود');
     assertStoreAvailable(store.status, store.subscriptions[0] ?? null);
+
+    // لو المحل عنده أكثر من فرع، لازم يحدد المستهلك أي فرع يتسوق منه
+    if (store.branches.length > 1) {
+      if (!dto.branchId) {
+        throw new BadRequestException('اختر الفرع الذي تتسوق منه قبل إتمام الطلب');
+      }
+      if (!store.branches.some((b) => b.id === dto.branchId)) {
+        throw new BadRequestException('الفرع المختار لا ينتمي لهذا المحل');
+      }
+    } else if (dto.branchId && !store.branches.some((b) => b.id === dto.branchId)) {
+      throw new BadRequestException('الفرع المختار لا ينتمي لهذا المحل');
+    }
+    // فرع واحد فقط: نستخدمه تلقائياً حتى لو المستهلك ما أرسل اختياراً صريحاً
+    const branchId = dto.branchId ?? (store.branches.length === 1 ? store.branches[0].id : null);
 
     const deliveryType = dto.deliveryType ?? 'pickup';
     if (deliveryType === 'delivery') {
@@ -42,6 +56,10 @@ export class OrdersService {
         if (!product || product.storeId !== store.id) {
           throw new BadRequestException(`المنتج ${item.productId} لا ينتمي لهذا المحل`);
         }
+        // منتج مرتبط بفرع محدد لا يُشترى إلا من نفس الفرع الذي اختاره المستهلك
+        if (product.branchId && product.branchId !== branchId) {
+          throw new BadRequestException(`"${product.name}" غير متاح في الفرع الذي اخترته`);
+        }
         if (product.quantity < item.qty) {
           throw new BadRequestException(`الكمية المتوفرة من "${product.name}" غير كافية`);
         }
@@ -67,6 +85,7 @@ export class OrdersService {
           deliveryLng: deliveryType === 'delivery' ? dto.deliveryLng ?? null : null,
           deliveryFee,
           courierProvider: deliveryType === 'delivery' ? dto.courierProvider ?? null : null,
+          branchId,
           items: { create: itemsData },
         },
         include: { items: true },
@@ -111,7 +130,11 @@ export class OrdersService {
     return this.prisma.order.findMany({
       where: { storeId: store.id },
       orderBy: { id: 'desc' },
-      include: { items: { include: { product: true } }, consumer: { select: { name: true, phone: true } } },
+      include: {
+        items: { include: { product: true } },
+        consumer: { select: { name: true, phone: true } },
+        branch: { select: { id: true, name: true } },
+      },
     });
   }
 
@@ -150,6 +173,7 @@ export class OrdersService {
         items: { include: { product: true } },
         consumer: { select: { name: true, phone: true } },
         store: { select: { name: true } },
+        branch: { select: { id: true, name: true } },
       },
     });
   }

@@ -35,6 +35,8 @@ export interface StoreProduct {
   description: string | null;
   price: string;
   quantity: number;
+  // فرع محدد (مخزون منفصل خاص بهذا الفرع) — أو فارغ = مشترك بين كل فروع المحل
+  branchId: string | null;
 }
 
 export interface StoreBranch {

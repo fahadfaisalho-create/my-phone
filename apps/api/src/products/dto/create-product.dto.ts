@@ -24,4 +24,9 @@ export class CreateProductDto {
   @IsInt({ message: 'الكمية يجب أن تكون رقماً صحيحاً' })
   @Min(0)
   quantity?: number;
+
+  // فرع محدد (مخزون منفصل خاص بهذا الفرع) — أو بدون قيمة = مشترك بين كل فروع المحل
+  @IsOptional()
+  @IsString()
+  branchId?: string;
 }

@@ -206,6 +206,8 @@ model Branch {
   address String?
 
   bookings Booking[]
+  products Product[]
+  orders   Order[]
 
   @@map("branches")
 }
@@ -257,6 +259,9 @@ model Product {
   price       Decimal  @db.Decimal(10, 2)
   quantity    Int      @default(0)
   createdAt   DateTime @default(now()) @map("created_at")
+  // فرع محدد (مخزون منفصل خاص بهذا الفرع فقط) — أو فارغ = مشترك بين كل فروع المحل
+  branchId    String?  @map("branch_id")
+  branch      Branch?  @relation(fields: [branchId], references: [id], onDelete: SetNull)
 
   services   Service[]
   orderItems OrderItem[]
@@ -309,6 +314,11 @@ model Order {
   // نسخة من رسوم التوصيل وقت الطلب (لا تتأثر لو التاجر غيّر الرسوم لاحقاً) + شركة الشحن المختارة
   deliveryFee      Decimal?         @map("delivery_fee") @db.Decimal(10, 2)
   courierProvider  CourierProvider? @map("courier_provider")
+
+  // الفرع الذي اختاره المستهلك للتسوق منه (عند تعدد فروع المحل) — مرجعي لتحديد
+  // المنتجات المتاحة والفرز عند التاجر، غير إلزامي (محل بفرع واحد لا يحتاجه)
+  branchId String? @map("branch_id")
+  branch   Branch? @relation(fields: [branchId], references: [id])
 
   items OrderItem[]
 

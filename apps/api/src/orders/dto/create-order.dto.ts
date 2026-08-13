@@ -58,4 +58,9 @@ export class CreateOrderDto {
   @IsOptional()
   @IsEnum(CourierProvider, { message: 'شركة الشحن غير صحيحة' })
   courierProvider?: CourierProvider;
+
+  // الفرع الذي اختاره المستهلك للتسوق منه — إلزامي فقط لو المحل عنده أكثر من فرع
+  @IsOptional()
+  @IsString()
+  branchId?: string;
 }

@@ -10,7 +10,11 @@ export class ProductsService {
   constructor(private readonly prisma: PrismaService) {}
 
   list(storeId: string) {
-    return this.prisma.product.findMany({ where: { storeId }, orderBy: { createdAt: 'desc' } });
+    return this.prisma.product.findMany({
+      where: { storeId },
+      orderBy: { createdAt: 'desc' },
+      include: { branch: { select: { id: true, name: true } } },
+    });
   }
 
   async listMine(ownerUserId: string) {
@@ -18,11 +22,22 @@ export class ProductsService {
     return this.list(store.id);
   }
 
+  // فرع فارغ = مشترك بين كل الفروع. لو مرسل، يتحقق أنه يتبع نفس المحل
+  private async resolveBranchId(storeId: string, branchId?: string): Promise<string | null> {
+    if (!branchId) return null;
+    const branch = await this.prisma.branch.findUnique({ where: { id: branchId } });
+    if (!branch || branch.storeId !== storeId) {
+      throw new BadRequestException('الفرع غير موجود');
+    }
+    return branch.id;
+  }
+
   async create(ownerUserId: string, dto: CreateProductDto, image?: Express.Multer.File) {
     const store = await getOwnedStoreOrThrow(this.prisma, ownerUserId);
     if (store.providerType === 'individual') {
       throw new BadRequestException('حسابات الفنيين المستقلين تقدّم خدمات فقط، بدون منتجات');
     }
+    const branchId = await this.resolveBranchId(store.id, dto.branchId);
     return this.prisma.product.create({
       data: {
         storeId: store.id,
@@ -32,6 +47,7 @@ export class ProductsService {
         price: dto.price,
         quantity: dto.quantity ?? 0,
         imageUrl: image ? `/uploads/products/${image.filename}` : null,
+        branchId,
       },
     });
   }
@@ -52,6 +68,11 @@ export class ProductsService {
     image?: Express.Multer.File,
   ) {
     const product = await this.findOwned(ownerUserId, productId);
+    // dto.branchId === '' يعني "رجّعه مشترك بين كل الفروع"، undefined يعني "بدون تغيير"
+    const branchId =
+      dto.branchId === undefined
+        ? product.branchId
+        : await this.resolveBranchId(product.storeId, dto.branchId);
     return this.prisma.product.update({
       where: { id: productId },
       data: {
@@ -60,6 +81,7 @@ export class ProductsService {
         description: dto.description ?? product.description,
         price: dto.price ?? product.price,
         imageUrl: image ? `/uploads/products/${image.filename}` : product.imageUrl,
+        branchId,
       },
     });
   }

@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { apiFetch, ApiError, fileUrl } from '@/lib/api';
-import { Product } from '@/lib/types';
+import { Branch, Product } from '@/lib/types';
 import FileField from '@/components/FileField';
 
 export default function ProductsTab() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [branches, setBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -17,12 +18,18 @@ export default function ProductsTab() {
   const [qty, setQty] = useState('');
   const [desc, setDesc] = useState('');
   const [image, setImage] = useState<File | null>(null);
+  // فارغ = مشترك بين كل فروع المحل، أو معرّف فرع محدد = مخزون منفصل خاص بهذا الفرع
+  const [branchId, setBranchId] = useState('');
 
   async function load() {
     setLoading(true);
     try {
-      const data = await apiFetch<Product[]>('/stores/me/products');
-      setProducts(data);
+      const [productsData, branchesData] = await Promise.all([
+        apiFetch<Product[]>('/stores/me/products'),
+        apiFetch<Branch[]>('/stores/me/branches'),
+      ]);
+      setProducts(productsData);
+      setBranches(branchesData);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'تعذّر تحميل المنتجات');
     } finally {
@@ -46,6 +53,7 @@ export default function ProductsTab() {
       if (qty) form.append('quantity', qty);
       if (desc.trim()) form.append('description', desc.trim());
       if (image) form.append('image', image);
+      if (branchId) form.append('branchId', branchId);
 
       await apiFetch('/stores/me/products', { method: 'POST', body: form });
       setName('');
@@ -54,6 +62,7 @@ export default function ProductsTab() {
       setQty('');
       setDesc('');
       setImage(null);
+      setBranchId('');
       await load();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'تعذّر حفظ المنتج');
@@ -102,6 +111,19 @@ export default function ProductsTab() {
           value={desc}
           onChange={(e) => setDesc(e.target.value)}
         />
+        {branches.length > 1 && (
+          <>
+            <label htmlFor="productBranch">مخزون المنتج</label>
+            <select id="productBranch" value={branchId} onChange={(e) => setBranchId(e.target.value)}>
+              <option value="">🔗 مشترك بين كل الفروع (مخزون واحد)</option>
+              {branches.map((b) => (
+                <option key={b.id} value={b.id}>
+                  📍 خاص بفرع: {b.name}
+                </option>
+              ))}
+            </select>
+          </>
+        )}
         <FileField label="صورة المنتج" accept="image/*" file={image} onChange={setImage} previewAsImage />
         {error && <div className="err">{error}</div>}
         <button className="primary" onClick={handleAdd} disabled={saving || !name.trim() || !price}>
@@ -125,6 +147,9 @@ export default function ProductsTab() {
               <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span style={{ color: 'var(--muted)' }}>
                   {p.price} ﷼ · متوفر {p.quantity}
+                  {branches.length > 1 && (
+                    <> · {p.branch ? `📍 ${p.branch.name}` : '🔗 مشترك'}</>
+                  )}
                 </span>
                 <button className="link" onClick={() => handleDelete(p.id)}>
                   حذف

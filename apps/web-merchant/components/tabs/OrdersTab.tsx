@@ -19,6 +19,7 @@ interface Order {
   courierProvider: CourierProvider | null;
   consumer: { name: string; phone: string | null };
   items: { qty: number; product: { name: string } }[];
+  branch: { id: string; name: string } | null;
 }
 
 interface Invoice {
@@ -155,6 +156,7 @@ export default function OrdersTab() {
               </div>
               <div style={{ fontSize: 12, color: 'var(--muted)' }}>
                 {o.total} ﷼ · {PAY_LABEL[o.paymentStatus]}
+                {o.branch && <> · 🏬 {o.branch.name}</>}
               </div>
               {o.deliveryType === 'delivery' && o.deliveryAddress && (
                 <div style={{ fontSize: 12, color: 'var(--ink)', marginTop: 4 }}>📍 {o.deliveryAddress}</div>

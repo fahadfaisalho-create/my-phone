@@ -21,18 +21,23 @@ export default function StoreDetailScreen({ route, navigation }: Props) {
   const [reviewError, setReviewError] = useState('');
   const [contacting, setContacting] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  // الفرع الذي اختاره المستهلك للتسوق منه — إلزامي فقط لو المحل عنده أكثر من فرع
+  const [selectedBranchId, setSelectedBranchId] = useState<string | null>(null);
   const cart = useCart();
 
   async function load() {
     try {
       const data = await apiFetch<StoreDetail>(`/catalog/stores/${storeId}`);
       setStore(data);
+      // فرع واحد فقط: نختاره تلقائياً بدون إزعاج المستهلك بخطوة اختيار
+      if (data.branches.length === 1) setSelectedBranchId(data.branches[0].id);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'تعذّر تحميل بيانات المحل');
     }
   }
 
   useEffect(() => {
+    setSelectedBranchId(null);
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storeId]);
@@ -89,7 +94,8 @@ export default function StoreDetailScreen({ route, navigation }: Props) {
   async function handleAddToCart(product: StoreDetail['products'][number]) {
     if (!store) return;
     if (!(await requireAuth(navigation, { screen: 'StoreDetail', params: { storeId } }))) return;
-    cart.addItem(storeId, store.name, product);
+    const branch = store.branches.find((b) => b.id === selectedBranchId) || null;
+    cart.addItem(storeId, store.name, product, selectedBranchId, branch?.name ?? null);
   }
 
   function openInMaps(query: string) {
@@ -109,12 +115,18 @@ export default function StoreDetailScreen({ route, navigation }: Props) {
 
   const logo = fileUrl(store.logoUrl);
   const showCartBar = cart.storeId === storeId && cart.items.length > 0;
+  // لازم يختار المستهلك فرعه أولاً لو المحل عنده أكثر من فرع، قبل ما يشوف المنتجات
+  const needsBranchChoice = store.branches.length > 1 && !selectedBranchId;
+  // منتج مرتبط بفرع محدد يظهر فقط لمن اختار نفس الفرع، والمنتج المشترك يظهر دائماً
+  const branchProducts = needsBranchChoice
+    ? []
+    : store.products.filter((p) => !p.branchId || p.branchId === selectedBranchId);
   const categories = Array.from(
-    new Set(store.products.map((p) => p.category?.trim()).filter((c): c is string => !!c)),
+    new Set(branchProducts.map((p) => p.category?.trim()).filter((c): c is string => !!c)),
   );
   const visibleProducts = selectedCategory
-    ? store.products.filter((p) => (p.category?.trim() || null) === selectedCategory)
-    : store.products;
+    ? branchProducts.filter((p) => (p.category?.trim() || null) === selectedCategory)
+    : branchProducts;
 
   return (
     <View style={styles.flex}>
@@ -149,6 +161,34 @@ export default function StoreDetailScreen({ route, navigation }: Props) {
             <SecondaryButton title={contacting ? 'جارٍ الفتح...' : '💬 تواصل مع المحل'} onPress={handleContact} />
           )}
           <View style={{ height: 14 }} />
+
+          {store.branches.length > 1 && (
+            <Card>
+              <Text style={styles.sectionTitle}>📍 اختر فرعك للتسوق</Text>
+              <Text style={styles.mutedText}>
+                هذا المحل عنده أكثر من فرع — حدد الفرع الأقرب لك لعرض المنتجات المتوفرة فيه
+              </Text>
+              <View style={styles.branchPickRow}>
+                {store.branches.map((b) => (
+                  <Pressable
+                    key={b.id}
+                    style={[styles.branchPickChip, selectedBranchId === b.id && styles.branchPickChipOn]}
+                    onPress={() => setSelectedBranchId(b.id)}
+                  >
+                    <Text
+                      style={[
+                        styles.branchPickChipText,
+                        selectedBranchId === b.id && styles.branchPickChipTextOn,
+                      ]}
+                    >
+                      {selectedBranchId === b.id ? '✓ ' : ''}
+                      {b.name}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </Card>
+          )}
 
           {store.branches.length > 0 && (
             <Card>
@@ -261,6 +301,10 @@ export default function StoreDetailScreen({ route, navigation }: Props) {
             <Text style={styles.sectionTitle}>المنتجات</Text>
             {store.products.length === 0 ? (
               <Text style={styles.mutedText}>لا يوجد منتجات بعد</Text>
+            ) : needsBranchChoice ? (
+              <Text style={styles.mutedText}>اختر فرعك من الأعلى ⬆️ لعرض المنتجات المتوفرة فيه</Text>
+            ) : branchProducts.length === 0 ? (
+              <Text style={styles.mutedText}>لا يوجد منتجات متوفرة بهذا الفرع حالياً</Text>
             ) : (
               <>
                 {categories.length > 1 && (
@@ -418,6 +462,18 @@ const styles = StyleSheet.create({
     paddingRight: 8,
   },
   mutedText: { color: colors.muted, fontFamily: fonts.body, fontSize: 13, textAlign: 'right' },
+  branchPickRow: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: 8, marginTop: 10 },
+  branchPickChip: {
+    borderWidth: 1,
+    borderColor: colors.teal,
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    backgroundColor: colors.card,
+  },
+  branchPickChipOn: { backgroundColor: colors.teal, borderColor: colors.teal },
+  branchPickChipText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.tealDark },
+  branchPickChipTextOn: { color: '#fff' },
   branchRow: {
     flexDirection: 'row-reverse',
     alignItems: 'center',
