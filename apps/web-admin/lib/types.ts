@@ -56,3 +56,29 @@ export const PLAN_LABEL: Record<SubscriptionPlan, string> = {
   six_months: '6 أشهر',
   yearly: 'سنة',
 };
+
+export type CouponDiscountType = 'percentage' | 'fixed';
+export type CouponScope = 'orders' | 'subscriptions' | 'both';
+
+export interface Coupon {
+  id: string;
+  code: string;
+  discountType: CouponDiscountType;
+  percentage: string | null;
+  fixedAmount: string | null;
+  maxDiscount: string | null;
+  storeId: string | null;
+  scope: CouponScope;
+  startsAt: string | null;
+  expiresAt: string | null;
+  active: boolean;
+  usageLimit: number | null;
+  usedCount: number;
+  createdAt: string;
+}
+
+export const COUPON_SCOPE_LABEL: Record<CouponScope, string> = {
+  orders: 'طلبات الشراء',
+  subscriptions: 'اشتراكات المحلات',
+  both: 'طلبات الشراء + الاشتراكات',
+};

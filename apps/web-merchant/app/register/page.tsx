@@ -44,6 +44,7 @@ export default function RegisterPage() {
 
   // خطوة 3
   const [plan, setPlan] = useState<SubscriptionPlan | null>(null);
+  const [couponCode, setCouponCode] = useState('');
 
   const isIndividual = accountType === 'individual';
 
@@ -115,6 +116,7 @@ export default function RegisterPage() {
       if (tax) form.append('taxNo', tax);
       form.append('iban', iban);
       form.append('plan', plan);
+      if (couponCode.trim()) form.append('couponCode', couponCode.trim());
       if (logo) form.append('logo', logo);
       if (crFile) form.append('crFile', crFile);
       if (bankFile) form.append('bankFile', bankFile);
@@ -315,6 +317,13 @@ export default function RegisterPage() {
               ))}
             </div>
             <div style={{ height: 14 }} />
+            <label htmlFor="couponCode">كود خصم (اختياري)</label>
+            <input
+              id="couponCode"
+              value={couponCode}
+              onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+              placeholder="إذا كان لديك كود خصم على الاشتراك"
+            />
             {error && <div className="err">{error}</div>}
             <button className="primary" style={{ width: '100%' }} onClick={handleSubmit} disabled={loading}>
               {loading ? 'جارٍ الإرسال...' : 'إرسال طلب الاشتراك'}

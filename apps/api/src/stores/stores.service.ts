@@ -1,7 +1,9 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateStoreDto } from './dto/update-store.dto';
+import { ApplySubscriptionCouponDto } from './dto/apply-subscription-coupon.dto';
 import { getOwnedStoreOrThrow } from '../common/get-owned-store.util';
+import { CouponsService } from '../coupons/coupons.service';
 
 export interface UpdateStoreFiles {
   logo?: Express.Multer.File[];
@@ -11,7 +13,10 @@ export interface UpdateStoreFiles {
 
 @Injectable()
 export class StoresService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly couponsService: CouponsService,
+  ) {}
 
   async findMine(ownerUserId: string) {
     const store = await this.prisma.store.findFirst({
@@ -90,5 +95,38 @@ export class StoresService {
       where: { id: subscription.id },
       data: { paidAt: new Date() },
     });
+  }
+
+  // تطبيق كوبون خصم على اشتراك المحل الحالي — لمن ما استخدم كود عند التسجيل
+  // أو حصل على كود لاحقاً. لا يعمل إلا قبل الدفع، ومرة واحدة فقط لكل اشتراك
+  async applySubscriptionCoupon(ownerUserId: string, dto: ApplySubscriptionCouponDto) {
+    const store = await getOwnedStoreOrThrow(this.prisma, ownerUserId);
+    const subscription = await this.prisma.subscription.findFirst({
+      where: { storeId: store.id },
+      orderBy: { startDate: 'desc' },
+    });
+    if (!subscription) throw new NotFoundException('لا يوجد اشتراك لهذا المحل');
+    if (subscription.paidAt) throw new BadRequestException('تم دفع الاشتراك مسبقاً، لا يمكن تطبيق كوبون عليه');
+    if (subscription.couponId) throw new BadRequestException('تم تطبيق كوبون على هذا الاشتراك مسبقاً');
+
+    return this.prisma.$transaction(
+      async (tx) => {
+        const { coupon, discountAmount } = await this.couponsService.resolveCoupon(dto.couponCode, {
+          storeId: store.id,
+          scope: 'subscriptions',
+          amount: Number(subscription.price),
+        });
+        await this.couponsService.redeem(tx, coupon.id);
+        return tx.subscription.update({
+          where: { id: subscription.id },
+          data: {
+            price: Number(subscription.price) - discountAmount,
+            couponId: coupon.id,
+            discountAmount,
+          },
+        });
+      },
+      { timeout: 15000 },
+    );
   }
 }

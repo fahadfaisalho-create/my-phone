@@ -11,6 +11,26 @@ export interface Subscription {
   endDate: string;
   status: 'active' | 'expired';
   paidAt: string | null;
+  couponId: string | null;
+  discountAmount: string | null;
+}
+
+export type CouponDiscountType = 'percentage' | 'fixed';
+
+export interface Coupon {
+  id: string;
+  code: string;
+  discountType: CouponDiscountType;
+  percentage: string | null;
+  fixedAmount: string | null;
+  maxDiscount: string | null;
+  storeId: string | null;
+  startsAt: string | null;
+  expiresAt: string | null;
+  active: boolean;
+  usageLimit: number | null;
+  usedCount: number;
+  createdAt: string;
 }
 
 export interface Store {

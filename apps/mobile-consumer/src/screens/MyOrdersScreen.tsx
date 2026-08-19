@@ -20,6 +20,8 @@ interface OrderItem {
   deliveryLng: number | string | null;
   courierProvider: 'aramex' | 'fedex' | null;
   deliveryMethod: 'courier' | 'store_agent' | null;
+  discountAmount: string | null;
+  coupon: { code: string } | null;
   store: { name: string };
   items: { qty: number; product: { name: string } }[];
 }
@@ -137,6 +139,11 @@ export default function MyOrdersScreen({ navigation }: Props) {
               >
                 <Text style={styles.mapsLinkText}>🗺️ عرض الموقع بالخرائط</Text>
               </Pressable>
+            )}
+            {item.coupon && (
+              <Text style={styles.deliveryType}>
+                🏷️ {item.coupon.code} — خصم {item.discountAmount} ﷼
+              </Text>
             )}
             <View style={styles.rowBottom}>
               <Text style={styles.pay}>{PAY_LABEL[item.paymentStatus]}</Text>

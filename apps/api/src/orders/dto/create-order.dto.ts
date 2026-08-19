@@ -68,4 +68,9 @@ export class CreateOrderDto {
   @IsOptional()
   @IsString()
   branchId?: string;
+
+  // كود كوبون الخصم (اختياري) — يُطبّق على إجمالي المنتجات فقط، لا على رسوم التوصيل
+  @IsOptional()
+  @IsString()
+  couponCode?: string;
 }

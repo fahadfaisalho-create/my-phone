@@ -57,4 +57,9 @@ export class RegisterMerchantDto {
   // الباقة
   @IsEnum(SubscriptionPlan, { message: 'خطة الاشتراك غير صحيحة' })
   plan: SubscriptionPlan;
+
+  // كود كوبون خصم على اشتراك المنصة (اختياري) — كوبونات الإدمن فقط
+  @IsOptional()
+  @IsString()
+  couponCode?: string;
 }

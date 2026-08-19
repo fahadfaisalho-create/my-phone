@@ -15,6 +15,7 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { JwtPayload } from './types';
 import { MailService } from '../mail/mail.service';
+import { CouponsService } from '../coupons/coupons.service';
 
 const RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // ساعة واحدة
 
@@ -45,6 +46,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
     private readonly mail: MailService,
+    private readonly couponsService: CouponsService,
   ) {}
 
   private async issueToken(user: {
@@ -113,7 +115,8 @@ export class AuthService {
     const passwordHash = await bcrypt.hash(dto.password, 10);
     const now = new Date();
 
-    const result = await this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(
+      async (tx) => {
       const user = await tx.user.create({
         data: {
           role: 'merchant_rep',
@@ -152,19 +155,41 @@ export class AuthService {
         });
       }
 
+      // كوبون خصم على سعر الاشتراك (اختياري) — كوبونات الإدمن فقط (المقفلة على متجر
+      // ما تنطبق هنا أصلاً لأن نطاقها دائماً "orders")
+      let couponId: string | null = null;
+      let discountAmount: number | null = null;
+      let price = PLAN_PRICE[dto.plan];
+      if (dto.couponCode) {
+        const resolved = await this.couponsService.resolveCoupon(dto.couponCode, {
+          storeId: store.id,
+          scope: 'subscriptions',
+          amount: price,
+        });
+        couponId = resolved.coupon.id;
+        discountAmount = resolved.discountAmount;
+        price -= discountAmount;
+        await this.couponsService.redeem(tx, resolved.coupon.id);
+      }
+
       await tx.subscription.create({
         data: {
           storeId: store.id,
           plan: dto.plan,
-          price: PLAN_PRICE[dto.plan],
+          price,
           startDate: now,
           endDate: planEndDate(now, dto.plan),
           status: 'active',
+          couponId,
+          discountAmount,
         },
       });
 
       return { user, store };
-    });
+      },
+      // مهلة أطول من الافتراضي — عدة عمليات إنشاء (مستخدم/محل/فرع/اشتراك) + كوبون محتمل
+      { timeout: 15000 },
+    );
 
     const token = await this.issueToken(result.user, result.store.id);
     return {

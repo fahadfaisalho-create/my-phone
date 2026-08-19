@@ -7,6 +7,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../auth/types';
 import { StoresService, UpdateStoreFiles } from './stores.service';
 import { UpdateStoreDto } from './dto/update-store.dto';
+import { ApplySubscriptionCouponDto } from './dto/apply-subscription-coupon.dto';
 import { registrationFilesStorage, fileFilter, MAX_FILE_SIZE_BYTES } from '../common/multer.config';
 
 @Controller('stores')
@@ -45,5 +46,12 @@ export class StoresController {
   @Roles('merchant_rep')
   confirmSubscriptionPayment(@CurrentUser() user: AuthenticatedUser) {
     return this.storesService.confirmSubscriptionPayment(user.id);
+  }
+
+  // تطبيق كوبون خصم (كوبونات الإدمن فقط) على اشتراك المحل الحالي قبل الدفع
+  @Post('me/subscription/apply-coupon')
+  @Roles('merchant_rep')
+  applySubscriptionCoupon(@CurrentUser() user: AuthenticatedUser, @Body() dto: ApplySubscriptionCouponDto) {
+    return this.storesService.applySubscriptionCoupon(user.id, dto);
   }
 }

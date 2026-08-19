@@ -17,6 +17,7 @@ import StatsTab from '@/components/tabs/StatsTab';
 import SupportTab from '@/components/tabs/SupportTab';
 import SettingsTab from '@/components/tabs/SettingsTab';
 import TechniciansTab from '@/components/tabs/TechniciansTab';
+import CouponsTab from '@/components/tabs/CouponsTab';
 
 const TABS = [
   { key: 'branches', label: 'الفروع' },
@@ -26,6 +27,7 @@ const TABS = [
   { key: 'technicians', label: 'فريق الصيانة' },
   { key: 'bookings', label: 'الحجوزات' },
   { key: 'orders', label: 'الطلبات' },
+  { key: 'coupons', label: 'كوبونات الخصم' },
   { key: 'messages', label: 'الرسائل' },
   { key: 'stats', label: 'الإحصائيات' },
   { key: 'support', label: 'الدعم' },
@@ -40,6 +42,10 @@ export default function DashboardPage() {
   const [tab, setTab] = useState<TabKey>('branches');
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState('');
+  const [couponCode, setCouponCode] = useState('');
+  const [applyingCoupon, setApplyingCoupon] = useState(false);
+  const [couponError, setCouponError] = useState('');
+  const [couponSuccess, setCouponSuccess] = useState(false);
 
   async function loadStore() {
     try {
@@ -81,11 +87,32 @@ export default function DashboardPage() {
     }
   }
 
+  async function handleApplyCoupon() {
+    if (!couponCode.trim()) return;
+    setApplyingCoupon(true);
+    setCouponError('');
+    setCouponSuccess(false);
+    try {
+      await apiFetch('/stores/me/subscription/apply-coupon', {
+        method: 'POST',
+        body: JSON.stringify({ couponCode: couponCode.trim() }),
+      });
+      setCouponCode('');
+      setCouponSuccess(true);
+      await loadStore();
+    } catch (err) {
+      setCouponError(err instanceof ApiError ? err.message : 'تعذّر تطبيق الكوبون');
+    } finally {
+      setApplyingCoupon(false);
+    }
+  }
+
   if (!store) return <div className="app spinner-wrap">جارٍ التحميل...</div>;
 
   const sub = store.subscriptions?.[0];
   // الفني المستقل: بدون فروع متعددة أو منتجات/مخزون أو موظفين — خدمات شخصية فقط
-  const HIDDEN_FOR_INDIVIDUAL: TabKey[] = ['branches', 'products', 'inventory', 'technicians', 'orders'];
+  // (وبدون كوبونات — الكوبون يخصم من طلبات شراء المنتجات وهو ما عنده منتجات أصلاً)
+  const HIDDEN_FOR_INDIVIDUAL: TabKey[] = ['branches', 'products', 'inventory', 'technicians', 'orders', 'coupons'];
   const visibleTabs =
     store.providerType === 'individual' ? TABS.filter((t) => !HIDDEN_FOR_INDIVIDUAL.includes(t.key)) : TABS;
   const effectiveTab = visibleTabs.some((t) => t.key === tab) ? tab : visibleTabs[0].key;
@@ -97,13 +124,31 @@ export default function DashboardPage() {
       {sub && !sub.paidAt && (
         <div className="note" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
           <span>
-            فاتورة الاشتراك ({sub.price} ﷼) غير مدفوعة بعد. بوابة الدفع الفعلية غير مربوطة حالياً — هذا الزر يحاكي نجاح الدفع فوراً.
+            فاتورة الاشتراك ({sub.price} ﷼{sub.discountAmount ? ` بعد خصم ${sub.discountAmount} ﷼` : ''}) غير
+            مدفوعة بعد. بوابة الدفع الفعلية غير مربوطة حالياً — هذا الزر يحاكي نجاح الدفع فوراً.
           </span>
-          <button className="primary" onClick={handlePaySubscription} disabled={paying}>
-            {paying ? 'جارٍ الدفع...' : 'ادفع الآن'}
-          </button>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            {!sub.couponId && (
+              <>
+                <input
+                  placeholder="كود خصم (اختياري)"
+                  value={couponCode}
+                  onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                  style={{ marginBottom: 0, width: 160 }}
+                />
+                <button className="secondary" onClick={handleApplyCoupon} disabled={applyingCoupon || !couponCode.trim()}>
+                  {applyingCoupon ? '...' : 'تطبيق'}
+                </button>
+              </>
+            )}
+            <button className="primary" onClick={handlePaySubscription} disabled={paying}>
+              {paying ? 'جارٍ الدفع...' : 'ادفع الآن'}
+            </button>
+          </div>
         </div>
       )}
+      {couponError && <div className="err">{couponError}</div>}
+      {couponSuccess && <div className="note" style={{ color: 'var(--ink)' }}>✓ تم تطبيق الكوبون على اشتراكك</div>}
       {payError && <div className="err">{payError}</div>}
 
       <div className="tabs">
@@ -121,6 +166,7 @@ export default function DashboardPage() {
       {effectiveTab === 'technicians' && <TechniciansTab />}
       {effectiveTab === 'bookings' && <BookingsTab />}
       {effectiveTab === 'orders' && <OrdersTab />}
+      {effectiveTab === 'coupons' && <CouponsTab />}
       {effectiveTab === 'messages' && <MessagesTab />}
       {effectiveTab === 'stats' && <StatsTab />}
       {effectiveTab === 'support' && <SupportTab />}

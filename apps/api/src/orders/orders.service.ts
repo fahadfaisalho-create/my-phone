@@ -4,11 +4,15 @@ import { PrismaService } from '../prisma/prisma.service';
 import { getOwnedStoreOrThrow } from '../common/get-owned-store.util';
 import { assertStoreAvailable } from '../common/store-availability.util';
 import { distanceKm } from '../common/geo.util';
+import { CouponsService } from '../coupons/coupons.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 
 @Injectable()
 export class OrdersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly couponsService: CouponsService,
+  ) {}
 
   async create(consumerId: string, dto: CreateOrderDto) {
     const store = await this.prisma.store.findUnique({
@@ -74,51 +78,74 @@ export class OrdersService {
           : Number(store.deliveryFee ?? 0)
         : null;
 
-    return this.prisma.$transaction(async (tx) => {
-      let total = deliveryFee ?? 0;
-      const itemsData: { productId: string; qty: number; price: number }[] = [];
+    return this.prisma.$transaction(
+      async (tx) => {
+        let subtotal = 0;
+        const itemsData: { productId: string; qty: number; price: number }[] = [];
 
-      for (const item of dto.items) {
-        const product = await tx.product.findUnique({ where: { id: item.productId } });
-        if (!product || product.storeId !== store.id) {
-          throw new BadRequestException(`المنتج ${item.productId} لا ينتمي لهذا المحل`);
+        for (const item of dto.items) {
+          const product = await tx.product.findUnique({ where: { id: item.productId } });
+          if (!product || product.storeId !== store.id) {
+            throw new BadRequestException(`المنتج ${item.productId} لا ينتمي لهذا المحل`);
+          }
+          // منتج مرتبط بفرع محدد لا يُشترى إلا من نفس الفرع الذي اختاره المستهلك
+          if (product.branchId && product.branchId !== branchId) {
+            throw new BadRequestException(`"${product.name}" غير متاح في الفرع الذي اخترته`);
+          }
+          if (product.quantity < item.qty) {
+            throw new BadRequestException(`الكمية المتوفرة من "${product.name}" غير كافية`);
+          }
+          const price = Number(product.price);
+          subtotal += price * item.qty;
+          itemsData.push({ productId: product.id, qty: item.qty, price });
+          await tx.product.update({
+            where: { id: product.id },
+            data: { quantity: { decrement: item.qty } },
+          });
         }
-        // منتج مرتبط بفرع محدد لا يُشترى إلا من نفس الفرع الذي اختاره المستهلك
-        if (product.branchId && product.branchId !== branchId) {
-          throw new BadRequestException(`"${product.name}" غير متاح في الفرع الذي اخترته`);
+
+        // كوبون الخصم (اختياري) — يُطبّق على إجمالي المنتجات فقط، لا على رسوم التوصيل
+        let couponId: string | null = null;
+        let discountAmount: number | null = null;
+        if (dto.couponCode) {
+          const resolved = await this.couponsService.resolveCoupon(dto.couponCode, {
+            storeId: store.id,
+            scope: 'orders',
+            amount: subtotal,
+          });
+          couponId = resolved.coupon.id;
+          discountAmount = resolved.discountAmount;
+          await this.couponsService.redeem(tx, resolved.coupon.id);
         }
-        if (product.quantity < item.qty) {
-          throw new BadRequestException(`الكمية المتوفرة من "${product.name}" غير كافية`);
-        }
-        const price = Number(product.price);
-        total += price * item.qty;
-        itemsData.push({ productId: product.id, qty: item.qty, price });
-        await tx.product.update({
-          where: { id: product.id },
-          data: { quantity: { decrement: item.qty } },
+
+        const total = subtotal - (discountAmount ?? 0) + (deliveryFee ?? 0);
+
+        return tx.order.create({
+          data: {
+            consumerId,
+            storeId: store.id,
+            total,
+            status: 'pending',
+            paymentStatus: 'unpaid',
+            deliveryType,
+            deliveryAddress: deliveryType === 'delivery' ? dto.deliveryAddress?.trim() ?? null : null,
+            deliveryLat: deliveryType === 'delivery' ? dto.deliveryLat ?? null : null,
+            deliveryLng: deliveryType === 'delivery' ? dto.deliveryLng ?? null : null,
+            deliveryFee,
+            courierProvider: deliveryMethod === 'courier' ? dto.courierProvider ?? null : null,
+            deliveryMethod,
+            branchId,
+            couponId,
+            discountAmount,
+            items: { create: itemsData },
+          },
+          include: { items: true },
         });
-      }
-
-      return tx.order.create({
-        data: {
-          consumerId,
-          storeId: store.id,
-          total,
-          status: 'pending',
-          paymentStatus: 'unpaid',
-          deliveryType,
-          deliveryAddress: deliveryType === 'delivery' ? dto.deliveryAddress?.trim() ?? null : null,
-          deliveryLat: deliveryType === 'delivery' ? dto.deliveryLat ?? null : null,
-          deliveryLng: deliveryType === 'delivery' ? dto.deliveryLng ?? null : null,
-          deliveryFee,
-          courierProvider: deliveryMethod === 'courier' ? dto.courierProvider ?? null : null,
-          deliveryMethod,
-          branchId,
-          items: { create: itemsData },
-        },
-        include: { items: true },
-      });
-    });
+      },
+      // مهلة أطول من الافتراضي (5 ثوان) — الحلقة على المنتجات + التحقق من الكوبون
+      // قد تحتاج عدة رحلات لقاعدة بيانات Neon السحابية، خصوصاً بعد فترة خمول
+      { timeout: 15000 },
+    );
   }
 
   // المستهلك يقدر يلغي طلبه بنفسه طالما لسه قيد الانتظار وغير مدفوع (لم يبدأ المحل تجهيزه بعد)
@@ -149,7 +176,11 @@ export class OrdersService {
     return this.prisma.order.findMany({
       where: { consumerId },
       orderBy: { id: 'desc' },
-      include: { items: { include: { product: true } }, store: { select: { name: true } } },
+      include: {
+        items: { include: { product: true } },
+        store: { select: { name: true } },
+        coupon: { select: { code: true } },
+      },
     });
   }
 
@@ -162,6 +193,7 @@ export class OrdersService {
         items: { include: { product: true } },
         consumer: { select: { name: true, phone: true } },
         branch: { select: { id: true, name: true } },
+        coupon: { select: { code: true } },
       },
     });
   }
@@ -253,6 +285,7 @@ export class OrdersService {
       courierProvider: order.courierProvider,
       deliveryMethod: order.deliveryMethod,
       deliveryAddress: order.deliveryAddress,
+      discountAmount: order.discountAmount ? Number(order.discountAmount) : null,
       total: Number(order.total),
     };
   }

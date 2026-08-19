@@ -8,12 +8,14 @@ import StoresSection from '@/components/StoresSection';
 import OrdersPaymentTab from '@/components/OrdersPaymentTab';
 import SupportTicketsSection from '@/components/SupportTicketsSection';
 import ReportsSection from '@/components/ReportsSection';
+import CouponsSection from '@/components/CouponsSection';
 
-type Section = 'stores' | 'orders' | 'support' | 'reports';
+type Section = 'stores' | 'orders' | 'support' | 'reports' | 'coupons';
 
 const SECTIONS: { key: Section; label: string }[] = [
   { key: 'stores', label: 'طلبات التسجيل' },
   { key: 'orders', label: 'طلبات الشراء' },
+  { key: 'coupons', label: 'كوبونات الخصم' },
   { key: 'support', label: 'تذاكر الدعم' },
   { key: 'reports', label: 'التقارير' },
 ];
@@ -59,6 +61,7 @@ export default function DashboardPage() {
 
       {section === 'stores' && <StoresSection />}
       {section === 'orders' && <OrdersPaymentTab />}
+      {section === 'coupons' && <CouponsSection />}
       {section === 'support' && <SupportTicketsSection />}
       {section === 'reports' && <ReportsSection />}
     </div>

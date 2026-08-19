@@ -112,6 +112,21 @@ enum DeliveryMethod {
   store_agent
 }
 
+// نوع خصم الكوبون: نسبة مئوية (مع حد أقصى اختياري) أو مبلغ ثابت
+enum CouponDiscountType {
+  percentage
+  fixed
+}
+
+// نطاق تطبيق الكوبون: على طلبات الشراء، أو اشتراك المحل بالمنصة، أو كلاهما.
+// كوبونات التاجر (المقفلة على متجره) دائماً orders — فقط الإدمن يقدر يصدر
+// كوبون يخصم من اشتراك المحل بالمنصة نفسها (subscriptions/both)
+enum CouponScope {
+  orders
+  subscriptions
+  both
+}
+
 // ---------- Models ----------
 
 model User {
@@ -178,8 +193,40 @@ model Store {
   reviews        Review[]
   technicians    Technician[]
   deliveryAgents DeliveryAgent[]
+  coupons        Coupon[]
 
   @@map("stores")
+}
+
+// كوبون خصم — يُنشئه الإدمن (storeId فارغ = يعمل على كل المتاجر) أو التاجر
+// (storeId معبّى تلقائياً بمتجره — لا يعمل إلا على طلبات هذا المتجر فقط)
+model Coupon {
+  id           String             @id @default(cuid())
+  code         String             @unique
+  discountType CouponDiscountType @map("discount_type")
+  // للنوع percentage: نسبة 1-100. للنوع fixed: غير مستخدم
+  percentage   Decimal?           @db.Decimal(5, 2)
+  // للنوع fixed: المبلغ الثابت المخصوم. للنوع percentage: غير مستخدم
+  fixedAmount  Decimal?           @map("fixed_amount") @db.Decimal(10, 2)
+  // حد أقصى لمبلغ الخصم عند النوع percentage (مثال: 25% بحد أقصى 20 ﷼) — اختياري
+  maxDiscount  Decimal?           @map("max_discount") @db.Decimal(10, 2)
+  // فارغ = كوبون عام يعمل على كل المتاجر (أنشأه الإدمن)، معبّى = مقفل على متجر واحد فقط
+  storeId      String?            @map("store_id")
+  store        Store?             @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  // نطاق التطبيق: طلبات، اشتراكات المحلات بالمنصة، أو كلاهما (افتراضياً طلبات فقط)
+  scope        CouponScope        @default(orders)
+  startsAt     DateTime?          @map("starts_at")
+  expiresAt    DateTime?          @map("expires_at")
+  active       Boolean            @default(true)
+  // حد أقصى لعدد مرات الاستخدام الكلي — فارغ يعني بلا حد
+  usageLimit   Int?               @map("usage_limit")
+  usedCount    Int                @default(0) @map("used_count")
+  createdAt    DateTime           @default(now()) @map("created_at")
+
+  orders        Order[]
+  subscriptions Subscription[]
+
+  @@map("coupons")
 }
 
 // مناديب التوصيل التابعين للمحل — قائمة بسيطة يديرها التاجر (اسم ورقم جوال)
@@ -253,6 +300,12 @@ model Subscription {
   // الإدمن يقدر يؤكد الدفع يدوياً (fallback)، أو تلقائياً عبر Moyasar (invoice + webhook)
   paidAt              DateTime? @map("paid_at")
   gatewayInvoiceId    String?   @map("gateway_invoice_id")
+
+  // كوبون خصم على اشتراك المحل بالمنصة (كوبونات الإدمن فقط) — price أعلاه هو
+  // الصافي بعد الخصم، وdiscountAmount محفوظة كسجل لقيمة الخصم وقت التطبيق
+  couponId       String?  @map("coupon_id")
+  coupon         Coupon?  @relation(fields: [couponId], references: [id])
+  discountAmount Decimal? @map("discount_amount") @db.Decimal(10, 2)
 
   @@map("subscriptions")
 }
@@ -350,6 +403,12 @@ model Order {
   // المنتجات المتاحة والفرز عند التاجر، غير إلزامي (محل بفرع واحد لا يحتاجه)
   branchId String? @map("branch_id")
   branch   Branch? @relation(fields: [branchId], references: [id])
+
+  // كوبون الخصم المستخدم (إن وجد) + قيمة الخصم الفعلية وقت الطلب (لا تتأثر
+  // لو الكوبون تغيّر أو انتهى لاحقاً) — total أعلاه هو الصافي بعد الخصم
+  couponId       String?  @map("coupon_id")
+  coupon         Coupon?  @relation(fields: [couponId], references: [id])
+  discountAmount Decimal? @map("discount_amount") @db.Decimal(10, 2)
 
   items OrderItem[]
 

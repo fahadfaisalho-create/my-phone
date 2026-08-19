@@ -27,6 +27,7 @@ interface InvoiceData {
   courierProvider: CourierProvider | null;
   deliveryMethod: 'courier' | 'store_agent' | null;
   deliveryAddress: string | null;
+  discountAmount: number | null;
   total: number;
 }
 
@@ -112,6 +113,12 @@ export default function InvoiceScreen({ route }: Props) {
           <Text style={styles.sumLabel}>المنتجات</Text>
           <Text style={styles.sumValue}>{invoice.subtotal} ﷼</Text>
         </View>
+        {invoice.discountAmount ? (
+          <View style={styles.sumRow}>
+            <Text style={styles.sumLabel}>خصم الكوبون</Text>
+            <Text style={styles.sumValue}>- {invoice.discountAmount} ﷼</Text>
+          </View>
+        ) : null}
         {invoice.deliveryType === 'delivery' && (
           <>
             <View style={styles.sumRow}>

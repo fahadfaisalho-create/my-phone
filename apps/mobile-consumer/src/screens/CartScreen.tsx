@@ -78,6 +78,11 @@ export default function CartScreen({ route, navigation }: Props) {
   const [locating, setLocating] = useState(false);
   const [locateError, setLocateError] = useState('');
 
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountAmount: number } | null>(null);
+  const [couponChecking, setCouponChecking] = useState(false);
+  const [couponError, setCouponError] = useState('');
+
   useEffect(() => {
     (async () => {
       try {
@@ -110,7 +115,32 @@ export default function CartScreen({ route, navigation }: Props) {
     deliveryType === 'delivery'
       ? Number((deliveryMethod === 'store_agent' ? storeInfo?.agentDeliveryFee : storeInfo?.deliveryFee) || 0)
       : 0;
-  const grandTotal = cart.total + feeAmount;
+  const discountAmount = appliedCoupon?.discountAmount ?? 0;
+  const grandTotal = cart.total - discountAmount + feeAmount;
+
+  async function handleApplyCoupon() {
+    if (!couponCode.trim()) return;
+    setCouponChecking(true);
+    setCouponError('');
+    try {
+      const res = await apiFetch<{ code: string; discountAmount: number }>('/coupons/validate', {
+        method: 'POST',
+        body: JSON.stringify({ code: couponCode.trim(), storeId, amount: cart.total }),
+      });
+      setAppliedCoupon(res);
+      setCouponCode('');
+    } catch (err) {
+      setAppliedCoupon(null);
+      setCouponError(err instanceof ApiError ? err.message : 'تعذّر التحقق من الكود');
+    } finally {
+      setCouponChecking(false);
+    }
+  }
+
+  function handleRemoveCoupon() {
+    setAppliedCoupon(null);
+    setCouponError('');
+  }
 
   // يجيب موقع الجهاز فعليًا (GPS) بدل الاعتماد على كتابة العنوان يدويًا — لدقة أعلى بالتوصيل
   async function handleUseLocation() {
@@ -166,6 +196,7 @@ export default function CartScreen({ route, navigation }: Props) {
           storeId,
           items: cart.items.map((i) => ({ productId: i.productId, qty: i.qty })),
           ...(cart.branchId ? { branchId: cart.branchId } : {}),
+          ...(appliedCoupon ? { couponCode: appliedCoupon.code } : {}),
           deliveryType,
           ...(deliveryType === 'delivery'
             ? {
@@ -394,9 +425,46 @@ export default function CartScreen({ route, navigation }: Props) {
         )}
       />
       <View style={styles.footer}>
-        {feeAmount > 0 && (
+        {appliedCoupon ? (
+          <View style={styles.couponAppliedRow}>
+            <Text style={styles.couponAppliedText}>
+              🏷️ {appliedCoupon.code} — خصم {appliedCoupon.discountAmount} ﷼
+            </Text>
+            <Pressable onPress={handleRemoveCoupon} hitSlop={6}>
+              <Text style={styles.couponRemoveText}>إزالة</Text>
+            </Pressable>
+          </View>
+        ) : (
+          <View style={styles.couponRow}>
+            <TextInput
+              style={styles.couponInput}
+              placeholder="كود الخصم (اختياري)"
+              placeholderTextColor={colors.muted}
+              textAlign="right"
+              autoCapitalize="characters"
+              value={couponCode}
+              onChangeText={setCouponCode}
+            />
+            <Pressable
+              style={({ pressed }) => [styles.couponBtn, pressed && styles.btnPressed]}
+              onPress={handleApplyCoupon}
+              disabled={couponChecking || !couponCode.trim()}
+            >
+              {couponChecking ? (
+                <ActivityIndicator color={colors.teal} size="small" />
+              ) : (
+                <Text style={styles.couponBtnText}>تطبيق</Text>
+              )}
+            </Pressable>
+          </View>
+        )}
+        {couponError ? <ErrorText>{couponError}</ErrorText> : null}
+
+        {(feeAmount > 0 || discountAmount > 0) && (
           <Text style={styles.subtotal}>
-            المنتجات: {cart.total} ﷼ + توصيل {feeAmount} ﷼
+            المنتجات: {cart.total} ﷼
+            {discountAmount > 0 ? ` − خصم ${discountAmount} ﷼` : ''}
+            {feeAmount > 0 ? ` + توصيل ${feeAmount} ﷼` : ''}
           </Text>
         )}
         <Text style={styles.total}>الإجمالي: {grandTotal} ﷼</Text>
@@ -432,6 +500,40 @@ const styles = StyleSheet.create({
   qty: { fontFamily: fonts.body, fontSize: 12, color: colors.muted, textAlign: 'right', marginTop: 2 },
   price: { fontFamily: fonts.heading, fontSize: 13, color: colors.ink },
   footer: { padding: 16, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.card },
+  couponRow: { flexDirection: 'row-reverse', gap: 8, marginBottom: 10 },
+  couponInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.sm,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: '#FCFBF8',
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.text,
+  },
+  couponBtn: {
+    borderWidth: 1,
+    borderColor: colors.teal,
+    borderRadius: radius.sm,
+    paddingHorizontal: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  couponBtnText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.tealDark },
+  couponAppliedRow: {
+    flexDirection: 'row-reverse',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: colors.greenBg,
+    borderRadius: radius.sm,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 10,
+  },
+  couponAppliedText: { fontFamily: fonts.bodySemi, fontSize: 12.5, color: colors.green },
+  couponRemoveText: { fontFamily: fonts.bodyMedium, fontSize: 12, color: colors.red, textDecorationLine: 'underline' },
   subtotal: { fontFamily: fonts.body, fontSize: 12, color: colors.muted, textAlign: 'right', marginBottom: 4 },
   total: { fontFamily: fonts.heading, fontSize: 16, color: colors.ink, textAlign: 'right', marginBottom: 12 },
   mutedText: { color: colors.muted, fontFamily: fonts.body, fontSize: 13, textAlign: 'center', marginBottom: 12 },

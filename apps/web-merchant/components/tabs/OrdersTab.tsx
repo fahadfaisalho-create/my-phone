@@ -22,6 +22,7 @@ interface Order {
   consumer: { name: string; phone: string | null };
   items: { qty: number; product: { name: string } }[];
   branch: { id: string; name: string } | null;
+  coupon: { code: string } | null;
 }
 
 interface Invoice {
@@ -36,6 +37,7 @@ interface Invoice {
   deliveryFee: number | null;
   courierProvider: CourierProvider | null;
   deliveryAddress: string | null;
+  discountAmount: number | null;
   total: number;
 }
 
@@ -164,6 +166,7 @@ export default function OrdersTab() {
               <div style={{ fontSize: 12, color: 'var(--muted)' }}>
                 {o.total} ﷼ · {PAY_LABEL[o.paymentStatus]}
                 {o.branch && <> · 🏬 {o.branch.name}</>}
+                {o.coupon && <> · 🏷️ {o.coupon.code}</>}
               </div>
               {o.deliveryType === 'delivery' && o.deliveryAddress && (
                 <div style={{ fontSize: 12, color: 'var(--ink)', marginTop: 4 }}>📍 {o.deliveryAddress}</div>
@@ -262,6 +265,12 @@ export default function OrdersTab() {
                   <span>المنتجات</span>
                   <span>{invoice.subtotal} ﷼</span>
                 </div>
+                {invoice.discountAmount && (
+                  <div className="invoice-sum">
+                    <span>خصم الكوبون</span>
+                    <span>- {invoice.discountAmount} ﷼</span>
+                  </div>
+                )}
                 {invoice.deliveryType === 'delivery' && (
                   <>
                     <div className="invoice-sum">
