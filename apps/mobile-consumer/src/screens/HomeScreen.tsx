@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { FlatList, Pressable, RefreshControl, StyleSheet, Text, TextInput, View } from 'react-native';
+import { FlatList, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@/navigation/types';
 import { apiFetch, ApiError, getToken, getUser } from '@/lib/api';
@@ -18,9 +18,19 @@ const QUICK_LINKS: { icon: string; label: string; screen: keyof RootStackParamLi
   { icon: '🆘', label: 'الدعم', screen: 'Support' },
 ];
 
+type ProviderFilter = 'all' | 'individual' | 'company';
+
+const PROVIDER_FILTERS: { key: ProviderFilter; label: string }[] = [
+  { key: 'all', label: 'الكل' },
+  { key: 'individual', label: '🔧 فنيين مستقلين' },
+  { key: 'company', label: '🏪 محلات' },
+];
+
 export default function HomeScreen({ navigation }: Props) {
   const [stores, setStores] = useState<StoreListItem[]>([]);
+  const [featuredStores, setFeaturedStores] = useState<StoreListItem[]>([]);
   const [search, setSearch] = useState('');
+  const [providerFilter, setProviderFilter] = useState<ProviderFilter>('all');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
@@ -56,8 +66,14 @@ export default function HomeScreen({ navigation }: Props) {
 
   useEffect(() => {
     load();
+    apiFetch<StoreListItem[]>('/catalog/featured-stores')
+      .then(setFeaturedStores)
+      .catch(() => setFeaturedStores([]));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const filteredStores =
+    providerFilter === 'all' ? stores : stores.filter((s) => s.providerType === providerFilter);
 
   async function handleProfilePress() {
     if (!(await requireAuth(navigation, { screen: 'Home' }))) return;
@@ -113,10 +129,37 @@ export default function HomeScreen({ navigation }: Props) {
 
       {error ? <ErrorText>{error}</ErrorText> : null}
 
+      {featuredStores.length > 0 && (
+        <View style={styles.featuredSection}>
+          <Text style={styles.featuredTitle}>⭐ إعلانات مميزة</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.featuredScroll}>
+            {featuredStores.map((item) => (
+              <View key={item.id} style={styles.featuredCard}>
+                <StoreCard store={item} onPress={() => navigation.navigate('StoreDetail', { storeId: item.id })} />
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+      )}
+
+      <View style={styles.filterRow}>
+        {PROVIDER_FILTERS.map((f) => (
+          <Pressable
+            key={f.key}
+            style={[styles.filterChip, providerFilter === f.key && styles.filterChipOn]}
+            onPress={() => setProviderFilter(f.key)}
+          >
+            <Text style={[styles.filterChipText, providerFilter === f.key && styles.filterChipTextOn]}>
+              {f.label}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+
       <Text style={styles.listTitle}>المحلات المتاحة</Text>
 
       <FlatList
-        data={stores}
+        data={filteredStores}
         keyExtractor={(item) => item.id}
         numColumns={2}
         contentContainerStyle={styles.listContent}
@@ -149,7 +192,7 @@ export default function HomeScreen({ navigation }: Props) {
           ) : (
             <EmptyState
               icon={search ? '🔍' : '🏬'}
-              text={search ? 'لا يوجد نتائج مطابقة' : 'لا يوجد محلات نشطة بعد'}
+              text={search ? 'لا يوجد نتائج مطابقة' : 'لا يوجد محلات تطابق هذا الفلتر'}
             />
           )
         }
@@ -219,6 +262,34 @@ const styles = StyleSheet.create({
   quickLinkPressed: { backgroundColor: colors.chipBg },
   quickLinkIcon: { fontSize: 18 },
   quickLinkText: { fontFamily: fonts.bodyMedium, fontSize: 11.5, color: colors.text },
+  featuredSection: { marginTop: 18 },
+  featuredTitle: {
+    fontFamily: fonts.headingSemi,
+    fontSize: 15,
+    color: colors.ink,
+    textAlign: 'right',
+    marginBottom: 4,
+    paddingHorizontal: 16,
+  },
+  featuredScroll: { flexDirection: 'row-reverse', paddingHorizontal: 10 },
+  featuredCard: { width: 150 },
+  filterRow: {
+    flexDirection: 'row-reverse',
+    gap: 8,
+    paddingHorizontal: 16,
+    marginTop: 18,
+  },
+  filterChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: radius.sm,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  filterChipOn: { backgroundColor: colors.ink, borderColor: colors.ink },
+  filterChipText: { fontFamily: fonts.bodyMedium, fontSize: 12.5, color: colors.text },
+  filterChipTextOn: { color: '#fff' },
   listTitle: {
     fontFamily: fonts.headingSemi,
     fontSize: 15,

@@ -18,6 +18,7 @@ import SupportTab from '@/components/tabs/SupportTab';
 import SettingsTab from '@/components/tabs/SettingsTab';
 import TechniciansTab from '@/components/tabs/TechniciansTab';
 import CouponsTab from '@/components/tabs/CouponsTab';
+import AdsTab from '@/components/tabs/AdsTab';
 
 const TABS = [
   { key: 'branches', label: 'الفروع' },
@@ -28,6 +29,7 @@ const TABS = [
   { key: 'bookings', label: 'الحجوزات' },
   { key: 'orders', label: 'الطلبات' },
   { key: 'coupons', label: 'كوبونات الخصم' },
+  { key: 'ads', label: 'الإعلانات' },
   { key: 'messages', label: 'الرسائل' },
   { key: 'stats', label: 'الإحصائيات' },
   { key: 'support', label: 'الدعم' },
@@ -167,6 +169,7 @@ export default function DashboardPage() {
       {effectiveTab === 'bookings' && <BookingsTab />}
       {effectiveTab === 'orders' && <OrdersTab />}
       {effectiveTab === 'coupons' && <CouponsTab />}
+      {effectiveTab === 'ads' && <AdsTab />}
       {effectiveTab === 'messages' && <MessagesTab />}
       {effectiveTab === 'stats' && <StatsTab />}
       {effectiveTab === 'support' && <SupportTab />}

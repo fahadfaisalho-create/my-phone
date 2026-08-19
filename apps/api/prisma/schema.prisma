@@ -194,8 +194,37 @@ model Store {
   technicians    Technician[]
   deliveryAgents DeliveryAgent[]
   coupons        Coupon[]
+  ads            StoreAd[]
 
   @@map("stores")
+}
+
+// إعلان مميز مدفوع — يشتري التاجر ظهور محله بشريط "إعلانات مميزة" أعلى الرئيسية
+// عند المستهلك لعدد أيام محدد، بسعر يومي يضبطه الإدمن. دفع ذاتي محاكى (بدون
+// تدخل إدمن) — يصير الإعلان فعّالاً بمجرد الضغط على "ادفع الآن"
+model StoreAd {
+  id         String    @id @default(cuid())
+  storeId    String    @map("store_id")
+  store      Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  days       Int
+  // نسخة من السعر اليومي وقت الشراء (لا تتأثر لو الإدمن غيّر السعر لاحقاً)
+  dailyRate  Decimal   @map("daily_rate") @db.Decimal(10, 2)
+  totalPrice Decimal   @map("total_price") @db.Decimal(10, 2)
+  // تُعبّى فقط بعد تأكيد الدفع — الإعلان غير فعّال قبلها بغض النظر عن أي حقل ثاني
+  paidAt     DateTime? @map("paid_at")
+  startsAt   DateTime? @map("starts_at")
+  expiresAt  DateTime? @map("expires_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  @@map("store_ads")
+}
+
+// إعدادات عامة للمنصة — صف واحد فقط (id ثابت "default")
+model PlatformSettings {
+  id           String  @id @default("default")
+  adDailyRate  Decimal @default(50) @map("ad_daily_rate") @db.Decimal(10, 2)
+
+  @@map("platform_settings")
 }
 
 // كوبون خصم — يُنشئه الإدمن (storeId فارغ = يعمل على كل المتاجر) أو التاجر

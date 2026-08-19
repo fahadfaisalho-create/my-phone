@@ -11,6 +11,11 @@ export class CatalogController {
     return this.catalogService.listStores(search);
   }
 
+  @Get('featured-stores')
+  listFeaturedStores() {
+    return this.catalogService.listFeaturedStores();
+  }
+
   @Get('stores/:id')
   getStore(@Param('id') id: string) {
     return this.catalogService.getStore(id);

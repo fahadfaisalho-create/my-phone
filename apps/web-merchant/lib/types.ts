@@ -33,6 +33,18 @@ export interface Coupon {
   createdAt: string;
 }
 
+export interface StoreAd {
+  id: string;
+  storeId: string;
+  days: number;
+  dailyRate: string;
+  totalPrice: string;
+  paidAt: string | null;
+  startsAt: string | null;
+  expiresAt: string | null;
+  createdAt: string;
+}
+
 export interface Store {
   id: string;
   ownerUserId: string;

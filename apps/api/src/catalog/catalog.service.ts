@@ -42,6 +42,43 @@ export class CatalogService {
     }));
   }
 
+  async listFeaturedStores() {
+    const now = new Date();
+    const stores = await this.prisma.store.findMany({
+      where: {
+        status: 'active',
+        ads: { some: { paidAt: { not: null }, expiresAt: { gt: now } } },
+      },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        subscriptions: { orderBy: { startDate: 'desc' }, take: 1 },
+        _count: { select: { services: true, products: true, reviews: true } },
+      },
+    });
+
+    const ids = stores.map((s) => s.id);
+    const ratings = ids.length
+      ? await this.prisma.review.groupBy({
+          by: ['storeId'],
+          where: { storeId: { in: ids } },
+          _avg: { rating: true },
+        })
+      : [];
+    const ratingByStore = new Map(ratings.map((r) => [r.storeId, r._avg.rating]));
+
+    return stores.map((s) => ({
+      id: s.id,
+      name: s.name,
+      logoUrl: s.logoUrl,
+      providerType: s.providerType,
+      servicesCount: s._count.services,
+      productsCount: s._count.products,
+      reviewsCount: s._count.reviews,
+      avgRating: ratingByStore.get(s.id) ?? null,
+      available: isStoreAvailable(s.status, s.subscriptions[0] ?? null),
+    }));
+  }
+
   async getStore(id: string) {
     const store = await this.prisma.store.findUnique({
       where: { id },

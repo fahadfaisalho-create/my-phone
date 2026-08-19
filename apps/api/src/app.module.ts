@@ -18,6 +18,8 @@ import { MailModule } from './mail/mail.module';
 import { TechniciansModule } from './technicians/technicians.module';
 import { DeliveryAgentsModule } from './delivery-agents/delivery-agents.module';
 import { CouponsModule } from './coupons/coupons.module';
+import { SettingsModule } from './settings/settings.module';
+import { StoreAdsModule } from './store-ads/store-ads.module';
 
 @Module({
   imports: [
@@ -40,6 +42,8 @@ import { CouponsModule } from './coupons/coupons.module';
     TechniciansModule,
     DeliveryAgentsModule,
     CouponsModule,
+    SettingsModule,
+    StoreAdsModule,
   ],
 })
 export class AppModule {}

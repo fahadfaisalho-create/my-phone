@@ -83,6 +83,7 @@ export class AdminService {
       paidSubscriptions,
       unpaidSubscriptions,
       ticketsByStatus,
+      paidAds,
     ] = await Promise.all([
       this.prisma.store.groupBy({ by: ['status'], _count: { _all: true } }),
       this.prisma.order.count(),
@@ -91,6 +92,7 @@ export class AdminService {
       this.prisma.subscription.findMany({ where: { paidAt: { not: null } }, select: { price: true } }),
       this.prisma.subscription.count({ where: { paidAt: null } }),
       this.prisma.supportTicket.groupBy({ by: ['status'], _count: { _all: true } }),
+      this.prisma.storeAd.findMany({ where: { paidAt: { not: null } }, select: { totalPrice: true } }),
     ]);
 
     const countByKey = <K extends string>(rows: { status: K; _count: { _all: number } }[]) =>
@@ -109,6 +111,10 @@ export class AdminService {
         unpaidCount: unpaidSubscriptions,
       },
       supportTickets: countByKey(ticketsByStatus as any),
+      ads: {
+        paidCount: paidAds.length,
+        paidRevenue: paidAds.reduce((acc, r) => acc + Number(r.totalPrice ?? 0), 0),
+      },
     };
   }
 
