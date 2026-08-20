@@ -2,9 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { apiFetch, ApiError } from '@/lib/api';
-import { DEVICE_LABEL, DeviceSupport, Product, SERVICE_CATALOG, Service } from '@/lib/types';
+import { DEVICE_LABEL, DEVICE_LABEL_EN, DeviceSupport, Product, SERVICE_CATALOG, Service } from '@/lib/types';
+import { useLocale } from '@/lib/i18n';
 
 export default function ServicesTab() {
+  const { t, locale } = useLocale();
+  const deviceLabel = locale === 'ar' ? DEVICE_LABEL : DEVICE_LABEL_EN;
   const [services, setServices] = useState<Service[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -21,7 +24,7 @@ export default function ServicesTab() {
       setServices(svc);
       setProducts(prod);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'تعذّر تحميل الخدمات');
+      setError(err instanceof ApiError ? err.message : t('services.loadError'));
     } finally {
       setLoading(false);
     }
@@ -29,6 +32,7 @@ export default function ServicesTab() {
 
   useEffect(() => {
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function toggleService(name: string) {
@@ -46,7 +50,7 @@ export default function ServicesTab() {
       }
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'تعذّر تحديث الخدمة');
+      setError(err instanceof ApiError ? err.message : t('services.updateError'));
     } finally {
       setBusyName(null);
     }
@@ -70,13 +74,13 @@ export default function ServicesTab() {
       });
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'تعذّر حفظ التعديل');
+      setError(err instanceof ApiError ? err.message : t('services.saveError'));
     }
   }
 
   return (
     <div className="card">
-      <h3>اختر خدماتك</h3>
+      <h3>{t('services.chooseHeading')}</h3>
       <div>
         {SERVICE_CATALOG.map((name) => {
           const on = services.some((s) => s.name === name);
@@ -96,34 +100,34 @@ export default function ServicesTab() {
 
       <div style={{ marginTop: 16 }}>
         {loading ? (
-          <p style={{ color: 'var(--muted)', fontSize: 13 }}>جارٍ التحميل...</p>
+          <p style={{ color: 'var(--muted)', fontSize: 13 }}>{t('common.loading')}</p>
         ) : (
           services.map((sv) => (
             <div className="card" key={sv.id} style={{ background: '#fafaf8' }}>
               <h3 style={{ marginBottom: 8 }}>{sv.name}</h3>
-              <label>الأجهزة المدعومة</label>
+              <label>{t('services.deviceSupport')}</label>
               <select
                 value={sv.deviceSupport}
                 onChange={(e) => updateService(sv.id, { deviceSupport: e.target.value as DeviceSupport })}
               >
                 {(Object.keys(DEVICE_LABEL) as DeviceSupport[]).map((d) => (
                   <option key={d} value={d}>
-                    {DEVICE_LABEL[d]}
+                    {deviceLabel[d]}
                   </option>
                 ))}
               </select>
-              <label>سعر شغل اليد فقط (﷼)</label>
+              <label>{t('services.laborPrice')}</label>
               <input
                 type="number"
                 defaultValue={sv.laborPrice}
                 onBlur={(e) => updateService(sv.id, { laborPrice: Number(e.target.value) || 0 })}
               />
-              <label>قطعة الغيار (اختياري)</label>
+              <label>{t('services.linkedProduct')}</label>
               <select
                 value={sv.linkedProductId || ''}
                 onChange={(e) => updateService(sv.id, { linkedProductId: e.target.value })}
               >
-                <option value="">بدون قطعة — شغل يد فقط</option>
+                <option value="">{t('services.noProduct')}</option>
                 {products.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name} — {p.price} ﷼
@@ -131,7 +135,7 @@ export default function ServicesTab() {
                 ))}
               </select>
 
-              <label>نوع الحجز المدعوم</label>
+              <label>{t('services.bookingType')}</label>
               <div style={{ display: 'flex', gap: 16, marginBottom: 8 }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 400 }}>
                   <input
@@ -139,7 +143,7 @@ export default function ServicesTab() {
                     checked={sv.supportsInStore}
                     onChange={(e) => updateService(sv.id, { supportsInStore: e.target.checked })}
                   />
-                  🏬 بالمحل
+                  {t('services.inStore')}
                 </label>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 400 }}>
                   <input
@@ -147,16 +151,16 @@ export default function ServicesTab() {
                     checked={sv.supportsHomeVisit}
                     onChange={(e) => updateService(sv.id, { supportsHomeVisit: e.target.checked })}
                   />
-                  🚗 زيارة منزلية
+                  {t('services.homeVisit')}
                 </label>
               </div>
               {sv.supportsHomeVisit && (
                 <>
-                  <label>رسوم إضافية للزيارة المنزلية (اختياري، ﷼)</label>
+                  <label>{t('services.homeVisitFee')}</label>
                   <input
                     type="number"
                     defaultValue={sv.homeVisitFee || ''}
-                    placeholder="بدون رسوم إضافية"
+                    placeholder={t('services.homeVisitFeePlaceholder')}
                     onBlur={(e) =>
                       updateService(sv.id, {
                         homeVisitFee: e.target.value ? Number(e.target.value) : null,

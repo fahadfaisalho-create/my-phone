@@ -5,8 +5,10 @@ import type { Socket } from 'socket.io-client';
 import { apiFetch, ApiError, fileUrl } from '@/lib/api';
 import { getSocket } from '@/lib/socket';
 import { Chat, Message } from '@/lib/types';
+import { useLocale } from '@/lib/i18n';
 
 export default function MessagesTab() {
+  const { t } = useLocale();
   const [chats, setChats] = useState<Chat[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -25,7 +27,7 @@ export default function MessagesTab() {
       const data = await apiFetch<Chat[]>('/stores/me/chats');
       setChats(data);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'تعذّر تحميل المحادثات');
+      setError(err instanceof ApiError ? err.message : t('messages.loadError'));
     } finally {
       setLoading(false);
     }
@@ -57,15 +59,18 @@ export default function MessagesTab() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const openChat = useCallback((id: string) => {
-    setActiveChatId(id);
-    activeChatIdRef.current = id;
-    setMessages([]);
-    socketRef.current?.emit('join', { chatId: id }, (ack: { ok: boolean; messages?: Message[]; message?: string }) => {
-      if (ack.ok) setMessages(ack.messages || []);
-      else setError(ack.message || 'تعذّر فتح المحادثة');
-    });
-  }, []);
+  const openChat = useCallback(
+    (id: string) => {
+      setActiveChatId(id);
+      activeChatIdRef.current = id;
+      setMessages([]);
+      socketRef.current?.emit('join', { chatId: id }, (ack: { ok: boolean; messages?: Message[]; message?: string }) => {
+        if (ack.ok) setMessages(ack.messages || []);
+        else setError(ack.message || t('messages.openChatError'));
+      });
+    },
+    [t],
+  );
 
   function handleSend() {
     if (!activeChatId || !text.trim() || !socketRef.current) return;
@@ -73,7 +78,7 @@ export default function MessagesTab() {
       'message',
       { chatId: activeChatId, text: text.trim() },
       (ack: { ok: boolean; message?: string }) => {
-        if (!ack.ok) setError(typeof ack.message === 'string' ? ack.message : 'تعذّر إرسال الرسالة');
+        if (!ack.ok) setError(typeof ack.message === 'string' ? ack.message : t('messages.sendMessageError'));
       },
     );
     setText('');
@@ -96,29 +101,29 @@ export default function MessagesTab() {
         'message',
         { chatId: activeChatId, imageUrl: res.imageUrl },
         (ack: { ok: boolean; message?: string }) => {
-          if (!ack.ok) setError(typeof ack.message === 'string' ? ack.message : 'تعذّر إرسال الصورة');
+          if (!ack.ok) setError(typeof ack.message === 'string' ? ack.message : t('messages.sendImageError'));
         },
       );
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'تعذّر رفع الصورة');
+      setError(err instanceof ApiError ? err.message : t('messages.uploadError'));
     } finally {
       setUploading(false);
     }
   }
 
-  if (loading) return <div className="card spinner-wrap">جارٍ التحميل...</div>;
+  if (loading) return <div className="card spinner-wrap">{t('common.loading')}</div>;
 
   return (
     <div className="card">
       <h3>
-        رسائل العملاء{' '}
+        {t('messages.heading')}{' '}
         <span style={{ fontSize: 11, color: connected ? 'var(--green)' : 'var(--muted)', fontWeight: 500 }}>
-          {connected ? '● متصل فورياً' : '○ غير متصل'}
+          {connected ? t('messages.connected') : t('messages.disconnected')}
         </span>
       </h3>
       {error && <div className="err">{error}</div>}
       {chats.length === 0 ? (
-        <p style={{ color: 'var(--muted)', fontSize: 13 }}>لا يوجد رسائل بعد</p>
+        <p style={{ color: 'var(--muted)', fontSize: 13 }}>{t('messages.empty')}</p>
       ) : (
         <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
           <div style={{ flex: '1 1 220px', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
@@ -129,9 +134,9 @@ export default function MessagesTab() {
                 onClick={() => openChat(c.id)}
               >
                 <div>
-                  <b style={{ fontSize: 13 }}>{c.consumer?.name || 'عميل'}</b>
+                  <b style={{ fontSize: 13 }}>{c.consumer?.name || t('messages.defaultCustomer')}</b>
                   <div style={{ fontSize: 12, color: 'var(--muted)' }}>
-                    {c.messages?.[0]?.text?.slice(0, 30) || 'لا رسائل بعد'}
+                    {c.messages?.[0]?.text?.slice(0, 30) || t('messages.noMessagesYet')}
                   </div>
                 </div>
               </div>
@@ -140,7 +145,7 @@ export default function MessagesTab() {
 
           <div style={{ flex: '2 1 320px' }}>
             {!activeChatId ? (
-              <p style={{ color: 'var(--muted)', fontSize: 13 }}>اختر محادثة من القائمة</p>
+              <p style={{ color: 'var(--muted)', fontSize: 13 }}>{t('messages.selectChat')}</p>
             ) : (
               <>
                 <div className="chat-thread">
@@ -149,7 +154,7 @@ export default function MessagesTab() {
                       {m.imageUrl && (
                         <img
                           src={fileUrl(m.imageUrl) || ''}
-                          alt="صورة"
+                          alt={t('messages.imageAlt')}
                           style={{ maxWidth: 180, borderRadius: 8, display: 'block', marginBottom: m.text ? 6 : 0 }}
                         />
                       )}
@@ -168,14 +173,14 @@ export default function MessagesTab() {
                     {uploading ? '...' : '📎'}
                   </button>
                   <input
-                    placeholder="اكتب ردك..."
+                    placeholder={t('messages.typeReply')}
                     value={text}
                     onChange={(e) => setText(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSend()}
                     style={{ marginBottom: 0 }}
                   />
                   <button className="primary" onClick={handleSend} disabled={!text.trim()}>
-                    إرسال
+                    {t('messages.send')}
                   </button>
                 </div>
               </>

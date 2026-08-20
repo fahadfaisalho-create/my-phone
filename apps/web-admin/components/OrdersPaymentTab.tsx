@@ -2,15 +2,18 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { apiFetch, ApiError } from '@/lib/api';
-import { AdminOrder, ORDER_STATUS_LABEL, PaymentStatus } from '@/lib/types';
+import { AdminOrder, ORDER_STATUS_LABEL, ORDER_STATUS_LABEL_EN, PaymentStatus } from '@/lib/types';
+import { useLocale } from '@/lib/i18n';
 
-const PAY_FILTERS: { key: PaymentStatus | 'all'; label: string }[] = [
-  { key: 'unpaid', label: 'غير مدفوعة' },
-  { key: 'paid', label: 'مدفوعة' },
-  { key: 'all', label: 'الكل' },
+const PAY_FILTER_KEYS: { key: PaymentStatus | 'all'; navKey: string }[] = [
+  { key: 'unpaid', navKey: 'orders.tabUnpaid' },
+  { key: 'paid', navKey: 'orders.tabPaid' },
+  { key: 'all', navKey: 'common.all' },
 ];
 
 export default function OrdersPaymentTab() {
+  const { t, locale } = useLocale();
+  const statusLabel = locale === 'ar' ? ORDER_STATUS_LABEL : ORDER_STATUS_LABEL_EN;
   const [filter, setFilter] = useState<PaymentStatus | 'all'>('unpaid');
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -25,11 +28,11 @@ export default function OrdersPaymentTab() {
       const data = await apiFetch<AdminOrder[]>(`/admin/orders${query}`);
       setOrders(data);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'تعذّر تحميل الطلبات');
+      setError(err instanceof ApiError ? err.message : t('orders.loadError'));
     } finally {
       setLoading(false);
     }
-  }, [filter]);
+  }, [filter, t]);
 
   useEffect(() => {
     load();
@@ -44,7 +47,7 @@ export default function OrdersPaymentTab() {
       });
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'تعذّر تحديث حالة الدفع');
+      setError(err instanceof ApiError ? err.message : t('orders.updateError'));
     } finally {
       setBusyId(null);
     }
@@ -53,21 +56,23 @@ export default function OrdersPaymentTab() {
   return (
     <div>
       <div className="tabs">
-        {PAY_FILTERS.map((f) => (
+        {PAY_FILTER_KEYS.map((f) => (
           <button key={f.key} className={filter === f.key ? 'on' : ''} onClick={() => setFilter(f.key)}>
-            {f.label}
+            {t(f.navKey)}
           </button>
         ))}
       </div>
 
-      <h3 style={{ margin: '4px 0 14px' }}>طلبات الشراء {!loading && `(${orders.length})`}</h3>
+      <h3 style={{ margin: '4px 0 14px' }}>
+        {t('orders.heading')} {!loading && `(${orders.length})`}
+      </h3>
       {error && <div className="err">{error}</div>}
 
       {loading ? (
-        <div className="spinner-wrap">جارٍ التحميل...</div>
+        <div className="spinner-wrap">{t('common.loading')}</div>
       ) : orders.length === 0 ? (
         <div className="card">
-          <p style={{ color: 'var(--muted)', fontSize: 13 }}>لا يوجد طلبات في هذه الحالة</p>
+          <p style={{ color: 'var(--muted)', fontSize: 13 }}>{t('orders.empty')}</p>
         </div>
       ) : (
         orders.map((o) => (
@@ -87,20 +92,20 @@ export default function OrdersPaymentTab() {
                   {o.total} ﷼
                 </div>
                 <span className="badge b-pending" style={{ marginTop: 6, display: 'inline-flex' }}>
-                  {ORDER_STATUS_LABEL[o.status]}
+                  {statusLabel[o.status]}
                 </span>
               </div>
             </div>
             <div className="actions-row" style={{ marginTop: 12 }}>
               <span className={`badge ${o.paymentStatus === 'paid' ? 'b-active' : 'b-pending'}`}>
-                {o.paymentStatus === 'paid' ? 'مدفوع' : o.paymentStatus === 'refunded' ? 'مسترجع' : 'غير مدفوع'}
+                {o.paymentStatus === 'paid' ? t('orders.paid') : o.paymentStatus === 'refunded' ? t('orders.refunded') : t('orders.unpaid')}
               </span>
               <button
                 className={o.paymentStatus === 'paid' ? 'secondary' : 'primary'}
                 disabled={busyId === o.id}
                 onClick={() => togglePaid(o.id, o.paymentStatus !== 'paid')}
               >
-                {o.paymentStatus === 'paid' ? 'إلغاء تأكيد الدفع' : 'تأكيد استلام الدفع'}
+                {o.paymentStatus === 'paid' ? t('orders.unconfirmPayment') : t('orders.confirmPayment')}
               </button>
             </div>
           </div>

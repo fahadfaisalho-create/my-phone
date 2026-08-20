@@ -3,8 +3,10 @@
 import { useEffect, useState } from 'react';
 import { apiFetch, ApiError } from '@/lib/api';
 import { Product } from '@/lib/types';
+import { useLocale } from '@/lib/i18n';
 
 export default function InventoryTab() {
+  const { t } = useLocale();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -16,7 +18,7 @@ export default function InventoryTab() {
       const data = await apiFetch<Product[]>('/stores/me/products');
       setProducts(data);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'تعذّر تحميل المخزون');
+      setError(err instanceof ApiError ? err.message : t('inventory.loadError'));
     } finally {
       setLoading(false);
     }
@@ -24,6 +26,7 @@ export default function InventoryTab() {
 
   useEffect(() => {
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function adjust(id: string, delta: number) {
@@ -36,7 +39,7 @@ export default function InventoryTab() {
       });
       setProducts((prev) => prev.map((p) => (p.id === id ? updated : p)));
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'تعذّر تحديث الكمية');
+      setError(err instanceof ApiError ? err.message : t('inventory.updateError'));
     } finally {
       setBusyId(null);
     }
@@ -44,12 +47,12 @@ export default function InventoryTab() {
 
   return (
     <div className="card">
-      <h3>إدارة كمية المخزون</h3>
+      <h3>{t('inventory.heading')}</h3>
       {error && <div className="err">{error}</div>}
       {loading ? (
-        <p style={{ color: 'var(--muted)', fontSize: 13 }}>جارٍ التحميل...</p>
+        <p style={{ color: 'var(--muted)', fontSize: 13 }}>{t('common.loading')}</p>
       ) : products.length === 0 ? (
-        <p style={{ color: 'var(--muted)', fontSize: 13 }}>لا يوجد منتجات بعد</p>
+        <p style={{ color: 'var(--muted)', fontSize: 13 }}>{t('inventory.empty')}</p>
       ) : (
         products.map((p) => (
           <div className="rowline" key={p.id}>

@@ -4,8 +4,10 @@ import { useEffect, useState } from 'react';
 import { apiFetch, ApiError, fileUrl } from '@/lib/api';
 import { Branch, Product } from '@/lib/types';
 import FileField from '@/components/FileField';
+import { useLocale } from '@/lib/i18n';
 
 export default function ProductsTab() {
+  const { t, tf } = useLocale();
   const [products, setProducts] = useState<Product[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,7 +33,7 @@ export default function ProductsTab() {
       setProducts(productsData);
       setBranches(branchesData);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'تعذّر تحميل المنتجات');
+      setError(err instanceof ApiError ? err.message : t('products.loadError'));
     } finally {
       setLoading(false);
     }
@@ -39,6 +41,7 @@ export default function ProductsTab() {
 
   useEffect(() => {
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function handleAdd() {
@@ -65,7 +68,7 @@ export default function ProductsTab() {
       setBranchId('');
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'تعذّر حفظ المنتج');
+      setError(err instanceof ApiError ? err.message : t('products.saveError'));
     } finally {
       setSaving(false);
     }
@@ -76,67 +79,67 @@ export default function ProductsTab() {
       await apiFetch(`/stores/me/products/${id}`, { method: 'DELETE' });
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'تعذّر حذف المنتج');
+      setError(err instanceof ApiError ? err.message : t('products.deleteError'));
     }
   }
 
   return (
     <div>
       <div className="card">
-        <h3>إضافة منتج جديد</h3>
+        <h3>{t('products.addHeading')}</h3>
         <div className="row2">
-          <input placeholder="اسم المنتج" value={name} onChange={(e) => setName(e.target.value)} />
+          <input placeholder={t('products.namePlaceholder')} value={name} onChange={(e) => setName(e.target.value)} />
           <input
-            placeholder="النوع: إكسسوار / قطعة غيار"
+            placeholder={t('products.categoryPlaceholder')}
             value={category}
             onChange={(e) => setCategory(e.target.value)}
           />
         </div>
         <div className="row2">
           <input
-            placeholder="السعر بدون ضريبة"
+            placeholder={t('products.pricePlaceholder')}
             type="number"
             value={price}
             onChange={(e) => setPrice(e.target.value)}
           />
           <input
-            placeholder="الكمية المتوفرة"
+            placeholder={t('products.qtyPlaceholder')}
             type="number"
             value={qty}
             onChange={(e) => setQty(e.target.value)}
           />
         </div>
         <textarea
-          placeholder="وصف المنتج (اختياري)"
+          placeholder={t('products.descPlaceholder')}
           value={desc}
           onChange={(e) => setDesc(e.target.value)}
         />
         {branches.length > 1 && (
           <>
-            <label htmlFor="productBranch">مخزون المنتج</label>
+            <label htmlFor="productBranch">{t('products.stockLabel')}</label>
             <select id="productBranch" value={branchId} onChange={(e) => setBranchId(e.target.value)}>
-              <option value="">🔗 مشترك بين كل الفروع (مخزون واحد)</option>
+              <option value="">{t('products.stockShared')}</option>
               {branches.map((b) => (
                 <option key={b.id} value={b.id}>
-                  📍 خاص بفرع: {b.name}
+                  {tf('products.stockBranch', b.name)}
                 </option>
               ))}
             </select>
           </>
         )}
-        <FileField label="صورة المنتج" accept="image/*" file={image} onChange={setImage} previewAsImage />
+        <FileField label={t('products.imageLabel')} accept="image/*" file={image} onChange={setImage} previewAsImage />
         {error && <div className="err">{error}</div>}
         <button className="primary" onClick={handleAdd} disabled={saving || !name.trim() || !price}>
-          {saving ? 'جارٍ الحفظ...' : 'حفظ ونشر المنتج'}
+          {saving ? t('common.saving') : t('products.saveAndPublish')}
         </button>
       </div>
 
       <div className="card">
-        <h3>منتجاتك</h3>
+        <h3>{t('products.listHeading')}</h3>
         {loading ? (
-          <p style={{ color: 'var(--muted)', fontSize: 13 }}>جارٍ التحميل...</p>
+          <p style={{ color: 'var(--muted)', fontSize: 13 }}>{t('common.loading')}</p>
         ) : products.length === 0 ? (
-          <p style={{ color: 'var(--muted)', fontSize: 13 }}>لا يوجد منتجات بعد</p>
+          <p style={{ color: 'var(--muted)', fontSize: 13 }}>{t('products.empty')}</p>
         ) : (
           products.map((p) => (
             <div className="rowline" key={p.id}>
@@ -146,13 +149,13 @@ export default function ProductsTab() {
               </span>
               <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span style={{ color: 'var(--muted)' }}>
-                  {p.price} ﷼ · متوفر {p.quantity}
+                  {p.price} ﷼ · {t('products.available')} {p.quantity}
                   {branches.length > 1 && (
-                    <> · {p.branch ? `📍 ${p.branch.name}` : '🔗 مشترك'}</>
+                    <> · {p.branch ? `📍 ${p.branch.name}` : t('products.shared')}</>
                   )}
                 </span>
                 <button className="link" onClick={() => handleDelete(p.id)}>
-                  حذف
+                  {t('common.delete')}
                 </button>
               </span>
             </div>

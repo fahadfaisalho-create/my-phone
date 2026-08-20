@@ -2,16 +2,22 @@
 
 import { useState } from 'react';
 import dynamic from 'next/dynamic';
+import { useLocale } from '@/lib/i18n';
 
 // يُحمَّل بدون SSR فقط — Leaflet يحتاج window/document وما يشتغل على السيرفر
 const LeafletMapInner = dynamic(() => import('./LeafletMapInner'), {
   ssr: false,
-  loading: () => (
-    <div style={{ height: 280, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted)', fontSize: 13 }}>
-      جارٍ تحميل الخريطة...
-    </div>
-  ),
+  loading: () => <ZoneMapLoading />,
 });
+
+function ZoneMapLoading() {
+  const { t } = useLocale();
+  return (
+    <div style={{ height: 280, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted)', fontSize: 13 }}>
+      {t('mapPicker.loadingMap')}
+    </div>
+  );
+}
 
 const RIYADH: [number, number] = [24.7136, 46.6753];
 
@@ -26,6 +32,7 @@ export default function DeliveryZonePicker({
   radiusKm: number | null;
   onPick: (lat: number, lng: number) => void;
 }) {
+  const { t } = useLocale();
   const [search, setSearch] = useState('');
   const [searching, setSearching] = useState(false);
   const [locating, setLocating] = useState(false);
@@ -43,12 +50,12 @@ export default function DeliveryZonePicker({
       );
       const data = await res.json();
       if (!data?.length) {
-        setError('ما لقينا هذا الموقع، جرّب اسم مكان أوضح');
+        setError(t('mapPicker.notFound'));
         return;
       }
       onPick(Number(data[0].lat), Number(data[0].lon));
     } catch {
-      setError('تعذّر البحث عن الموقع — تحقق من الاتصال');
+      setError(t('mapPicker.searchError'));
     } finally {
       setSearching(false);
     }
@@ -56,7 +63,7 @@ export default function DeliveryZonePicker({
 
   function handleUseCurrentLocation() {
     if (!navigator.geolocation) {
-      setError('المتصفح لا يدعم تحديد الموقع');
+      setError(t('mapPicker.noGeoSupport'));
       return;
     }
     setLocating(true);
@@ -67,7 +74,7 @@ export default function DeliveryZonePicker({
         setLocating(false);
       },
       () => {
-        setError('تعذّر الحصول على موقعك — تأكد من صلاحية الوصول للموقع بالمتصفح');
+        setError(t('mapPicker.geoError'));
         setLocating(false);
       },
     );
@@ -75,26 +82,26 @@ export default function DeliveryZonePicker({
 
   return (
     <div style={{ marginBottom: 14 }}>
-      <label>مركز نطاق التوصيل</label>
+      <label>{t('mapPicker.deliveryZoneCenter')}</label>
       <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
         <input
-          placeholder="ابحث عن اسم حي أو مكان..."
+          placeholder={t('mapPicker.searchPlaceholder')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleSearch())}
           style={{ marginBottom: 0, flex: 1 }}
         />
         <button type="button" className="secondary" onClick={handleSearch} disabled={searching}>
-          {searching ? '...' : '🔍 بحث'}
+          {searching ? '...' : t('mapPicker.search')}
         </button>
         <button type="button" className="secondary" onClick={handleUseCurrentLocation} disabled={locating}>
-          {locating ? '...' : '📍 موقعي الحالي'}
+          {locating ? '...' : t('mapPicker.currentLocation')}
         </button>
       </div>
       {error && <div className="err" style={{ marginBottom: 8 }}>{error}</div>}
       <LeafletMapInner lat={current[0]} lng={current[1]} onPick={onPick} radiusKm={radiusKm ?? undefined} />
       <p className="note" style={{ marginTop: 8, marginBottom: 0 }}>
-        اضغط على أي نقطة بالخريطة لتحديد مركز نطاق التوصيل — الدائرة الرمادية توضح المساحة التي ستغطيها بناءً على نصف القطر بالأسفل.
+        {t('mapPicker.zoneHint')}
       </p>
     </div>
   );

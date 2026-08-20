@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useLocale } from '@/lib/i18n';
 
 export default function FileField({
   label,
@@ -17,6 +18,7 @@ export default function FileField({
   onChange: (file: File | null) => void;
   previewAsImage?: boolean;
 }) {
+  const { t } = useLocale();
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   useEffect(() => {
@@ -31,12 +33,12 @@ export default function FileField({
   return (
     <div className="filebox">
       <label>
-        {label} {required ? '(مطلوب)' : '(اختياري)'}
+        {label} {required ? t('fileField.required') : t('fileField.optional')}
       </label>
       <div className="filerow">
         {previewUrl && <img src={previewUrl} className="filepreview-img" alt={label} />}
         <label className="filebtn">
-          {file ? 'تغيير الملف' : 'اختر ملف'}
+          {file ? t('fileField.changeFile') : t('fileField.chooseFile')}
           <input
             type="file"
             accept={accept}

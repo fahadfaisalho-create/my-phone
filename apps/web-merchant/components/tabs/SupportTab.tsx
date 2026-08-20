@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { apiFetch, ApiError } from '@/lib/api';
+import { useLocale } from '@/lib/i18n';
 
 type TicketStatus = 'open' | 'in_progress' | 'closed';
 
@@ -17,13 +18,17 @@ const BADGE_CLASS: Record<TicketStatus, string> = {
   in_progress: 'b-pending',
   closed: 'b-active',
 };
-const BADGE_LABEL: Record<TicketStatus, string> = {
-  open: 'مفتوحة',
-  in_progress: 'قيد المعالجة',
-  closed: 'مغلقة',
-};
 
 export default function SupportTab() {
+  const { t, locale } = useLocale();
+  const dateLocale = locale === 'ar' ? 'ar-SA' : 'en-US';
+
+  const BADGE_LABEL: Record<TicketStatus, string> = {
+    open: t('supportTab.statusOpen'),
+    in_progress: t('supportTab.statusInProgress'),
+    closed: t('supportTab.statusClosed'),
+  };
+
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -36,7 +41,7 @@ export default function SupportTab() {
       const data = await apiFetch<Ticket[]>('/support-tickets/me');
       setTickets(data);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'تعذّر تحميل تذاكرك');
+      setError(err instanceof ApiError ? err.message : t('supportTab.loadError'));
     } finally {
       setLoading(false);
     }
@@ -44,6 +49,7 @@ export default function SupportTab() {
 
   useEffect(() => {
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function handleSubmit() {
@@ -58,7 +64,7 @@ export default function SupportTab() {
       setSubject('');
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'تعذّر فتح التذكرة');
+      setError(err instanceof ApiError ? err.message : t('supportTab.submitError'));
     } finally {
       setSaving(false);
     }
@@ -67,31 +73,31 @@ export default function SupportTab() {
   return (
     <div>
       <div className="card">
-        <h3>فتح تذكرة دعم جديدة</h3>
+        <h3>{t('supportTab.newTicketHeading')}</h3>
         <input
-          placeholder="اكتب موضوع مشكلتك أو استفسارك..."
+          placeholder={t('supportTab.subjectPlaceholder')}
           value={subject}
           onChange={(e) => setSubject(e.target.value)}
         />
         {error && <div className="err">{error}</div>}
         <button className="primary" onClick={handleSubmit} disabled={saving || !subject.trim()}>
-          {saving ? 'جارٍ الإرسال...' : 'إرسال للدعم'}
+          {saving ? t('supportTab.sending') : t('supportTab.send')}
         </button>
       </div>
 
       <div className="card">
-        <h3>تذاكري</h3>
+        <h3>{t('supportTab.myTicketsHeading')}</h3>
         {loading ? (
-          <p style={{ color: 'var(--muted)', fontSize: 13 }}>جارٍ التحميل...</p>
+          <p style={{ color: 'var(--muted)', fontSize: 13 }}>{t('common.loading')}</p>
         ) : tickets.length === 0 ? (
-          <p style={{ color: 'var(--muted)', fontSize: 13 }}>لا يوجد تذاكر بعد</p>
+          <p style={{ color: 'var(--muted)', fontSize: 13 }}>{t('supportTab.empty')}</p>
         ) : (
-          tickets.map((t) => (
-            <div className="rowline" key={t.id}>
-              <span>{t.subject}</span>
+          tickets.map((ticket) => (
+            <div className="rowline" key={ticket.id}>
+              <span>{ticket.subject}</span>
               <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={{ color: 'var(--muted)' }}>{new Date(t.createdAt).toLocaleDateString('ar-SA')}</span>
-                <span className={`badge ${BADGE_CLASS[t.status]}`}>{BADGE_LABEL[t.status]}</span>
+                <span style={{ color: 'var(--muted)' }}>{new Date(ticket.createdAt).toLocaleDateString(dateLocale)}</span>
+                <span className={`badge ${BADGE_CLASS[ticket.status]}`}>{BADGE_LABEL[ticket.status]}</span>
               </span>
             </div>
           ))

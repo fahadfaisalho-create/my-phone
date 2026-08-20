@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { apiFetch, ApiError } from '@/lib/api';
+import { useLocale } from '@/lib/i18n';
 
 type BookingStatus = 'pending' | 'accepted' | 'completed' | 'cancelled';
 type VisitType = 'in_store' | 'home_visit';
@@ -19,17 +20,6 @@ interface Booking {
   branch: { name: string };
 }
 
-const VISIT_LABEL: Record<VisitType, string> = {
-  in_store: '🏬 بالمحل',
-  home_visit: '🚗 زيارة منزلية',
-};
-
-const STATUS_LABEL: Record<BookingStatus, string> = {
-  pending: 'قيد المراجعة',
-  accepted: 'مقبول',
-  completed: 'مكتمل',
-  cancelled: 'ملغى',
-};
 const STATUS_BADGE: Record<BookingStatus, string> = {
   pending: 'b-pending',
   accepted: 'b-active',
@@ -38,6 +28,20 @@ const STATUS_BADGE: Record<BookingStatus, string> = {
 };
 
 export default function BookingsTab() {
+  const { t, locale } = useLocale();
+  const dateLocale = locale === 'ar' ? 'ar-SA' : 'en-US';
+
+  const VISIT_LABEL: Record<VisitType, string> = {
+    in_store: t('bookings.visitInStore'),
+    home_visit: t('bookings.visitHomeVisit'),
+  };
+  const STATUS_LABEL: Record<BookingStatus, string> = {
+    pending: t('bookings.statusPending'),
+    accepted: t('bookings.statusAccepted'),
+    completed: t('bookings.statusCompleted'),
+    cancelled: t('bookings.statusCancelled'),
+  };
+
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -49,7 +53,7 @@ export default function BookingsTab() {
       const data = await apiFetch<Booking[]>('/stores/me/bookings');
       setBookings(data);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'تعذّر تحميل الحجوزات');
+      setError(err instanceof ApiError ? err.message : t('bookings.loadError'));
     } finally {
       setLoading(false);
     }
@@ -57,6 +61,7 @@ export default function BookingsTab() {
 
   useEffect(() => {
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function updateStatus(id: string, status: BookingStatus) {
@@ -68,7 +73,7 @@ export default function BookingsTab() {
       });
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'تعذّر تحديث الحجز');
+      setError(err instanceof ApiError ? err.message : t('bookings.updateError'));
     } finally {
       setBusyId(null);
     }
@@ -76,12 +81,12 @@ export default function BookingsTab() {
 
   return (
     <div className="card">
-      <h3>الحجوزات</h3>
+      <h3>{t('bookings.heading')}</h3>
       {error && <div className="err">{error}</div>}
       {loading ? (
-        <p style={{ color: 'var(--muted)', fontSize: 13 }}>جارٍ التحميل...</p>
+        <p style={{ color: 'var(--muted)', fontSize: 13 }}>{t('common.loading')}</p>
       ) : bookings.length === 0 ? (
-        <p style={{ color: 'var(--muted)', fontSize: 13 }}>لا يوجد حجوزات بعد</p>
+        <p style={{ color: 'var(--muted)', fontSize: 13 }}>{t('bookings.empty')}</p>
       ) : (
         bookings.map((b) => (
           <div className="rowline" key={b.id} style={{ alignItems: 'flex-start' }}>
@@ -91,7 +96,7 @@ export default function BookingsTab() {
                 {b.service.name} · {b.branch.name}
               </div>
               <div style={{ fontSize: 12, color: 'var(--muted)' }}>
-                {new Date(b.scheduledAt).toLocaleString('ar-SA', {
+                {new Date(b.scheduledAt).toLocaleString(dateLocale, {
                   weekday: 'long',
                   day: 'numeric',
                   month: 'long',
@@ -111,7 +116,7 @@ export default function BookingsTab() {
                   rel="noopener noreferrer"
                   style={{ fontSize: 12, color: 'var(--teal-d, var(--ink))', marginTop: 2, display: 'inline-block' }}
                 >
-                  🗺️ فتح الموقع بالخرائط (دقة GPS)
+                  {t('bookings.openMap')}
                 </a>
               )}
             </div>
@@ -123,16 +128,16 @@ export default function BookingsTab() {
               {b.status === 'pending' && (
                 <div style={{ display: 'flex', gap: 6 }}>
                   <button className="secondary" disabled={busyId === b.id} onClick={() => updateStatus(b.id, 'accepted')}>
-                    قبول
+                    {t('bookings.accept')}
                   </button>
                   <button className="danger" disabled={busyId === b.id} onClick={() => updateStatus(b.id, 'cancelled')}>
-                    إلغاء
+                    {t('bookings.cancel')}
                   </button>
                 </div>
               )}
               {b.status === 'accepted' && (
                 <button className="secondary" disabled={busyId === b.id} onClick={() => updateStatus(b.id, 'completed')}>
-                  إنهاء
+                  {t('bookings.finish')}
                 </button>
               )}
             </div>

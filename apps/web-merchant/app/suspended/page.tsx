@@ -2,9 +2,11 @@
 
 import { useRouter } from 'next/navigation';
 import { clearSession } from '@/lib/api';
+import { useLocale } from '@/lib/i18n';
 
 export default function SuspendedPage() {
   const router = useRouter();
+  const { t } = useLocale();
   function handleExit() {
     clearSession();
     router.replace('/entry');
@@ -12,12 +14,12 @@ export default function SuspendedPage() {
   return (
     <div className="app">
       <div className="card card-narrow center" style={{ marginTop: 60 }}>
-        <span className="badge b-suspended">الحساب موقوف</span>
+        <span className="badge b-suspended">{t('statusPages.suspendedBadge')}</span>
         <p style={{ color: 'var(--muted)', marginTop: 14 }}>
-          تم إيقاف حسابك من قبل الإدارة. تواصل مع الدعم لمزيد من التفاصيل.
+          {t('statusPages.suspendedNote')}
         </p>
         <button className="link" onClick={handleExit}>
-          خروج
+          {t('statusPages.exit')}
         </button>
       </div>
     </div>

@@ -24,7 +24,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ar" dir="rtl" className={`${cairo.variable} ${ibmPlexArabic.variable}`}>
+    <html lang="ar" dir="rtl" className={`${cairo.variable} ${ibmPlexArabic.variable}`} suppressHydrationWarning>
       <head>
         {/* يقرأ لغة المستخدم المحفوظة قبل أول رسم لتفادي وميض اتجاه خاطئ */}
         <script

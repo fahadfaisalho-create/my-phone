@@ -162,17 +162,32 @@ export const PLAN_LABEL: Record<SubscriptionPlan, string> = {
   six_months: '6 أشهر',
   yearly: 'سنة',
 };
+export const PLAN_LABEL_EN: Record<SubscriptionPlan, string> = {
+  monthly: 'Monthly',
+  six_months: '6 Months',
+  yearly: 'Yearly',
+};
 // شاملة ضريبة القيمة المضافة (15%) — السعر الأساسي 300 / 1,200 / 2,000 ﷼ + الضريبة
 export const PLAN_PRICE: Record<SubscriptionPlan, string> = {
   monthly: '345 ﷼ (شامل الضريبة)',
   six_months: '1,380 ﷼ (شامل الضريبة)',
   yearly: '2,300 ﷼ (شامل الضريبة)',
 };
+export const PLAN_PRICE_EN: Record<SubscriptionPlan, string> = {
+  monthly: 'SAR 345 (VAT included)',
+  six_months: 'SAR 1,380 (VAT included)',
+  yearly: 'SAR 2,300 (VAT included)',
+};
 
 export const DEVICE_LABEL: Record<DeviceSupport, string> = {
   all: 'جميع الأجهزة',
   apple: 'أبل فقط',
   samsung: 'سامسونج فقط',
+};
+export const DEVICE_LABEL_EN: Record<DeviceSupport, string> = {
+  all: 'All devices',
+  apple: 'Apple only',
+  samsung: 'Samsung only',
 };
 
 export const SERVICE_CATALOG = [

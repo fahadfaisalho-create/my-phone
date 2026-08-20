@@ -5,9 +5,11 @@ import { useRouter } from 'next/navigation';
 import { apiFetch, ApiError, fileUrl, getToken } from '@/lib/api';
 import { Store } from '@/lib/types';
 import FileField from '@/components/FileField';
+import { useLocale } from '@/lib/i18n';
 
 export default function EditStorePage() {
   const router = useRouter();
+  const { t } = useLocale();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -37,11 +39,12 @@ export default function EditStorePage() {
         setTax(s.taxNo || '');
         setIban(s.iban);
       } catch (err) {
-        setError(err instanceof ApiError ? err.message : 'تعذّر تحميل بيانات المحل');
+        setError(err instanceof ApiError ? err.message : t('editStore.loadError'));
       } finally {
         setLoading(false);
       }
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -65,67 +68,71 @@ export default function EditStorePage() {
       await apiFetch('/stores/me', { method: 'PATCH', body: form });
       router.replace('/pending');
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'تعذّر حفظ التعديلات');
+      setError(err instanceof ApiError ? err.message : t('editStore.saveError'));
     } finally {
       setSaving(false);
     }
   }
 
-  if (loading) return <div className="app spinner-wrap">جارٍ التحميل...</div>;
+  if (loading) return <div className="app spinner-wrap">{t('common.loading')}</div>;
   if (!store) return null;
+
+  const isIndividual = store.providerType === 'individual';
 
   return (
     <div className="app">
       <form className="card card-narrow" onSubmit={handleSubmit} style={{ marginTop: 40 }}>
-        <h2>تعديل بيانات المحل وإعادة الإرسال</h2>
+        <h2>{t('editStore.heading')}</h2>
         {store.rejectionReason && (
-          <div className="note">سبب الرفض السابق: {store.rejectionReason}</div>
+          <div className="note">
+            {t('editStore.previousRejectionReason')}: {store.rejectionReason}
+          </div>
         )}
-        <label htmlFor="storeName">{store.providerType === 'individual' ? 'اسمك المهني' : 'اسم المحل'}</label>
+        <label htmlFor="storeName">{isIndividual ? t('editStore.nameIndividual') : t('editStore.nameStore')}</label>
         <input id="storeName" value={storeName} onChange={(e) => setStoreName(e.target.value)} />
-        {store.providerType === 'individual' ? (
+        {isIndividual ? (
           <>
-            <label htmlFor="nationalId">رقم الهوية الوطنية / الإقامة</label>
+            <label htmlFor="nationalId">{t('editStore.nationalId')}</label>
             <input id="nationalId" value={nationalId} onChange={(e) => setNationalId(e.target.value)} />
           </>
         ) : (
           <>
-            <label htmlFor="cr">رقم السجل التجاري</label>
+            <label htmlFor="cr">{t('editStore.crNo')}</label>
             <input id="cr" value={cr} onChange={(e) => setCr(e.target.value)} />
           </>
         )}
-        <label htmlFor="tax">الرقم الضريبي (اختياري)</label>
+        <label htmlFor="tax">{t('editStore.taxNoOptional')}</label>
         <input id="tax" value={tax} onChange={(e) => setTax(e.target.value)} />
-        <label htmlFor="iban">رقم الآيبان</label>
+        <label htmlFor="iban">{t('editStore.iban')}</label>
         <input id="iban" value={iban} onChange={(e) => setIban(e.target.value)} />
 
         <FileField
-          label={store.providerType === 'individual' ? 'صورتك الشخصية (استبدال)' : 'شعار المحل (استبدال)'}
+          label={isIndividual ? t('editStore.replacePhoto') : t('editStore.replaceLogo')}
           accept="image/*"
           file={logo}
           onChange={setLogo}
           previewAsImage
         />
         <div className="filebox">
-          <label>{store.providerType === 'individual' ? 'ملف الهوية/الرخصة الحالي' : 'ملف السجل التجاري الحالي'}</label>
+          <label>{isIndividual ? t('editStore.currentIdFile') : t('editStore.currentCrFile')}</label>
           <a href={fileUrl(store.crFileUrl) || '#'} target="_blank" rel="noreferrer" className="doclink">
-            📄 عرض الملف الحالي
+            {t('editStore.viewCurrentFile')}
           </a>
         </div>
         <FileField
-          label={store.providerType === 'individual' ? 'استبدال ملف الهوية أو رخصة العمل الحر' : 'استبدال ملف السجل التجاري'}
+          label={isIndividual ? t('editStore.replaceIdFile') : t('editStore.replaceCrFile')}
           accept="image/*,.pdf"
           file={crFile}
           onChange={setCrFile}
         />
         <div className="filebox">
-          <label>ملف تصديق الحساب البنكي الحالي</label>
+          <label>{t('editStore.currentBankFile')}</label>
           <a href={fileUrl(store.bankCertificateFileUrl) || '#'} target="_blank" rel="noreferrer" className="doclink">
-            📄 عرض الملف الحالي
+            {t('editStore.viewCurrentFile')}
           </a>
         </div>
         <FileField
-          label="استبدال ملف تصديق الحساب البنكي"
+          label={t('editStore.replaceBankFile')}
           accept="image/*,.pdf"
           file={bankFile}
           onChange={setBankFile}
@@ -133,11 +140,11 @@ export default function EditStorePage() {
 
         {error && <div className="err">{error}</div>}
         <button className="primary" type="submit" style={{ width: '100%' }} disabled={saving}>
-          {saving ? 'جارٍ الإرسال...' : 'حفظ وإعادة الإرسال للمراجعة'}
+          {saving ? t('editStore.submitting') : t('editStore.saveAndResend')}
         </button>
         <div style={{ marginTop: 12 }}>
           <button type="button" className="link" onClick={() => router.push('/rejected')}>
-            رجوع
+            {t('editStore.back')}
           </button>
         </div>
       </form>

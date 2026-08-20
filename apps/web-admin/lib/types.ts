@@ -51,11 +51,22 @@ export const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
   completed: 'مكتمل',
   cancelled: 'ملغى',
 };
+export const ORDER_STATUS_LABEL_EN: Record<OrderStatus, string> = {
+  pending: 'Awaiting processing',
+  processing: 'Being prepared',
+  completed: 'Completed',
+  cancelled: 'Cancelled',
+};
 
 export const PLAN_LABEL: Record<SubscriptionPlan, string> = {
   monthly: 'شهر',
   six_months: '6 أشهر',
   yearly: 'سنة',
+};
+export const PLAN_LABEL_EN: Record<SubscriptionPlan, string> = {
+  monthly: 'Monthly',
+  six_months: '6 Months',
+  yearly: 'Yearly',
 };
 
 export type CouponDiscountType = 'percentage' | 'fixed';
@@ -82,4 +93,9 @@ export const COUPON_SCOPE_LABEL: Record<CouponScope, string> = {
   orders: 'طلبات الشراء',
   subscriptions: 'اشتراكات المحلات',
   both: 'طلبات الشراء + الاشتراكات',
+};
+export const COUPON_SCOPE_LABEL_EN: Record<CouponScope, string> = {
+  orders: 'Purchase orders',
+  subscriptions: 'Store subscriptions',
+  both: 'Purchase orders + subscriptions',
 };

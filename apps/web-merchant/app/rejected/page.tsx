@@ -5,9 +5,11 @@ import { useRouter } from 'next/navigation';
 import { apiFetch, ApiError, clearSession, getToken } from '@/lib/api';
 import { routeForStatus } from '@/lib/routing';
 import { Store } from '@/lib/types';
+import { useLocale } from '@/lib/i18n';
 
 export default function RejectedPage() {
   const router = useRouter();
+  const { t } = useLocale();
   const [store, setStore] = useState<Store | null>(null);
   const [error, setError] = useState('');
 
@@ -25,9 +27,10 @@ export default function RejectedPage() {
         }
         setStore(s);
       } catch (err) {
-        setError(err instanceof ApiError ? err.message : 'تعذّر تحميل بيانات المحل');
+        setError(err instanceof ApiError ? err.message : t('statusPages.loadError'));
       }
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
   function handleExit() {
@@ -41,7 +44,7 @@ export default function RejectedPage() {
         <div className="card card-narrow center" style={{ marginTop: 60 }}>
           <div className="err">{error}</div>
           <button className="link" onClick={handleExit}>
-            خروج
+            {t('statusPages.exit')}
           </button>
         </div>
       </div>
@@ -53,14 +56,16 @@ export default function RejectedPage() {
   return (
     <div className="app">
       <div className="card card-narrow center" style={{ marginTop: 60 }}>
-        <span className="badge b-rejected">تم رفض الطلب</span>
-        <p style={{ margin: '10px 0', fontSize: 13 }}>السبب: {store.rejectionReason || 'غير محدد'}</p>
+        <span className="badge b-rejected">{t('statusPages.rejectedBadge')}</span>
+        <p style={{ margin: '10px 0', fontSize: 13 }}>
+          {t('statusPages.reasonLabel')}: {store.rejectionReason || t('statusPages.reasonUnspecified')}
+        </p>
         <button className="primary" onClick={() => router.push('/edit-store')}>
-          تعديل البيانات وإعادة الإرسال
+          {t('statusPages.editAndResend')}
         </button>
         <div style={{ marginTop: 12 }}>
           <button className="link" onClick={handleExit}>
-            خروج
+            {t('statusPages.exit')}
           </button>
         </div>
       </div>

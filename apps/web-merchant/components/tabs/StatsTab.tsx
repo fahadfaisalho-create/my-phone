@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { apiFetch } from '@/lib/api';
+import { useLocale } from '@/lib/i18n';
 
 interface Counts {
   branches: number;
@@ -13,6 +14,7 @@ interface Counts {
 }
 
 export default function StatsTab() {
+  const { t } = useLocale();
   const [counts, setCounts] = useState<Counts | null>(null);
 
   useEffect(() => {
@@ -36,15 +38,15 @@ export default function StatsTab() {
     })();
   }, []);
 
-  if (!counts) return <div className="spinner-wrap">جارٍ التحميل...</div>;
+  if (!counts) return <div className="spinner-wrap">{t('common.loading')}</div>;
 
   const items: { v: number; l: string }[] = [
-    { v: counts.branches, l: 'عدد الفروع' },
-    { v: counts.services, l: 'عدد الخدمات' },
-    { v: counts.products, l: 'عدد المنتجات' },
-    { v: counts.chats, l: 'عدد المحادثات' },
-    { v: counts.bookings, l: 'عدد الحجوزات' },
-    { v: counts.orders, l: 'عدد الطلبات' },
+    { v: counts.branches, l: t('stats.branchesCount') },
+    { v: counts.services, l: t('stats.servicesCount') },
+    { v: counts.products, l: t('stats.productsCount') },
+    { v: counts.chats, l: t('stats.chatsCount') },
+    { v: counts.bookings, l: t('stats.bookingsCount') },
+    { v: counts.orders, l: t('stats.ordersCount') },
   ];
 
   return (
@@ -58,7 +60,7 @@ export default function StatsTab() {
         ))}
       </div>
       <p className="note" style={{ marginTop: 14 }}>
-        الأرقام هنا مأخوذة من بيانات فعلية على الـ API (فروع/خدمات/منتجات/محادثات/حجوزات/طلبات).
+        {t('stats.footnote')}
       </p>
     </div>
   );

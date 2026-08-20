@@ -5,9 +5,11 @@ import { useRouter } from 'next/navigation';
 import { apiFetch, clearSession, getToken } from '@/lib/api';
 import { routeForStatus } from '@/lib/routing';
 import { Store } from '@/lib/types';
+import { useLocale } from '@/lib/i18n';
 
 export default function PendingPage() {
   const router = useRouter();
+  const { t } = useLocale();
   const [checking, setChecking] = useState(false);
   const [ready, setReady] = useState(false);
 
@@ -42,16 +44,16 @@ export default function PendingPage() {
   return (
     <div className="app">
       <div className="card card-narrow center" style={{ marginTop: 60 }}>
-        <span className="badge b-pending">قيد المراجعة من الإدارة</span>
+        <span className="badge b-pending">{t('statusPages.pendingBadge')}</span>
         <p style={{ color: 'var(--muted)', marginTop: 14 }}>
-          طلبك وصل للإدارة وبانتظار المراجعة. اضغط "تحديث الحالة" للتحقق إذا صار قرار.
+          {t('statusPages.pendingNote')}
         </p>
         <button className="secondary" onClick={refresh} disabled={checking}>
-          {checking ? 'جارٍ التحقق...' : 'تحديث الحالة'}
+          {checking ? t('statusPages.checking') : t('statusPages.refreshStatus')}
         </button>
         <div style={{ marginTop: 12 }}>
           <button className="link" onClick={handleExit}>
-            خروج
+            {t('statusPages.exit')}
           </button>
         </div>
       </div>

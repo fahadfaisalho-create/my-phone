@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { apiFetch, ApiError } from '@/lib/api';
+import { useLocale } from '@/lib/i18n';
 
 type OrderStatus = 'pending' | 'processing' | 'completed' | 'cancelled';
 type DeliveryType = 'pickup' | 'delivery';
@@ -44,41 +45,8 @@ interface Invoice {
   vatAmount: number | null;
 }
 
-const DELIVERY_LABEL: Record<DeliveryType, string> = {
-  pickup: '🏬 استلام من الفرع',
-  delivery: '🚚 توصيل',
-};
-
-const COURIER_LABEL: Record<CourierProvider, string> = {
-  aramex: '📦 أرامكس',
-  fedex: '📦 فيدكس',
-};
-
-const DELIVERY_METHOD_LABEL: Record<DeliveryMethod, string> = {
-  courier: '📦 شركة شحن',
-  store_agent: '🛵 مندوب المحل',
-};
-
-const STATUS_LABEL: Record<OrderStatus, string> = {
-  pending: 'بانتظار المعالجة',
-  processing: 'جارٍ التجهيز',
-  completed: 'مكتمل',
-  cancelled: 'ملغى',
-};
-const STATUS_BADGE: Record<OrderStatus, string> = {
-  pending: 'b-pending',
-  processing: 'b-pending',
-  completed: 'b-active',
-  cancelled: 'b-rejected',
-};
-const PAY_LABEL: Record<Order['paymentStatus'], string> = {
-  unpaid: 'غير مدفوع',
-  paid: 'مدفوع',
-  refunded: 'مسترجع',
-};
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleString('ar-SA', {
+function formatDate(iso: string, dateLocale: string) {
+  return new Date(iso).toLocaleString(dateLocale, {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
@@ -88,6 +56,39 @@ function formatDate(iso: string) {
 }
 
 export default function OrdersTab() {
+  const { t, locale } = useLocale();
+  const dateLocale = locale === 'ar' ? 'ar-SA' : 'en-US';
+
+  const DELIVERY_LABEL: Record<DeliveryType, string> = {
+    pickup: t('ordersTab.deliveryPickup'),
+    delivery: t('ordersTab.deliveryDelivery'),
+  };
+  const COURIER_LABEL: Record<CourierProvider, string> = {
+    aramex: t('ordersTab.courierAramex'),
+    fedex: t('ordersTab.courierFedex'),
+  };
+  const DELIVERY_METHOD_LABEL: Record<DeliveryMethod, string> = {
+    courier: t('ordersTab.methodCourier'),
+    store_agent: t('ordersTab.methodAgent'),
+  };
+  const STATUS_LABEL: Record<OrderStatus, string> = {
+    pending: t('ordersTab.statusPending'),
+    processing: t('ordersTab.statusProcessing'),
+    completed: t('ordersTab.statusCompleted'),
+    cancelled: t('ordersTab.statusCancelled'),
+  };
+  const STATUS_BADGE: Record<OrderStatus, string> = {
+    pending: 'b-pending',
+    processing: 'b-pending',
+    completed: 'b-active',
+    cancelled: 'b-rejected',
+  };
+  const PAY_LABEL: Record<Order['paymentStatus'], string> = {
+    unpaid: t('ordersTab.payUnpaid'),
+    paid: t('ordersTab.payPaid'),
+    refunded: t('ordersTab.payRefunded'),
+  };
+
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -104,7 +105,7 @@ export default function OrdersTab() {
       const data = await apiFetch<Order[]>('/stores/me/orders');
       setOrders(data);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'تعذّر تحميل الطلبات');
+      setError(err instanceof ApiError ? err.message : t('ordersTab.loadError'));
     } finally {
       setLoading(false);
     }
@@ -112,6 +113,7 @@ export default function OrdersTab() {
 
   useEffect(() => {
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function updateStatus(id: string, status: OrderStatus) {
@@ -123,7 +125,7 @@ export default function OrdersTab() {
       });
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'تعذّر تحديث الطلب');
+      setError(err instanceof ApiError ? err.message : t('ordersTab.updateError'));
     } finally {
       setBusyId(null);
     }
@@ -138,7 +140,7 @@ export default function OrdersTab() {
       const data = await apiFetch<Invoice>(`/stores/me/orders/${id}/invoice`);
       setInvoice(data);
     } catch (err) {
-      setInvoiceError(err instanceof ApiError ? err.message : 'تعذّر تحميل الفاتورة');
+      setInvoiceError(err instanceof ApiError ? err.message : t('ordersTab.invoiceLoadError'));
     } finally {
       setInvoiceLoading(false);
     }
@@ -152,12 +154,12 @@ export default function OrdersTab() {
 
   return (
     <div className="card">
-      <h3>الطلبات</h3>
+      <h3>{t('ordersTab.heading')}</h3>
       {error && <div className="err">{error}</div>}
       {loading ? (
-        <p style={{ color: 'var(--muted)', fontSize: 13 }}>جارٍ التحميل...</p>
+        <p style={{ color: 'var(--muted)', fontSize: 13 }}>{t('common.loading')}</p>
       ) : orders.length === 0 ? (
-        <p style={{ color: 'var(--muted)', fontSize: 13 }}>لا يوجد طلبات بعد</p>
+        <p style={{ color: 'var(--muted)', fontSize: 13 }}>{t('ordersTab.empty')}</p>
       ) : (
         orders.map((o) => (
           <div className="rowline" key={o.id} style={{ alignItems: 'flex-start' }}>
@@ -181,7 +183,7 @@ export default function OrdersTab() {
                   rel="noopener noreferrer"
                   style={{ fontSize: 12, color: 'var(--ink)', marginTop: 2, display: 'inline-block' }}
                 >
-                  🗺️ فتح الموقع بالخرائط (دقة GPS)
+                  {t('ordersTab.openMap')}
                 </a>
               )}
               {o.paymentStatus === 'paid' && (
@@ -191,7 +193,7 @@ export default function OrdersTab() {
                     style={{ marginTop: 6, fontSize: 12 }}
                     onClick={() => openInvoice(o.id)}
                   >
-                    🧾 عرض الفاتورة
+                    {t('ordersTab.viewInvoice')}
                   </button>
                 </div>
               )}
@@ -213,12 +215,12 @@ export default function OrdersTab() {
               <span className={`badge ${STATUS_BADGE[o.status]}`}>{STATUS_LABEL[o.status]}</span>
               {o.status === 'pending' && o.paymentStatus === 'paid' && (
                 <button className="secondary" disabled={busyId === o.id} onClick={() => updateStatus(o.id, 'processing')}>
-                  بدء التجهيز
+                  {t('ordersTab.startProcessing')}
                 </button>
               )}
               {o.status === 'processing' && (
                 <button className="secondary" disabled={busyId === o.id} onClick={() => updateStatus(o.id, 'completed')}>
-                  إنهاء
+                  {t('ordersTab.finish')}
                 </button>
               )}
             </div>
@@ -229,11 +231,11 @@ export default function OrdersTab() {
       {invoiceOrderId && (
         <div className="modal-overlay" onClick={closeInvoice}>
           <div className="modal-box" onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close no-print" onClick={closeInvoice} aria-label="إغلاق">
+            <button className="modal-close no-print" onClick={closeInvoice} aria-label={t('ordersTab.close')}>
               ✕
             </button>
             {invoiceLoading ? (
-              <p style={{ color: 'var(--muted)', fontSize: 13, clear: 'both' }}>جارٍ تحميل الفاتورة...</p>
+              <p style={{ color: 'var(--muted)', fontSize: 13, clear: 'both' }}>{t('ordersTab.invoiceLoading')}</p>
             ) : invoiceError ? (
               <div className="err" style={{ clear: 'both' }}>
                 {invoiceError}
@@ -255,7 +257,7 @@ export default function OrdersTab() {
                 </p>
                 <div className="invoice-meta">
                   <div>رقم الفاتورة: {invoice.invoiceNo}</div>
-                  <div>تاريخ الإصدار: {formatDate(invoice.issuedAt)}</div>
+                  <div>تاريخ الإصدار: {formatDate(invoice.issuedAt, dateLocale)}</div>
                   {invoice.store.taxNo && <div>الرقم الضريبي للمتجر: {invoice.store.taxNo}</div>}
                   <div>السجل التجاري للمتجر: {invoice.store.commercialRegisterNo}</div>
                 </div>

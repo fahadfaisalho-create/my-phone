@@ -4,8 +4,10 @@ import { useEffect, useState } from 'react';
 import { apiFetch, ApiError, fileUrl } from '@/lib/api';
 import { Technician } from '@/lib/types';
 import FileField from '@/components/FileField';
+import { useLocale } from '@/lib/i18n';
 
 export default function TechniciansTab() {
+  const { t, tf } = useLocale();
   const [technicians, setTechnicians] = useState<Technician[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -29,7 +31,7 @@ export default function TechniciansTab() {
       const data = await apiFetch<Technician[]>('/stores/me/technicians');
       setTechnicians(data);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'تعذّر تحميل فريق الصيانة');
+      setError(err instanceof ApiError ? err.message : t('technicians.loadError'));
     } finally {
       setLoading(false);
     }
@@ -37,6 +39,7 @@ export default function TechniciansTab() {
 
   useEffect(() => {
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function handleAdd() {
@@ -61,7 +64,7 @@ export default function TechniciansTab() {
       setLicenseFile(null);
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'تعذّر حفظ بيانات الموظف');
+      setError(err instanceof ApiError ? err.message : t('technicians.saveError'));
     } finally {
       setSaving(false);
     }
@@ -72,7 +75,7 @@ export default function TechniciansTab() {
       await apiFetch(`/stores/me/technicians/${id}`, { method: 'DELETE' });
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'تعذّر حذف الموظف');
+      setError(err instanceof ApiError ? err.message : t('technicians.deleteError'));
     }
   }
 
@@ -92,7 +95,7 @@ export default function TechniciansTab() {
       setCertFile((s) => ({ ...s, [technicianId]: null }));
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'تعذّر إضافة الشهادة');
+      setError(err instanceof ApiError ? err.message : t('technicians.addCertError'));
     } finally {
       setCertSavingId(null);
     }
@@ -103,38 +106,38 @@ export default function TechniciansTab() {
       await apiFetch(`/stores/me/technicians/${technicianId}/certificates/${certId}`, { method: 'DELETE' });
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'تعذّر حذف الشهادة');
+      setError(err instanceof ApiError ? err.message : t('technicians.deleteCertError'));
     }
   }
 
   return (
     <div>
       <div className="card">
-        <h3>إضافة فني صيانة</h3>
+        <h3>{t('technicians.addHeading')}</h3>
         <p className="note" style={{ marginBottom: 10 }}>
-          هذي البيانات تظهر للمستهلك بصفحة محلك — تعطي انطباع مصداقية وتسوّق لفريقك.
+          {t('technicians.addNote')}
         </p>
         <div className="row2">
-          <input placeholder="اسم الفني" value={name} onChange={(e) => setName(e.target.value)} />
-          <input placeholder="الجنسية" value={nationality} onChange={(e) => setNationality(e.target.value)} />
+          <input placeholder={t('technicians.namePlaceholder')} value={name} onChange={(e) => setName(e.target.value)} />
+          <input placeholder={t('technicians.nationalityPlaceholder')} value={nationality} onChange={(e) => setNationality(e.target.value)} />
         </div>
         <div className="row2">
           <input
-            placeholder="سنوات الخبرة في الصيانة"
+            placeholder={t('technicians.experiencePlaceholder')}
             type="number"
             min="0"
             value={experienceYears}
             onChange={(e) => setExperienceYears(e.target.value)}
           />
           <input
-            placeholder="رقم رخصة العمل الحر (اختياري)"
+            placeholder={t('technicians.licenseNoPlaceholder')}
             value={licenseNo}
             onChange={(e) => setLicenseNo(e.target.value)}
           />
         </div>
-        <FileField label="صورة الفني (اختياري)" accept="image/*" file={photo} onChange={setPhoto} previewAsImage />
+        <FileField label={t('technicians.photoLabel')} accept="image/*" file={photo} onChange={setPhoto} previewAsImage />
         <FileField
-          label="ملف رخصة العمل الحر (اختياري)"
+          label={t('technicians.licenseFileLabel')}
           accept="image/*,application/pdf"
           file={licenseFile}
           onChange={setLicenseFile}
@@ -145,37 +148,37 @@ export default function TechniciansTab() {
           onClick={handleAdd}
           disabled={saving || !name.trim() || !nationality.trim()}
         >
-          {saving ? 'جارٍ الحفظ...' : 'حفظ ونشر بيانات الفني'}
+          {saving ? t('common.saving') : t('technicians.saveAndPublish')}
         </button>
       </div>
 
       <div className="card">
-        <h3>فريق الصيانة</h3>
+        <h3>{t('technicians.teamHeading')}</h3>
         {loading ? (
-          <p style={{ color: 'var(--muted)', fontSize: 13 }}>جارٍ التحميل...</p>
+          <p style={{ color: 'var(--muted)', fontSize: 13 }}>{t('common.loading')}</p>
         ) : technicians.length === 0 ? (
-          <p style={{ color: 'var(--muted)', fontSize: 13 }}>لا يوجد فنيين مضافين بعد</p>
+          <p style={{ color: 'var(--muted)', fontSize: 13 }}>{t('technicians.empty')}</p>
         ) : (
-          technicians.map((t) => (
-            <div key={t.id} className="card" style={{ background: '#FAFAFA' }}>
+          technicians.map((tech) => (
+            <div key={tech.id} className="card" style={{ background: '#FAFAFA' }}>
               <div className="rowline" style={{ alignItems: 'flex-start' }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  {t.photoUrl && <img src={fileUrl(t.photoUrl)!} className="thumb" alt={t.name} />}
+                  {tech.photoUrl && <img src={fileUrl(tech.photoUrl)!} className="thumb" alt={tech.name} />}
                   <span>
-                    <b>{t.name}</b>
+                    <b>{tech.name}</b>
                     <div style={{ fontSize: 12, color: 'var(--muted)' }}>
-                      {t.nationality}
-                      {t.experienceYears != null ? ` · خبرة ${t.experienceYears} سنة` : ''}
+                      {tech.nationality}
+                      {tech.experienceYears != null ? tf('technicians.experienceYears', String(tech.experienceYears)) : ''}
                     </div>
-                    {t.freelanceLicenseNo && (
+                    {tech.freelanceLicenseNo && (
                       <div style={{ fontSize: 12, color: 'var(--muted)' }}>
-                        رخصة عمل حر: {t.freelanceLicenseNo}
-                        {t.freelanceLicenseFileUrl && (
+                        {t('technicians.freelanceLicense')}: {tech.freelanceLicenseNo}
+                        {tech.freelanceLicenseFileUrl && (
                           <>
                             {' '}
                             —{' '}
-                            <a href={fileUrl(t.freelanceLicenseFileUrl)!} target="_blank" rel="noopener noreferrer">
-                              عرض الملف
+                            <a href={fileUrl(tech.freelanceLicenseFileUrl)!} target="_blank" rel="noopener noreferrer">
+                              {t('technicians.viewFile')}
                             </a>
                           </>
                         )}
@@ -183,19 +186,19 @@ export default function TechniciansTab() {
                     )}
                   </span>
                 </span>
-                <button className="link" onClick={() => handleDelete(t.id)}>
-                  حذف
+                <button className="link" onClick={() => handleDelete(tech.id)}>
+                  {t('common.delete')}
                 </button>
               </div>
 
               <div style={{ marginTop: 10 }}>
-                <label style={{ fontSize: 12.5 }}>الشهادات</label>
-                {t.certificates.length === 0 ? (
+                <label style={{ fontSize: 12.5 }}>{t('technicians.certificates')}</label>
+                {tech.certificates.length === 0 ? (
                   <p className="note" style={{ margin: '4px 0' }}>
-                    لا توجد شهادات مضافة
+                    {t('technicians.noCertificates')}
                   </p>
                 ) : (
-                  t.certificates.map((c) => (
+                  tech.certificates.map((c) => (
                     <div key={c.id} className="rowline" style={{ padding: '6px 0' }}>
                       <span style={{ fontSize: 13 }}>
                         🎓 {c.title}
@@ -204,13 +207,13 @@ export default function TechniciansTab() {
                             {' '}
                             —{' '}
                             <a href={fileUrl(c.fileUrl)!} target="_blank" rel="noopener noreferrer">
-                              عرض الملف
+                              {t('technicians.viewFile')}
                             </a>
                           </>
                         )}
                       </span>
-                      <button className="link" onClick={() => handleDeleteCertificate(t.id, c.id)}>
-                        حذف
+                      <button className="link" onClick={() => handleDeleteCertificate(tech.id, c.id)}>
+                        {t('common.delete')}
                       </button>
                     </div>
                   ))
@@ -218,24 +221,24 @@ export default function TechniciansTab() {
 
                 <div className="row2" style={{ marginTop: 8 }}>
                   <input
-                    placeholder="عنوان الشهادة (مثال: صيانة أجهزة أبل المعتمدة)"
-                    value={certTitle[t.id] || ''}
-                    onChange={(e) => setCertTitle((s) => ({ ...s, [t.id]: e.target.value }))}
+                    placeholder={t('technicians.certTitlePlaceholder')}
+                    value={certTitle[tech.id] || ''}
+                    onChange={(e) => setCertTitle((s) => ({ ...s, [tech.id]: e.target.value }))}
                   />
                   <FileField
-                    label="ملف الشهادة (اختياري)"
+                    label={t('technicians.certFileLabel')}
                     accept="image/*,application/pdf"
-                    file={certFile[t.id] || null}
-                    onChange={(f) => setCertFile((s) => ({ ...s, [t.id]: f }))}
+                    file={certFile[tech.id] || null}
+                    onChange={(f) => setCertFile((s) => ({ ...s, [tech.id]: f }))}
                   />
                 </div>
                 <button
                   className="secondary"
                   style={{ marginTop: 8 }}
-                  disabled={certSavingId === t.id || !certTitle[t.id]?.trim()}
-                  onClick={() => handleAddCertificate(t.id)}
+                  disabled={certSavingId === tech.id || !certTitle[tech.id]?.trim()}
+                  onClick={() => handleAddCertificate(tech.id)}
                 >
-                  {certSavingId === t.id ? 'جارٍ الإضافة...' : '+ إضافة شهادة'}
+                  {certSavingId === tech.id ? t('technicians.addingCert') : t('technicians.addCert')}
                 </button>
               </div>
             </div>

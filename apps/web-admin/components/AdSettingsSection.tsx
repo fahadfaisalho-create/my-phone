@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { apiFetch, ApiError } from '@/lib/api';
+import { useLocale } from '@/lib/i18n';
 
 interface PlatformSettings {
   id: string;
@@ -12,11 +13,14 @@ interface AdStats {
   ads: { paidCount: number; paidRevenue: number };
 }
 
-function riyal(n: number) {
-  return `${n.toLocaleString('ar-SA')} ﷼`;
-}
-
 export default function AdSettingsSection() {
+  const { t, locale } = useLocale();
+  const numberLocale = locale === 'ar' ? 'ar-SA' : 'en-US';
+
+  function riyal(n: number) {
+    return `${n.toLocaleString(numberLocale)} ﷼`;
+  }
+
   const [settings, setSettings] = useState<PlatformSettings | null>(null);
   const [stats, setStats] = useState<AdStats | null>(null);
   const [rate, setRate] = useState('');
@@ -36,7 +40,7 @@ export default function AdSettingsSection() {
       setRate(String(s.adDailyRate));
       setStats(st);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'تعذّر تحميل إعدادات الإعلانات');
+      setError(err instanceof ApiError ? err.message : t('ads.loadError'));
     } finally {
       setLoading(false);
     }
@@ -44,6 +48,7 @@ export default function AdSettingsSection() {
 
   useEffect(() => {
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function handleSave() {
@@ -59,25 +64,24 @@ export default function AdSettingsSection() {
       setSettings(s);
       setSaved(true);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'تعذّر حفظ السعر');
+      setError(err instanceof ApiError ? err.message : t('ads.saveError'));
     } finally {
       setSaving(false);
     }
   }
 
-  if (loading) return <div className="spinner-wrap">جارٍ التحميل...</div>;
+  if (loading) return <div className="spinner-wrap">{t('common.loading')}</div>;
 
   return (
     <div>
       <div className="card">
-        <h3 style={{ marginBottom: 12 }}>سعر الإعلان المميز اليومي</h3>
+        <h3 style={{ marginBottom: 12 }}>{t('ads.priceHeading')}</h3>
         <p className="note" style={{ marginBottom: 12 }}>
-          هذا السعر هو ما يدفعه المحل عن كل يوم إعلان مميز يظهر بشريط "إعلانات مميزة" أعلى الصفحة الرئيسية بتطبيق
-          المستهلك.
+          {t('ads.priceNote')}
         </p>
         <div className="row2">
           <div>
-            <label htmlFor="rate">السعر لليوم الواحد (﷼)</label>
+            <label htmlFor="rate">{t('ads.dailyPrice')}</label>
             <input
               id="rate"
               type="number"
@@ -92,26 +96,26 @@ export default function AdSettingsSection() {
           </div>
         </div>
         {error && <div className="err">{error}</div>}
-        {saved && !error && <p style={{ color: 'var(--accent, #16a34a)', fontSize: 13 }}>تم حفظ السعر بنجاح</p>}
+        {saved && !error && <p style={{ color: 'var(--accent, #16a34a)', fontSize: 13 }}>{t('ads.saveSuccess')}</p>}
         <button
           className="primary"
           onClick={handleSave}
           disabled={saving || !rate || Number(rate) === Number(settings?.adDailyRate ?? -1)}
         >
-          {saving ? 'جارٍ الحفظ...' : 'حفظ السعر'}
+          {saving ? t('common.saving') : t('ads.savePrice')}
         </button>
       </div>
 
       <div className="card">
-        <h3 style={{ marginBottom: 12 }}>إيرادات الإعلانات</h3>
+        <h3 style={{ marginBottom: 12 }}>{t('ads.revenueHeading')}</h3>
         <div className="grid3">
           <div className="metric">
             <div className="v">{stats?.ads.paidCount ?? 0}</div>
-            <div className="l">إعلانات مدفوعة</div>
+            <div className="l">{t('ads.paidCount')}</div>
           </div>
           <div className="metric">
             <div className="v">{riyal(stats?.ads.paidRevenue ?? 0)}</div>
-            <div className="l">إجمالي إيراد الإعلانات</div>
+            <div className="l">{t('ads.totalRevenue')}</div>
           </div>
         </div>
       </div>

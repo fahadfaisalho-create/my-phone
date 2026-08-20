@@ -4,8 +4,10 @@ import { useEffect, useState } from 'react';
 import { apiFetch, ApiError } from '@/lib/api';
 import { Branch } from '@/lib/types';
 import BranchMapPicker from '@/components/BranchMapPicker';
+import { useLocale } from '@/lib/i18n';
 
 export default function BranchesTab() {
+  const { t } = useLocale();
   const [branches, setBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -21,7 +23,7 @@ export default function BranchesTab() {
       const data = await apiFetch<Branch[]>('/stores/me/branches');
       setBranches(data);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'تعذّر تحميل الفروع');
+      setError(err instanceof ApiError ? err.message : t('branches.loadError'));
     } finally {
       setLoading(false);
     }
@@ -29,6 +31,7 @@ export default function BranchesTab() {
 
   useEffect(() => {
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function handleAdd() {
@@ -51,7 +54,7 @@ export default function BranchesTab() {
       setLng(null);
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'تعذّر إضافة الفرع');
+      setError(err instanceof ApiError ? err.message : t('branches.addError'));
     } finally {
       setSaving(false);
     }
@@ -62,16 +65,16 @@ export default function BranchesTab() {
       await apiFetch(`/stores/me/branches/${id}`, { method: 'DELETE' });
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'تعذّر حذف الفرع');
+      setError(err instanceof ApiError ? err.message : t('branches.deleteError'));
     }
   }
 
   return (
     <div className="card">
-      <h3>إضافة فرع</h3>
+      <h3>{t('branches.addHeading')}</h3>
       <div className="row2">
-        <input placeholder="اسم الفرع" value={name} onChange={(e) => setName(e.target.value)} />
-        <input placeholder="الموقع / الحي (نصي)" value={address} onChange={(e) => setAddress(e.target.value)} />
+        <input placeholder={t('branches.namePlaceholder')} value={name} onChange={(e) => setName(e.target.value)} />
+        <input placeholder={t('branches.addressPlaceholder')} value={address} onChange={(e) => setAddress(e.target.value)} />
       </div>
 
       <BranchMapPicker
@@ -89,14 +92,14 @@ export default function BranchesTab() {
 
       {error && <div className="err">{error}</div>}
       <button className="primary" onClick={handleAdd} disabled={saving || !name.trim()}>
-        إضافة الفرع
+        {t('branches.addBranch')}
       </button>
 
       <div style={{ marginTop: 16 }}>
         {loading ? (
-          <p style={{ color: 'var(--muted)', fontSize: 13 }}>جارٍ التحميل...</p>
+          <p style={{ color: 'var(--muted)', fontSize: 13 }}>{t('common.loading')}</p>
         ) : branches.length === 0 ? (
-          <p style={{ color: 'var(--muted)', fontSize: 13 }}>لا يوجد فروع بعد</p>
+          <p style={{ color: 'var(--muted)', fontSize: 13 }}>{t('branches.empty')}</p>
         ) : (
           branches.map((b) => (
             <div className="rowline" key={b.id}>
@@ -113,13 +116,13 @@ export default function BranchesTab() {
                         target="_blank"
                         rel="noreferrer"
                       >
-                        📍 عرض بالخريطة
+                        {t('branches.viewOnMap')}
                       </a>
                     </>
                   )}
                 </span>
                 <button className="link" onClick={() => handleDelete(b.id)}>
-                  حذف
+                  {t('common.delete')}
                 </button>
               </span>
             </div>

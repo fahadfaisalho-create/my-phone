@@ -5,8 +5,10 @@ import { apiFetch, ApiError, fileUrl, CONSUMER_APP_ORIGIN } from '@/lib/api';
 import { DeliveryAgent, Store } from '@/lib/types';
 import FileField from '@/components/FileField';
 import DeliveryZonePicker from '@/components/DeliveryZonePicker';
+import { useLocale } from '@/lib/i18n';
 
 export default function SettingsTab() {
+  const { t } = useLocale();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -50,7 +52,7 @@ export default function SettingsTab() {
       setAgentZoneRadiusKm(s.agentZoneRadiusKm != null ? String(s.agentZoneRadiusKm) : '');
       setAgentDeliveryFee(s.agentDeliveryFee || '');
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'تعذّر تحميل بيانات المحل');
+      setError(err instanceof ApiError ? err.message : t('settings.loadError'));
     } finally {
       setLoading(false);
     }
@@ -71,6 +73,7 @@ export default function SettingsTab() {
   useEffect(() => {
     load();
     loadAgents();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -78,7 +81,7 @@ export default function SettingsTab() {
     setError('');
     setSuccess(false);
     if (supportsAgentDelivery && (agentZoneLat === null || agentZoneLng === null || !agentZoneRadiusKm || !agentDeliveryFee)) {
-      setError('لتفعيل توصيل مناديب المحل، حدد مركز النطاق بالخريطة ونصف القطر والسعر');
+      setError(t('settings.agentZoneMissing'));
       return;
     }
     setSaving(true);
@@ -110,7 +113,7 @@ export default function SettingsTab() {
       setLogo(null);
       setSuccess(true);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'تعذّر حفظ التعديلات');
+      setError(err instanceof ApiError ? err.message : t('settings.saveError'));
     } finally {
       setSaving(false);
     }
@@ -129,7 +132,7 @@ export default function SettingsTab() {
       setAgentPhone('');
       await loadAgents();
     } catch (err) {
-      setAgentError(err instanceof ApiError ? err.message : 'تعذّر إضافة المندوب');
+      setAgentError(err instanceof ApiError ? err.message : t('settings.addAgentError'));
     } finally {
       setAgentSaving(false);
     }
@@ -140,15 +143,16 @@ export default function SettingsTab() {
       await apiFetch(`/stores/me/delivery-agents/${id}`, { method: 'DELETE' });
       await loadAgents();
     } catch (err) {
-      setAgentError(err instanceof ApiError ? err.message : 'تعذّر حذف المندوب');
+      setAgentError(err instanceof ApiError ? err.message : t('settings.removeAgentError'));
     }
   }
 
-  if (loading) return <div className="spinner-wrap">جارٍ التحميل...</div>;
+  if (loading) return <div className="spinner-wrap">{t('common.loading')}</div>;
   if (!store) return null;
 
   const logoUrl = fileUrl(store.logoUrl);
   const storeLink = `${CONSUMER_APP_ORIGIN}/store/${store.id}`;
+  const isIndividual = store.providerType === 'individual';
 
   async function handleCopyLink() {
     try {
@@ -163,47 +167,47 @@ export default function SettingsTab() {
   return (
     <>
       <div className="card card-narrow">
-        <h3 style={{ marginBottom: 8 }}>رابط مشاركة المحل</h3>
+        <h3 style={{ marginBottom: 8 }}>{t('settings.shareLinkHeading')}</h3>
         <p className="note" style={{ marginBottom: 10 }}>
-          شارك هذا الرابط مع عملائك — يفتح مباشرة على صفحة محلك داخل التطبيق، حتى لو ما كانوا مسجّلين دخول.
+          {t('settings.shareLinkNote')}
         </p>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           <input readOnly value={storeLink} style={{ flex: 1, minWidth: 220 }} onFocus={(e) => e.target.select()} />
           <button type="button" className="secondary" onClick={handleCopyLink}>
-            {copied ? '✓ تم النسخ' : '📋 نسخ الرابط'}
+            {copied ? t('settings.copied') : t('settings.copyLink')}
           </button>
         </div>
       </div>
 
       <form className="card card-narrow" onSubmit={handleSubmit}>
-      <h3 style={{ marginBottom: 12 }}>{store.providerType === 'individual' ? 'إعداداتي' : 'إعدادات المحل'}</h3>
+      <h3 style={{ marginBottom: 12 }}>{isIndividual ? t('settings.settingsHeadingIndividual') : t('settings.settingsHeadingStore')}</h3>
 
       <div className="filebox">
-        <label>{store.providerType === 'individual' ? 'صورتك الحالية' : 'شعار المحل الحالي'}</label>
+        <label>{isIndividual ? t('settings.currentPhotoIndividual') : t('settings.currentPhotoStore')}</label>
         {logoUrl ? (
-          <img src={logoUrl} alt="الصورة الحالية" className="filepreview-img" style={{ marginBottom: 8 }} />
+          <img src={logoUrl} alt={t('settings.currentImageAlt')} className="filepreview-img" style={{ marginBottom: 8 }} />
         ) : (
-          <p className="note">لا يوجد شعار مرفوع بعد</p>
+          <p className="note">{t('settings.noLogoYet')}</p>
         )}
       </div>
       <FileField
-        label={store.providerType === 'individual' ? 'تغيير الصورة' : 'تغيير الشعار'}
+        label={isIndividual ? t('settings.changePhotoIndividual') : t('settings.changePhotoStore')}
         accept="image/*"
         file={logo}
         onChange={setLogo}
         previewAsImage
       />
 
-      <label htmlFor="storeName">{store.providerType === 'individual' ? 'اسمك المهني' : 'اسم المحل'}</label>
+      <label htmlFor="storeName">{isIndividual ? t('settings.nameIndividual') : t('settings.nameStore')}</label>
       <input id="storeName" value={storeName} onChange={(e) => setStoreName(e.target.value)} />
 
-      <label htmlFor="tax">الرقم الضريبي (اختياري)</label>
+      <label htmlFor="tax">{t('settings.taxNo')}</label>
       <input id="tax" value={tax} onChange={(e) => setTax(e.target.value)} />
 
-      <label htmlFor="iban">رقم الآيبان</label>
+      <label htmlFor="iban">{t('settings.iban')}</label>
       <input id="iban" value={iban} onChange={(e) => setIban(e.target.value)} />
 
-      {store.providerType !== 'individual' && (
+      {!isIndividual && (
         <>
           <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 400, marginTop: 12 }}>
             <input
@@ -211,23 +215,20 @@ export default function SettingsTab() {
               checked={supportsDelivery}
               onChange={(e) => setSupportsDelivery(e.target.checked)}
             />
-            🚚 تفعيل خدمة التوصيل للطلبات
+            {t('settings.enableDelivery')}
           </label>
           {supportsDelivery && (
             <>
-              <label htmlFor="deliveryFee">رسوم التوصيل (اختياري، ﷼)</label>
+              <label htmlFor="deliveryFee">{t('settings.deliveryFee')}</label>
               <input
                 id="deliveryFee"
                 type="number"
                 min="0"
                 value={deliveryFee}
                 onChange={(e) => setDeliveryFee(e.target.value)}
-                placeholder="بدون رسوم إضافية"
+                placeholder={t('settings.deliveryFeePlaceholder')}
               />
-              <p className="note">
-                التوصيل حالياً يدوي — المستهلك يختار شركة الشحن (أرامكس أو فيدكس) وعنوانه، وتصلك هذي البيانات مع
-                الطلب وترتب الشحن بنفسك، لين نربط التوصيل تلقائياً بالتطبيق لاحقاً.
-              </p>
+              <p className="note">{t('settings.deliveryNote')}</p>
             </>
           )}
 
@@ -237,7 +238,7 @@ export default function SettingsTab() {
               checked={supportsAgentDelivery}
               onChange={(e) => setSupportsAgentDelivery(e.target.checked)}
             />
-            🛵 تفعيل التوصيل بمناديب المحل (نطاق جغرافي)
+            {t('settings.enableAgentDelivery')}
           </label>
           {supportsAgentDelivery && (
             <>
@@ -252,7 +253,7 @@ export default function SettingsTab() {
               />
               <div className="row2">
                 <div>
-                  <label htmlFor="agentRadius">نصف قطر النطاق (كم)</label>
+                  <label htmlFor="agentRadius">{t('settings.agentRadius')}</label>
                   <input
                     id="agentRadius"
                     type="number"
@@ -260,53 +261,48 @@ export default function SettingsTab() {
                     step="0.1"
                     value={agentZoneRadiusKm}
                     onChange={(e) => setAgentZoneRadiusKm(e.target.value)}
-                    placeholder="مثال: 10"
+                    placeholder={t('settings.agentRadiusPlaceholder')}
                   />
                 </div>
                 <div>
-                  <label htmlFor="agentFee">سعر توصيل المندوب (﷼)</label>
+                  <label htmlFor="agentFee">{t('settings.agentFee')}</label>
                   <input
                     id="agentFee"
                     type="number"
                     min="0"
                     value={agentDeliveryFee}
                     onChange={(e) => setAgentDeliveryFee(e.target.value)}
-                    placeholder="مثال: 15"
+                    placeholder={t('settings.agentFeePlaceholder')}
                   />
                 </div>
               </div>
-              <p className="note">
-                لما المستهلك يختار "توصيل من المحل" ويحدد موقعه، النظام يتحقق تلقائياً إنه داخل هذا النطاق —
-                لو داخله يوصله المندوب خلال 24 ساعة، ولو خارجه ما يقدر يختار هذي الطريقة.
-              </p>
+              <p className="note">{t('settings.agentNote')}</p>
             </>
           )}
         </>
       )}
 
       <p className="note" style={{ marginTop: 8 }}>
-        {store.providerType === 'individual'
-          ? 'لتعديل بيانات الهوية أو ملف تصديق الحساب البنكي، تواصل مع الدعم — هذه البيانات تحتاج مراجعة إدارية.'
-          : 'لتعديل السجل التجاري أو ملف تصديق الحساب البنكي، تواصل مع الدعم — هذه البيانات تحتاج مراجعة إدارية.'}
+        {isIndividual ? t('settings.contactSupportIndividual') : t('settings.contactSupportStore')}
       </p>
 
       {error && <div className="err">{error}</div>}
-      {success && <div className="note" style={{ color: 'var(--ink)' }}>✓ تم حفظ التعديلات بنجاح</div>}
+      {success && <div className="note" style={{ color: 'var(--ink)' }}>{t('settings.saveSuccess')}</div>}
 
       <button className="primary" type="submit" style={{ width: '100%', marginTop: 10 }} disabled={saving}>
-        {saving ? 'جارٍ الحفظ...' : 'حفظ التعديلات'}
+        {saving ? t('common.saving') : t('settings.saveChanges')}
       </button>
       </form>
 
-      {store.providerType !== 'individual' && (
+      {!isIndividual && (
         <div className="card card-narrow">
-          <h3 style={{ marginBottom: 8 }}>مناديب التوصيل</h3>
+          <h3 style={{ marginBottom: 8 }}>{t('settings.agentsHeading')}</h3>
           <p className="note" style={{ marginBottom: 10 }}>
-            أضف الأشخاص اللي يوصلون طلبات محلك — تظهر بياناتهم لك فقط للتنسيق معهم عند وصول طلب توصيل.
+            {t('settings.agentsNote')}
           </p>
           <div className="row2">
-            <input placeholder="اسم المندوب" value={agentName} onChange={(e) => setAgentName(e.target.value)} />
-            <input placeholder="رقم الجوال" value={agentPhone} onChange={(e) => setAgentPhone(e.target.value)} />
+            <input placeholder={t('settings.agentNamePlaceholder')} value={agentName} onChange={(e) => setAgentName(e.target.value)} />
+            <input placeholder={t('settings.agentPhonePlaceholder')} value={agentPhone} onChange={(e) => setAgentPhone(e.target.value)} />
           </div>
           {agentError && <div className="err">{agentError}</div>}
           <button
@@ -315,14 +311,14 @@ export default function SettingsTab() {
             onClick={handleAddAgent}
             disabled={agentSaving || !agentName.trim() || !agentPhone.trim()}
           >
-            {agentSaving ? 'جارٍ الحفظ...' : 'إضافة مندوب'}
+            {agentSaving ? t('common.saving') : t('settings.addAgent')}
           </button>
 
           <div style={{ marginTop: 16 }}>
             {agentsLoading ? (
-              <p style={{ color: 'var(--muted)', fontSize: 13 }}>جارٍ التحميل...</p>
+              <p style={{ color: 'var(--muted)', fontSize: 13 }}>{t('common.loading')}</p>
             ) : agents.length === 0 ? (
-              <p style={{ color: 'var(--muted)', fontSize: 13 }}>لا يوجد مناديب مضافين بعد</p>
+              <p style={{ color: 'var(--muted)', fontSize: 13 }}>{t('settings.noAgentsYet')}</p>
             ) : (
               agents.map((a) => (
                 <div className="rowline" key={a.id}>
@@ -330,7 +326,7 @@ export default function SettingsTab() {
                   <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <span style={{ color: 'var(--muted)' }}>{a.phone}</span>
                     <button className="link" onClick={() => handleRemoveAgent(a.id)}>
-                      حذف
+                      {t('common.delete')}
                     </button>
                   </span>
                 </div>

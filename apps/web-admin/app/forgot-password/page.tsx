@@ -3,9 +3,11 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiFetch, ApiError } from '@/lib/api';
+import { useLocale } from '@/lib/i18n';
 
 export default function ForgotPasswordPage() {
   const router = useRouter();
+  const { t } = useLocale();
   const [step, setStep] = useState<'request' | 'reset'>('request');
   const [email, setEmail] = useState('');
   const [token, setToken] = useState('');
@@ -26,7 +28,7 @@ export default function ForgotPasswordPage() {
       setMessage(res.message);
       setStep('reset');
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'تعذّر الاتصال بالخادم');
+      setError(err instanceof ApiError ? err.message : t('forgotPassword.connectionError'));
     } finally {
       setLoading(false);
     }
@@ -43,7 +45,7 @@ export default function ForgotPasswordPage() {
       });
       router.replace('/login');
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'تعذّر تحديث كلمة السر');
+      setError(err instanceof ApiError ? err.message : t('forgotPassword.updateError'));
     } finally {
       setLoading(false);
     }
@@ -53,28 +55,28 @@ export default function ForgotPasswordPage() {
     <div className="app">
       {step === 'request' ? (
         <form className="card card-narrow" onSubmit={handleRequest} style={{ marginTop: 60 }}>
-          <h2>استعادة كلمة السر</h2>
-          <p className="note">أدخل بريدك الإلكتروني وسنرسل لك رمز استعادة.</p>
+          <h2>{t('forgotPassword.requestTitle')}</h2>
+          <p className="note">{t('forgotPassword.requestNote')}</p>
           {error && <div className="err">{error}</div>}
-          <label htmlFor="email">البريد الإلكتروني</label>
+          <label htmlFor="email">{t('forgotPassword.email')}</label>
           <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus />
           <button className="primary" type="submit" style={{ width: '100%' }} disabled={loading}>
-            {loading ? 'جارٍ الإرسال...' : 'إرسال رمز الاستعادة'}
+            {loading ? t('forgotPassword.sending') : t('forgotPassword.sendCode')}
           </button>
           <div style={{ marginTop: 12 }}>
             <button type="button" className="link" onClick={() => router.push('/login')}>
-              رجوع لتسجيل الدخول
+              {t('forgotPassword.backToLogin')}
             </button>
           </div>
         </form>
       ) : (
         <form className="card card-narrow" onSubmit={handleReset} style={{ marginTop: 60 }}>
-          <h2>إدخال رمز الاستعادة</h2>
+          <h2>{t('forgotPassword.resetTitle')}</h2>
           {message && <p className="note">{message}</p>}
           {error && <div className="err">{error}</div>}
-          <label htmlFor="token">رمز الاستعادة (من البريد)</label>
+          <label htmlFor="token">{t('forgotPassword.tokenLabel')}</label>
           <input id="token" value={token} onChange={(e) => setToken(e.target.value)} required autoFocus />
-          <label htmlFor="newPassword">كلمة السر الجديدة</label>
+          <label htmlFor="newPassword">{t('forgotPassword.newPasswordLabel')}</label>
           <input
             id="newPassword"
             type="password"
@@ -84,11 +86,11 @@ export default function ForgotPasswordPage() {
             minLength={6}
           />
           <button className="primary" type="submit" style={{ width: '100%' }} disabled={loading}>
-            {loading ? 'جارٍ التحديث...' : 'تحديث كلمة السر'}
+            {loading ? t('forgotPassword.updating') : t('forgotPassword.updatePassword')}
           </button>
           <div style={{ marginTop: 12 }}>
             <button type="button" className="link" onClick={() => setStep('request')}>
-              لم يصلني رمز — إعادة الإرسال
+              {t('forgotPassword.resend')}
             </button>
           </div>
         </form>

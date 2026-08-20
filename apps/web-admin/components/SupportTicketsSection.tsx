@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { apiFetch, ApiError } from '@/lib/api';
+import { useLocale } from '@/lib/i18n';
 
 type TicketStatus = 'open' | 'in_progress' | 'closed';
 type RelatedType = 'store' | 'consumer';
@@ -15,11 +16,11 @@ interface Ticket {
   createdAt: string;
 }
 
-const TABS: { key: TicketStatus | 'all'; label: string }[] = [
-  { key: 'open', label: 'مفتوحة' },
-  { key: 'in_progress', label: 'قيد المعالجة' },
-  { key: 'closed', label: 'مغلقة' },
-  { key: 'all', label: 'الكل' },
+const TAB_KEYS: { key: TicketStatus | 'all'; navKey: string }[] = [
+  { key: 'open', navKey: 'support.tabOpen' },
+  { key: 'in_progress', navKey: 'support.tabInProgress' },
+  { key: 'closed', navKey: 'support.tabClosed' },
+  { key: 'all', navKey: 'common.all' },
 ];
 
 const BADGE_CLASS: Record<TicketStatus, string> = {
@@ -27,22 +28,24 @@ const BADGE_CLASS: Record<TicketStatus, string> = {
   in_progress: 'b-pending',
   closed: 'b-active',
 };
-const BADGE_LABEL: Record<TicketStatus, string> = {
-  open: 'مفتوحة',
-  in_progress: 'قيد المعالجة',
-  closed: 'مغلقة',
+const BADGE_NAV_KEY: Record<TicketStatus, string> = {
+  open: 'support.tabOpen',
+  in_progress: 'support.tabInProgress',
+  closed: 'support.tabClosed',
 };
-const RELATED_LABEL: Record<RelatedType, string> = {
-  store: 'محل',
-  consumer: 'مستهلك',
+const RELATED_NAV_KEY: Record<RelatedType, string> = {
+  store: 'support.fromStore',
+  consumer: 'support.fromConsumer',
 };
 
 export default function SupportTicketsSection() {
+  const { t, locale } = useLocale();
   const [tab, setTab] = useState<TicketStatus | 'all'>('open');
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [busyId, setBusyId] = useState<string | null>(null);
+  const dateLocale = locale === 'ar' ? 'ar-SA' : 'en-US';
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -52,11 +55,11 @@ export default function SupportTicketsSection() {
       const data = await apiFetch<Ticket[]>(`/support-tickets${query}`);
       setTickets(data);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'تعذّر تحميل التذاكر');
+      setError(err instanceof ApiError ? err.message : t('support.loadError'));
     } finally {
       setLoading(false);
     }
-  }, [tab]);
+  }, [tab, t]);
 
   useEffect(() => {
     load();
@@ -71,7 +74,7 @@ export default function SupportTicketsSection() {
       });
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'تعذّر تحديث التذكرة');
+      setError(err instanceof ApiError ? err.message : t('support.updateError'));
     } finally {
       setBusyId(null);
     }
@@ -80,48 +83,51 @@ export default function SupportTicketsSection() {
   return (
     <div>
       <div className="tabs">
-        {TABS.map((t) => (
-          <button key={t.key} className={tab === t.key ? 'on' : ''} onClick={() => setTab(t.key)}>
-            {t.label}
+        {TAB_KEYS.map((tabItem) => (
+          <button key={tabItem.key} className={tab === tabItem.key ? 'on' : ''} onClick={() => setTab(tabItem.key)}>
+            {t(tabItem.navKey)}
           </button>
         ))}
       </div>
 
-      <h3 style={{ margin: '4px 0 14px' }}>تذاكر الدعم {!loading && `(${tickets.length})`}</h3>
+      <h3 style={{ margin: '4px 0 14px' }}>
+        {t('support.heading')} {!loading && `(${tickets.length})`}
+      </h3>
       {error && <div className="err">{error}</div>}
 
       {loading ? (
-        <div className="spinner-wrap">جارٍ التحميل...</div>
+        <div className="spinner-wrap">{t('common.loading')}</div>
       ) : tickets.length === 0 ? (
         <div className="card">
-          <p style={{ color: 'var(--muted)', fontSize: 13 }}>لا يوجد تذاكر في هذه الحالة</p>
+          <p style={{ color: 'var(--muted)', fontSize: 13 }}>{t('support.empty')}</p>
         </div>
       ) : (
-        tickets.map((t) => (
-          <div className="card" key={t.id}>
+        tickets.map((ticket) => (
+          <div className="card" key={ticket.id}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
               <div>
-                <b>{t.subject}</b>
+                <b>{ticket.subject}</b>
                 <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
-                  من: {RELATED_LABEL[t.relatedType]} · {new Date(t.createdAt).toLocaleDateString('ar-SA')}
+                  {t('support.fromLabel')}: {t(RELATED_NAV_KEY[ticket.relatedType])} ·{' '}
+                  {new Date(ticket.createdAt).toLocaleDateString(dateLocale)}
                 </div>
               </div>
-              <span className={`badge ${BADGE_CLASS[t.status]}`}>{BADGE_LABEL[t.status]}</span>
+              <span className={`badge ${BADGE_CLASS[ticket.status]}`}>{t(BADGE_NAV_KEY[ticket.status])}</span>
             </div>
             <div className="actions-row" style={{ marginTop: 12 }}>
-              {t.status !== 'in_progress' && (
-                <button className="secondary" disabled={busyId === t.id} onClick={() => updateStatus(t.id, 'in_progress')}>
-                  قيد المعالجة
+              {ticket.status !== 'in_progress' && (
+                <button className="secondary" disabled={busyId === ticket.id} onClick={() => updateStatus(ticket.id, 'in_progress')}>
+                  {t('support.markInProgress')}
                 </button>
               )}
-              {t.status !== 'closed' && (
-                <button className="primary" disabled={busyId === t.id} onClick={() => updateStatus(t.id, 'closed')}>
-                  إغلاق
+              {ticket.status !== 'closed' && (
+                <button className="primary" disabled={busyId === ticket.id} onClick={() => updateStatus(ticket.id, 'closed')}>
+                  {t('support.close')}
                 </button>
               )}
-              {t.status === 'closed' && (
-                <button className="secondary" disabled={busyId === t.id} onClick={() => updateStatus(t.id, 'open')}>
-                  إعادة فتح
+              {ticket.status === 'closed' && (
+                <button className="secondary" disabled={busyId === ticket.id} onClick={() => updateStatus(ticket.id, 'open')}>
+                  {t('support.reopen')}
                 </button>
               )}
             </div>

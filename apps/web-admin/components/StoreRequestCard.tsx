@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { fileUrl } from '@/lib/api';
-import { PLAN_LABEL, StoreRequest } from '@/lib/types';
+import { PLAN_LABEL, PLAN_LABEL_EN, StoreRequest } from '@/lib/types';
+import { useLocale } from '@/lib/i18n';
 
 const BADGE_CLASS: Record<string, string> = {
   pending: 'b-pending',
@@ -10,15 +11,15 @@ const BADGE_CLASS: Record<string, string> = {
   rejected: 'b-rejected',
   suspended: 'b-suspended',
 };
-const BADGE_LABEL: Record<string, string> = {
-  pending: 'قيد المراجعة',
-  active: 'نشط',
-  rejected: 'مرفوض',
-  suspended: 'موقوف',
+const BADGE_NAV_KEY: Record<string, string> = {
+  pending: 'stores.tabPending',
+  active: 'stores.tabActive',
+  rejected: 'stores.tabRejected',
+  suspended: 'stores.tabSuspended',
 };
 
-function DocLink({ url, label }: { url: string | null; label: string }) {
-  if (!url) return <span className="docmissing">{label}: غير مرفق</span>;
+function DocLink({ url, label, notAttached }: { url: string | null; label: string; notAttached: string }) {
+  if (!url) return <span className="docmissing">{label}: {notAttached}</span>;
   const isImage = /\.(png|jpe?g|webp)$/i.test(url);
   return (
     <a href={url} target="_blank" rel="noreferrer" className="doclink">
@@ -43,12 +44,14 @@ export default function StoreRequestCard({
   onSuspend: (id: string) => Promise<void>;
   onReactivate: (id: string) => Promise<void>;
 }) {
+  const { t, tf, locale } = useLocale();
   const [showReject, setShowReject] = useState(false);
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
 
   const logo = fileUrl(store.logoUrl);
   const sub = store.subscriptions?.[0];
+  const dateLocale = locale === 'ar' ? 'ar-SA' : 'en-US';
 
   async function handleApprove() {
     setBusy(true);
@@ -82,7 +85,7 @@ export default function StoreRequestCard({
   }
 
   async function handleSuspend() {
-    if (!confirm(`إيقاف "${store.name}"؟ سيختفي زر الشات/الحجز/الشراء عند المستهلكين.`)) return;
+    if (!confirm(tf('stores.suspendConfirm', store.name))) return;
     setBusy(true);
     try {
       await onSuspend(store.id);
@@ -134,34 +137,35 @@ export default function StoreRequestCard({
           <div>
             <b>{store.name}</b>{' '}
             <span className="badge" style={{ background: store.providerType === 'individual' ? '#E8EDF1' : '#F0F0F0' }}>
-              {store.providerType === 'individual' ? '🔧 فني مستقل' : '🏪 محل'}
+              {store.providerType === 'individual' ? t('stores.individual') : t('stores.company')}
             </span>
             <div style={{ fontSize: 12, color: 'var(--muted)' }}>
               {store.owner.name} · {store.owner.email}
             </div>
           </div>
         </div>
-        <span className={`badge ${BADGE_CLASS[store.status]}`}>{BADGE_LABEL[store.status]}</span>
+        <span className={`badge ${BADGE_CLASS[store.status]}`}>{t(BADGE_NAV_KEY[store.status])}</span>
       </div>
 
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
         <DocLink
           url={fileUrl(store.crFileUrl)}
-          label={store.providerType === 'individual' ? 'الهوية / رخصة العمل الحر' : 'السجل التجاري'}
+          label={store.providerType === 'individual' ? t('stores.idOrLicense') : t('stores.commercialRegister')}
+          notAttached={t('stores.notAttached')}
         />
-        <DocLink url={fileUrl(store.bankCertificateFileUrl)} label="تصديق الحساب البنكي" />
+        <DocLink url={fileUrl(store.bankCertificateFileUrl)} label={t('stores.bankCertificate')} notAttached={t('stores.notAttached')} />
       </div>
 
       <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 12 }}>
         {store.providerType === 'individual'
-          ? `رقم الهوية: ${store.nationalId ?? '—'}`
-          : `سجل تجاري: ${store.commercialRegisterNo ?? '—'}`}{' '}
-        · آيبان: {store.iban}
+          ? `${t('stores.nationalIdLabel')}: ${store.nationalId ?? '—'}`
+          : `${t('stores.crLabel')}: ${store.commercialRegisterNo ?? '—'}`}{' '}
+        · {t('stores.ibanLabel')}: {store.iban}
         {sub && (
           <>
             {' '}
-            · الباقة: {PLAN_LABEL[sub.plan]} ({Number(sub.price).toLocaleString('ar-SA')} ﷼
-            {sub.vatAmount ? ` شامل ضريبة ${sub.vatAmount} ﷼` : ''})
+            · {t('stores.planLabel')}: {(locale === 'ar' ? PLAN_LABEL : PLAN_LABEL_EN)[sub.plan]} ({Number(sub.price).toLocaleString(dateLocale)} ﷼
+            {sub.vatAmount ? ` ${t('common.vatIncluded')} ${sub.vatAmount} ﷼` : ''})
           </>
         )}
       </div>
@@ -169,31 +173,33 @@ export default function StoreRequestCard({
       {sub && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
           <span className={`badge ${sub.paidAt ? 'b-active' : 'b-pending'}`}>
-            {sub.paidAt ? `فاتورة مدفوعة (${new Date(sub.paidAt).toLocaleDateString('ar-SA')})` : 'فاتورة غير مدفوعة'}
+            {sub.paidAt
+              ? `${t('stores.invoicePaid')} (${new Date(sub.paidAt).toLocaleDateString(dateLocale)})`
+              : t('stores.invoiceUnpaid')}
           </span>
           <button className="link" onClick={handleTogglePayment} disabled={busy}>
-            {sub.paidAt ? 'إلغاء تأكيد الدفع' : 'تأكيد استلام الدفع'}
+            {sub.paidAt ? t('stores.unconfirmPayment') : t('stores.confirmPayment')}
           </button>
         </div>
       )}
 
       {store.status === 'rejected' && store.rejectionReason && (
         <p style={{ fontSize: 12, color: 'var(--red)', margin: '6px 0 12px' }}>
-          سبب الرفض: {store.rejectionReason}
+          {t('stores.rejectionReasonLabel')}: {store.rejectionReason}
         </p>
       )}
 
       {store.status === 'pending' && (
         <div className="actions-row">
           <button className="primary" onClick={handleApprove} disabled={busy}>
-            قبول
+            {t('common.approve')}
           </button>
           <button
             className="danger"
             onClick={() => setShowReject((v) => !v)}
             disabled={busy}
           >
-            رفض
+            {t('common.reject')}
           </button>
         </div>
       )}
@@ -201,7 +207,7 @@ export default function StoreRequestCard({
       {store.status === 'active' && (
         <div className="actions-row">
           <button className="danger" onClick={handleSuspend} disabled={busy}>
-            إيقاف المحل
+            {t('stores.suspendStore')}
           </button>
         </div>
       )}
@@ -209,26 +215,26 @@ export default function StoreRequestCard({
       {store.status === 'suspended' && (
         <div className="actions-row">
           <button className="primary" onClick={handleReactivate} disabled={busy}>
-            إعادة تفعيل المحل
+            {t('stores.reactivateStore')}
           </button>
         </div>
       )}
 
       {showReject && (
         <div className="reject-panel">
-          <label htmlFor={`reason-${store.id}`}>سبب الرفض</label>
+          <label htmlFor={`reason-${store.id}`}>{t('stores.rejectionReasonLabel')}</label>
           <textarea
             id={`reason-${store.id}`}
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            placeholder="اكتب سبب الرفض ليصل للتاجر بالبريد..."
+            placeholder={t('stores.rejectionPlaceholder')}
           />
           <div className="actions-row">
             <button className="danger" onClick={handleConfirmReject} disabled={busy || !reason.trim()}>
-              تأكيد الرفض
+              {t('stores.confirmReject')}
             </button>
             <button className="secondary" onClick={() => setShowReject(false)} disabled={busy}>
-              إلغاء
+              {t('common.cancel')}
             </button>
           </div>
         </div>
