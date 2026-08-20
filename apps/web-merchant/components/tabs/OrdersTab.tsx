@@ -39,6 +39,9 @@ interface Invoice {
   deliveryAddress: string | null;
   discountAmount: number | null;
   total: number;
+  vatRate: number | null;
+  taxableAmount: number | null;
+  vatAmount: number | null;
 }
 
 const DELIVERY_LABEL: Record<DeliveryType, string> = {
@@ -239,15 +242,29 @@ export default function OrdersTab() {
               <div id="invoice-print" style={{ clear: 'both' }}>
                 <div className="invoice-head">
                   <h3 style={{ marginBottom: 2 }}>{invoice.store.name}</h3>
-                  <p className="note">فاتورة ضريبية</p>
+                  <p className="note" style={{ marginBottom: 0 }}>
+                    {invoice.vatRate ? 'فاتورة ضريبية مبسطة' : 'فاتورة مبسطة'}
+                  </p>
+                  <p className="note" style={{ fontSize: 11 }}>
+                    {invoice.vatRate ? 'Simplified Tax Invoice' : 'Simplified Invoice'}
+                  </p>
                 </div>
+
+                <p className="note" style={{ margin: '10px 0 4px', fontWeight: 600 }}>
+                  تفاصيل الفاتورة
+                </p>
                 <div className="invoice-meta">
                   <div>رقم الفاتورة: {invoice.invoiceNo}</div>
-                  {invoice.store.taxNo && <div>الرقم الضريبي: {invoice.store.taxNo}</div>}
-                  <div>السجل التجاري: {invoice.store.commercialRegisterNo}</div>
-                  <div>تاريخ الشراء: {formatDate(invoice.createdAt)}</div>
-                  <div>تاريخ الدفع: {formatDate(invoice.issuedAt)}</div>
-                  <div>العميل: {invoice.consumer.name}</div>
+                  <div>تاريخ الإصدار: {formatDate(invoice.issuedAt)}</div>
+                  {invoice.store.taxNo && <div>الرقم الضريبي للمتجر: {invoice.store.taxNo}</div>}
+                  <div>السجل التجاري للمتجر: {invoice.store.commercialRegisterNo}</div>
+                </div>
+
+                <p className="note" style={{ margin: '10px 0 4px', fontWeight: 600 }}>
+                  بيانات العميل
+                </p>
+                <div className="invoice-meta">
+                  <div>اسم العميل: {invoice.consumer.name}</div>
                 </div>
 
                 <div style={{ marginTop: 14 }}>
@@ -265,12 +282,6 @@ export default function OrdersTab() {
                   <span>المنتجات</span>
                   <span>{invoice.subtotal} ﷼</span>
                 </div>
-                {invoice.discountAmount && (
-                  <div className="invoice-sum">
-                    <span>خصم الكوبون</span>
-                    <span>- {invoice.discountAmount} ﷼</span>
-                  </div>
-                )}
                 {invoice.deliveryType === 'delivery' && (
                   <>
                     <div className="invoice-sum">
@@ -286,9 +297,56 @@ export default function OrdersTab() {
                     )}
                   </>
                 )}
-                <div className="invoice-total">
-                  <span>الإجمالي</span>
-                  <span>{invoice.total} ﷼</span>
+
+                <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px dashed var(--border)' }}>
+                  <div className="invoice-sum">
+                    <span>الإجمالي (قبل الخصم)</span>
+                    <span>{(invoice.subtotal + (invoice.deliveryFee ?? 0)).toFixed(2)} ﷼</span>
+                  </div>
+                  {invoice.discountAmount && (
+                    <div className="invoice-sum">
+                      <span>إجمالي الخصم</span>
+                      <span>{invoice.discountAmount.toFixed(2)} ﷼</span>
+                    </div>
+                  )}
+                  {invoice.vatRate !== null && (
+                    <>
+                      <div className="invoice-sum">
+                        <span>المبلغ الخاضع للضريبة</span>
+                        <span>{invoice.taxableAmount?.toFixed(2)} ﷼</span>
+                      </div>
+                      <div className="invoice-sum">
+                        <span>ضريبة القيمة المضافة ({invoice.vatRate}%)</span>
+                        <span>{invoice.vatAmount?.toFixed(2)} ﷼</span>
+                      </div>
+                    </>
+                  )}
+                  <div className="invoice-total">
+                    <span>المبلغ الإجمالي</span>
+                    <span>{invoice.total} ﷼</span>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 18 }}>
+                  <div
+                    style={{
+                      width: 100,
+                      height: 100,
+                      border: '1.5px dashed var(--border)',
+                      borderRadius: 8,
+                      background: '#FAFAFA',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: 30,
+                      color: 'var(--border)',
+                    }}
+                  >
+                    ▦
+                  </div>
+                  <p className="note" style={{ textAlign: 'center', maxWidth: 260, marginTop: 8 }}>
+                    سيُفعَّل رمز الفاتورة الإلكترونية عند الربط مع منظومة الفوترة الإلكترونية (زاتكا)
+                  </p>
                 </div>
 
                 <button

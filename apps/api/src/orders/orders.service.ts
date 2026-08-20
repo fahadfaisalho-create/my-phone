@@ -263,6 +263,16 @@ export class OrdersService {
       throw new BadRequestException('الفاتورة تصدر فقط بعد اكتمال الدفع');
     }
     const subtotal = order.items.reduce((sum, i) => sum + Number(i.price) * i.qty, 0);
+    const total = Number(order.total);
+
+    // فاتورة ضريبية مبسطة (متوافقة مع نمط زاتكا) فقط للمتاجر المسجّلة بضريبة القيمة
+    // المضافة (عندها رقم ضريبي) — بدون رقم ضريبي تصدر "فاتورة مبسطة" بدون تفصيل ضريبي،
+    // لأنه لا يحق قانونياً إظهار ضريبة بدون تسجيل. الأسعار المعروضة تُعامل كشاملة للضريبة
+    // (نمط التجزئة المعتاد بالسعودية) فتُستخرج الضريبة من الإجمالي بدل إضافتها عليه.
+    const vatRate = order.store.taxNo ? 15 : null;
+    const taxableAmount = vatRate ? Math.round((total / 1.15) * 100) / 100 : null;
+    const vatAmount = vatRate && taxableAmount !== null ? Math.round((total - taxableAmount) * 100) / 100 : null;
+
     return {
       invoiceNo: `INV-${order.id.slice(-8).toUpperCase()}`,
       issuedAt: order.paidAt,
@@ -286,7 +296,12 @@ export class OrdersService {
       deliveryMethod: order.deliveryMethod,
       deliveryAddress: order.deliveryAddress,
       discountAmount: order.discountAmount ? Number(order.discountAmount) : null,
-      total: Number(order.total),
+      total,
+      vatRate,
+      taxableAmount,
+      vatAmount,
+      // باركود الفاتورة الإلكترونية (زاتكا) — يبقى فارغاً لحد ربط منظومة الفوترة الفعلية
+      zatcaQrData: null as string | null,
     };
   }
 
