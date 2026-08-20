@@ -1,4 +1,7 @@
+'use client';
+
 import Logo from './Logo';
+import { useLocale } from '@/lib/i18n';
 
 export default function Topbar({
   title,
@@ -9,6 +12,7 @@ export default function Topbar({
   roleLabel: string;
   onExit: () => void;
 }) {
+  const { t, toggleLocale } = useLocale();
   return (
     <div className="topbar">
       <div className="brandrow">
@@ -17,7 +21,10 @@ export default function Topbar({
       </div>
       <div className="right">
         <span className="role">{roleLabel}</span>
-        <button onClick={onExit}>خروج</button>
+        <button className="link" onClick={toggleLocale} aria-label="Toggle language">
+          🌐 {t('topbar.lang')}
+        </button>
+        <button onClick={onExit}>{t('topbar.exit')}</button>
       </div>
     </div>
   );

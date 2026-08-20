@@ -8,25 +8,27 @@ import { StoreListItem } from '@/lib/types';
 import { colors, fonts, radius } from '@/theme/colors';
 import StoreCard from '@/components/StoreCard';
 import { EmptyState, ErrorText, Skeleton } from '@/components/ui';
+import { useLocale } from '@/lib/i18n';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
-const QUICK_LINKS: { icon: string; label: string; screen: keyof RootStackParamList }[] = [
-  { icon: '💬', label: 'محادثاتي', screen: 'ChatList' },
-  { icon: '📅', label: 'حجوزاتي', screen: 'MyBookings' },
-  { icon: '🧾', label: 'طلباتي', screen: 'MyOrders' },
-  { icon: '🆘', label: 'الدعم', screen: 'Support' },
+const QUICK_LINKS: { icon: string; labelKey: string; screen: keyof RootStackParamList }[] = [
+  { icon: '💬', labelKey: 'home.chats', screen: 'ChatList' },
+  { icon: '📅', labelKey: 'home.bookings', screen: 'MyBookings' },
+  { icon: '🧾', labelKey: 'home.orders', screen: 'MyOrders' },
+  { icon: '🆘', labelKey: 'home.support', screen: 'Support' },
 ];
 
 type ProviderFilter = 'all' | 'individual' | 'company';
 
-const PROVIDER_FILTERS: { key: ProviderFilter; label: string }[] = [
-  { key: 'all', label: 'الكل' },
-  { key: 'individual', label: '🔧 فنيين مستقلين' },
-  { key: 'company', label: '🏪 محلات' },
+const PROVIDER_FILTERS: { key: ProviderFilter; labelKey: string }[] = [
+  { key: 'all', labelKey: 'home.filterAll' },
+  { key: 'individual', labelKey: 'home.filterIndividual' },
+  { key: 'company', labelKey: 'home.filterCompany' },
 ];
 
 export default function HomeScreen({ navigation }: Props) {
+  const { t, tf, row, textAlign, toggleLocale } = useLocale();
   const [stores, setStores] = useState<StoreListItem[]>([]);
   const [featuredStores, setFeaturedStores] = useState<StoreListItem[]>([]);
   const [search, setSearch] = useState('');
@@ -57,7 +59,7 @@ export default function HomeScreen({ navigation }: Props) {
       );
       setStores(data);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'تعذّر تحميل المحلات');
+      setError(err instanceof ApiError ? err.message : t('home.loadError'));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -87,26 +89,32 @@ export default function HomeScreen({ navigation }: Props) {
 
   return (
     <View style={styles.flex}>
-      <View style={styles.topbar}>
+      <View style={[styles.topbar, { flexDirection: row }]}>
         <View>
-          <Text style={styles.brand}>📱 My Phone</Text>
-          <Text style={styles.hello}>{loggedIn && userName ? `مرحباً، ${userName}` : 'مرحباً بك 👋'}</Text>
+          <Text style={[styles.brand, { textAlign }]}>{t('home.brand')}</Text>
+          <Text style={[styles.hello, { textAlign }]}>
+            {loggedIn && userName ? tf('home.helloName', userName) : t('home.hello')}
+          </Text>
         </View>
-        <Pressable
-          style={({ pressed }) => [styles.profileBtn, pressed && { opacity: 0.85 }]}
-          onPress={handleProfilePress}
-        >
-          <Text style={styles.profileBtnText}>👤 {loggedIn ? 'حسابي' : 'دخول'}</Text>
-        </Pressable>
+        <View style={{ flexDirection: row, gap: 8 }}>
+          <Pressable style={({ pressed }) => [styles.langBtn, pressed && { opacity: 0.85 }]} onPress={toggleLocale}>
+            <Text style={styles.profileBtnText}>🌐</Text>
+          </Pressable>
+          <Pressable
+            style={({ pressed }) => [styles.profileBtn, pressed && { opacity: 0.85 }]}
+            onPress={handleProfilePress}
+          >
+            <Text style={styles.profileBtnText}>👤 {loggedIn ? t('home.account') : t('home.login')}</Text>
+          </Pressable>
+        </View>
       </View>
 
-      <View style={styles.searchWrap}>
+      <View style={[styles.searchWrap, { flexDirection: row }]}>
         <Text style={styles.searchIcon}>🔍</Text>
         <TextInput
-          style={styles.searchInput}
-          placeholder="ابحث عن محل صيانة أو بيع جوالات..."
+          style={[styles.searchInput, { textAlign }]}
+          placeholder={t('home.searchPlaceholder')}
           placeholderTextColor={colors.muted}
-          textAlign="right"
           value={search}
           onChangeText={setSearch}
           onSubmitEditing={() => load(search)}
@@ -114,7 +122,7 @@ export default function HomeScreen({ navigation }: Props) {
         />
       </View>
 
-      <View style={styles.quickLinks}>
+      <View style={[styles.quickLinks, { flexDirection: row }]}>
         {QUICK_LINKS.map((q) => (
           <Pressable
             key={q.screen}
@@ -122,7 +130,7 @@ export default function HomeScreen({ navigation }: Props) {
             onPress={() => handleQuickLink(q.screen)}
           >
             <Text style={styles.quickLinkIcon}>{q.icon}</Text>
-            <Text style={styles.quickLinkText}>{q.label}</Text>
+            <Text style={styles.quickLinkText}>{t(q.labelKey)}</Text>
           </Pressable>
         ))}
       </View>
@@ -131,8 +139,12 @@ export default function HomeScreen({ navigation }: Props) {
 
       {featuredStores.length > 0 && (
         <View style={styles.featuredSection}>
-          <Text style={styles.featuredTitle}>⭐ إعلانات مميزة</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.featuredScroll}>
+          <Text style={[styles.featuredTitle, { textAlign }]}>{t('home.featuredAds')}</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={[styles.featuredScroll, { flexDirection: row }]}
+          >
             {featuredStores.map((item) => (
               <View key={item.id} style={styles.featuredCard}>
                 <StoreCard store={item} onPress={() => navigation.navigate('StoreDetail', { storeId: item.id })} />
@@ -142,7 +154,7 @@ export default function HomeScreen({ navigation }: Props) {
         </View>
       )}
 
-      <View style={styles.filterRow}>
+      <View style={[styles.filterRow, { flexDirection: row }]}>
         {PROVIDER_FILTERS.map((f) => (
           <Pressable
             key={f.key}
@@ -150,13 +162,13 @@ export default function HomeScreen({ navigation }: Props) {
             onPress={() => setProviderFilter(f.key)}
           >
             <Text style={[styles.filterChipText, providerFilter === f.key && styles.filterChipTextOn]}>
-              {f.label}
+              {t(f.labelKey)}
             </Text>
           </Pressable>
         ))}
       </View>
 
-      <Text style={styles.listTitle}>المحلات المتاحة</Text>
+      <Text style={[styles.listTitle, { textAlign }]}>{t('home.availableStores')}</Text>
 
       <FlatList
         data={filteredStores}
@@ -192,7 +204,7 @@ export default function HomeScreen({ navigation }: Props) {
           ) : (
             <EmptyState
               icon={search ? '🔍' : '🏬'}
-              text={search ? 'لا يوجد نتائج مطابقة' : 'لا يوجد محلات تطابق هذا الفلتر'}
+              text={search ? t('home.noResults') : t('home.noFilterMatch')}
             />
           )
         }
@@ -223,6 +235,14 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
   },
   profileBtnText: { color: '#fff', fontFamily: fonts.bodyMedium, fontSize: 13 },
+  langBtn: {
+    backgroundColor: 'rgba(255,255,255,0.14)',
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: radius.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   searchWrap: {
     flexDirection: 'row-reverse',
     alignItems: 'center',

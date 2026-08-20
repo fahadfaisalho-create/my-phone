@@ -16,6 +16,7 @@ import {
 import RootNavigator from '@/navigation/RootNavigator';
 import { ScreenLoading } from '@/components/ui';
 import { CartProvider } from '@/lib/CartContext';
+import { LocaleProvider } from '@/lib/i18n';
 import type { RootStackParamList } from '@/navigation/types';
 
 // رابط مباشر لصفحة محل معيّن — يقدر التاجر يشاركه (يفتح مباشرة على صفحة محله
@@ -49,11 +50,13 @@ export default function App() {
   // التصفح مفتوح للجميع بدون تسجيل دخول — الشاشة الرئيسية دائماً نقطة البداية.
   // تسجيل الدخول يُطلب فقط عند إجراء فعلي (إضافة للسلة، حجز، شات، تقييم...) عبر requireAuth.
   return (
-    <CartProvider>
-      <NavigationContainer linking={linking} fallback={<ScreenLoading />}>
-        <StatusBar style="light" />
-        <RootNavigator initialRoute="Home" />
-      </NavigationContainer>
-    </CartProvider>
+    <LocaleProvider>
+      <CartProvider>
+        <NavigationContainer linking={linking} fallback={<ScreenLoading />}>
+          <StatusBar style="light" />
+          <RootNavigator initialRoute="Home" />
+        </NavigationContainer>
+      </CartProvider>
+    </LocaleProvider>
   );
 }

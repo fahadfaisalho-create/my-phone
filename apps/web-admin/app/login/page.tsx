@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiFetch, ApiError, setSession } from '@/lib/api';
+import { useLocale } from '@/lib/i18n';
 
 interface LoginResponse {
   accessToken: string;
@@ -11,6 +12,7 @@ interface LoginResponse {
 
 export default function LoginPage() {
   const router = useRouter();
+  const { t, toggleLocale } = useLocale();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -26,13 +28,13 @@ export default function LoginPage() {
         body: JSON.stringify({ email, password }),
       });
       if (res.user.role !== 'admin') {
-        setError('هذا الحساب ليس حساب إدارة');
+        setError(t('login.notAdmin'));
         return;
       }
       setSession(res.accessToken, res.user);
       router.replace('/dashboard');
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'تعذّر الاتصال بالخادم');
+      setError(err instanceof ApiError ? err.message : t('login.connectionError'));
     } finally {
       setLoading(false);
     }
@@ -40,10 +42,15 @@ export default function LoginPage() {
 
   return (
     <div className="app">
-      <form className="card card-narrow" onSubmit={handleSubmit} style={{ marginTop: 60 }}>
-        <h2>دخول الإدارة</h2>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', maxWidth: 420, margin: '20px auto 0' }}>
+        <button type="button" className="link" onClick={toggleLocale}>
+          🌐 {t('topbar.lang')}
+        </button>
+      </div>
+      <form className="card card-narrow" onSubmit={handleSubmit} style={{ marginTop: 12 }}>
+        <h2>{t('login.title')}</h2>
         {error && <div className="err">{error}</div>}
-        <label htmlFor="email">البريد الإلكتروني</label>
+        <label htmlFor="email">{t('login.email')}</label>
         <input
           id="email"
           type="email"
@@ -52,7 +59,7 @@ export default function LoginPage() {
           required
           autoFocus
         />
-        <label htmlFor="password">كلمة السر</label>
+        <label htmlFor="password">{t('login.password')}</label>
         <input
           id="password"
           type="password"
@@ -61,11 +68,11 @@ export default function LoginPage() {
           required
         />
         <button className="primary" type="submit" style={{ width: '100%' }} disabled={loading}>
-          {loading ? 'جارٍ الدخول...' : 'دخول'}
+          {loading ? t('login.submitting') : t('login.submit')}
         </button>
         <div style={{ marginTop: 12 }}>
           <button type="button" className="link" onClick={() => router.push('/forgot-password')}>
-            نسيت كلمة السر؟
+            {t('login.forgot')}
           </button>
         </div>
       </form>

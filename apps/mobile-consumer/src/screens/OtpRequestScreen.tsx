@@ -6,18 +6,20 @@ import { apiFetch, ApiError } from '@/lib/api';
 import { colors, fonts } from '@/theme/colors';
 import { Card, ErrorText, LinkButton, Note, PrimaryButton } from '@/components/ui';
 import TextField from '@/components/TextField';
+import { useLocale } from '@/lib/i18n';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'OtpRequest'>;
 
 export default function OtpRequestScreen({ navigation, route }: Props) {
   const returnTo = route.params?.returnTo;
+  const { t, textAlign, toggleLocale } = useLocale();
   const [phone, setPhone] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit() {
     if (!phone.trim()) {
-      setError('أدخل رقم الجوال');
+      setError(t('otpRequest.phoneLabel'));
       return;
     }
     setError('');
@@ -29,7 +31,7 @@ export default function OtpRequestScreen({ navigation, route }: Props) {
       });
       navigation.navigate('OtpVerify', { phone: phone.trim(), devOtp: res.devOtp, returnTo });
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'تعذّر الاتصال بالخادم');
+      setError(err instanceof ApiError ? err.message : t('otpRequest.genericError'));
     } finally {
       setLoading(false);
     }
@@ -42,19 +44,26 @@ export default function OtpRequestScreen({ navigation, route }: Props) {
     >
       <ScrollView contentContainerStyle={styles.container}>
         <Text style={styles.brand}>📱 My Phone</Text>
-        <Card style={{ marginTop: 30 }}>
-          <Text style={styles.title}>تسجيل الدخول</Text>
-          <Note>سنرسل لك رمز تحقق مكوّن من 6 أرقام عبر رسالة SMS</Note>
+        <LinkButton title={`🌐 ${t('common.langToggle')}`} onPress={toggleLocale} />
+        <Card style={{ marginTop: 14 }}>
+          <Text style={[styles.title, { textAlign }]}>{t('otpRequest.title')}</Text>
+          <Note>{t('otpRequest.subtitle')}</Note>
           <TextField
-            label="رقم الجوال"
-            placeholder="05xxxxxxxx"
+            label={t('otpRequest.phoneLabel')}
+            placeholder={t('otpRequest.phonePlaceholder')}
             keyboardType="phone-pad"
             value={phone}
             onChangeText={setPhone}
           />
           {error ? <ErrorText>{error}</ErrorText> : null}
-          <PrimaryButton title="إرسال رمز التحقق" onPress={handleSubmit} loading={loading} />
-          {navigation.canGoBack() && <LinkButton title="متابعة التصفح بدون تسجيل" onPress={() => navigation.goBack()} />}
+          <PrimaryButton
+            title={loading ? t('otpRequest.submitting') : t('otpRequest.submit')}
+            onPress={handleSubmit}
+            loading={loading}
+          />
+          {navigation.canGoBack() && (
+            <LinkButton title={t('otpRequest.continueGuest')} onPress={() => navigation.goBack()} />
+          )}
         </Card>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -75,6 +84,5 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: colors.ink,
     marginBottom: 16,
-    textAlign: 'right',
   },
 });

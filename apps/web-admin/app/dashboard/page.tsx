@@ -10,20 +10,22 @@ import SupportTicketsSection from '@/components/SupportTicketsSection';
 import ReportsSection from '@/components/ReportsSection';
 import CouponsSection from '@/components/CouponsSection';
 import AdSettingsSection from '@/components/AdSettingsSection';
+import { useLocale } from '@/lib/i18n';
 
 type Section = 'stores' | 'orders' | 'support' | 'reports' | 'coupons' | 'ads';
 
-const SECTIONS: { key: Section; label: string }[] = [
-  { key: 'stores', label: 'طلبات التسجيل' },
-  { key: 'orders', label: 'طلبات الشراء' },
-  { key: 'coupons', label: 'كوبونات الخصم' },
-  { key: 'ads', label: 'الإعلانات المميزة' },
-  { key: 'support', label: 'تذاكر الدعم' },
-  { key: 'reports', label: 'التقارير' },
+const SECTION_KEYS: { key: Section; navKey: string }[] = [
+  { key: 'stores', navKey: 'nav.stores' },
+  { key: 'orders', navKey: 'nav.orders' },
+  { key: 'coupons', navKey: 'nav.coupons' },
+  { key: 'ads', navKey: 'nav.ads' },
+  { key: 'support', navKey: 'nav.support' },
+  { key: 'reports', navKey: 'nav.reports' },
 ];
 
 export default function DashboardPage() {
   const router = useRouter();
+  const { t } = useLocale();
   const [ready, setReady] = useState(false);
   const [section, setSection] = useState<Section>('stores');
 
@@ -46,17 +48,17 @@ export default function DashboardPage() {
 
   return (
     <div className="app">
-      <Topbar title="لوحة تحكم الإدارة" roleLabel="مدير" onExit={handleExit} />
+      <Topbar title={t('dashboard.title')} roleLabel={t('dashboard.role')} onExit={handleExit} />
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 18, flexWrap: 'wrap' }}>
-        {SECTIONS.map((s) => (
+        {SECTION_KEYS.map((s) => (
           <span
             key={s.key}
             className={`chip ${section === s.key ? 'on' : ''}`}
             style={{ padding: '8px 18px', fontSize: 13 }}
             onClick={() => setSection(s.key)}
           >
-            {s.label}
+            {t(s.navKey)}
           </span>
         ))}
       </div>

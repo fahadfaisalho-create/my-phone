@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Cairo, IBM_Plex_Sans_Arabic } from 'next/font/google';
 import './globals.css';
+import { LocaleProvider } from '@/lib/i18n';
 
 const cairo = Cairo({
   subsets: ['arabic', 'latin'],
@@ -24,7 +25,17 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ar" dir="rtl" className={`${cairo.variable} ${ibmPlexArabic.variable}`}>
-      <body>{children}</body>
+      <head>
+        {/* يقرأ لغة المستخدم المحفوظة قبل أول رسم لتفادي وميض اتجاه خاطئ */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var l=localStorage.getItem('merchant_locale');if(l==='en'){document.documentElement.lang='en';document.documentElement.dir='ltr';}}catch(e){}`,
+          }}
+        />
+      </head>
+      <body>
+        <LocaleProvider>{children}</LocaleProvider>
+      </body>
     </html>
   );
 }

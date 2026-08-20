@@ -19,27 +19,29 @@ import SettingsTab from '@/components/tabs/SettingsTab';
 import TechniciansTab from '@/components/tabs/TechniciansTab';
 import CouponsTab from '@/components/tabs/CouponsTab';
 import AdsTab from '@/components/tabs/AdsTab';
+import { useLocale } from '@/lib/i18n';
 
 const TABS = [
-  { key: 'branches', label: 'الفروع' },
-  { key: 'services', label: 'الخدمات' },
-  { key: 'products', label: 'المنتجات' },
-  { key: 'inventory', label: 'المخزون' },
-  { key: 'technicians', label: 'فريق الصيانة' },
-  { key: 'bookings', label: 'الحجوزات' },
-  { key: 'orders', label: 'الطلبات' },
-  { key: 'coupons', label: 'كوبونات الخصم' },
-  { key: 'ads', label: 'الإعلانات' },
-  { key: 'messages', label: 'الرسائل' },
-  { key: 'stats', label: 'الإحصائيات' },
-  { key: 'support', label: 'الدعم' },
-  { key: 'settings', label: 'الإعدادات' },
+  { key: 'branches', navKey: 'nav.branches' },
+  { key: 'services', navKey: 'nav.services' },
+  { key: 'products', navKey: 'nav.products' },
+  { key: 'inventory', navKey: 'nav.inventory' },
+  { key: 'technicians', navKey: 'nav.technicians' },
+  { key: 'bookings', navKey: 'nav.bookings' },
+  { key: 'orders', navKey: 'nav.orders' },
+  { key: 'coupons', navKey: 'nav.coupons' },
+  { key: 'ads', navKey: 'nav.ads' },
+  { key: 'messages', navKey: 'nav.messages' },
+  { key: 'stats', navKey: 'nav.stats' },
+  { key: 'support', navKey: 'nav.support' },
+  { key: 'settings', navKey: 'nav.settings' },
 ] as const;
 
 type TabKey = (typeof TABS)[number]['key'];
 
 export default function DashboardPage() {
   const router = useRouter();
+  const { t } = useLocale();
   const [store, setStore] = useState<Store | null>(null);
   const [tab, setTab] = useState<TabKey>('branches');
   const [paying, setPaying] = useState(false);
@@ -121,7 +123,11 @@ export default function DashboardPage() {
 
   return (
     <div className="app">
-      <Topbar title={store.name} roleLabel={store.providerType === 'individual' ? 'لوحة الفني المستقل' : 'لوحة التاجر'} onExit={handleExit} />
+      <Topbar
+        title={store.name}
+        roleLabel={store.providerType === 'individual' ? t('dashboard.roleIndividual') : t('dashboard.roleMerchant')}
+        onExit={handleExit}
+      />
 
       {sub && !sub.paidAt && (
         <div className="note" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
@@ -155,9 +161,9 @@ export default function DashboardPage() {
       {payError && <div className="err">{payError}</div>}
 
       <div className="tabs">
-        {visibleTabs.map((t) => (
-          <button key={t.key} className={effectiveTab === t.key ? 'on' : ''} onClick={() => setTab(t.key)}>
-            {t.label}
+        {visibleTabs.map((tabItem) => (
+          <button key={tabItem.key} className={effectiveTab === tabItem.key ? 'on' : ''} onClick={() => setTab(tabItem.key)}>
+            {t(tabItem.navKey)}
           </button>
         ))}
       </div>
