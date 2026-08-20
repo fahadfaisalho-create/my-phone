@@ -104,6 +104,9 @@ export class CatalogService {
       logoUrl: store.logoUrl,
       providerType: store.providerType,
       idVerified: !!store.nationalId,
+      // مسجّل بضريبة القيمة المضافة أم لا — يحدد إن كانت الضريبة (15%) ستُضاف فوق
+      // الأسعار عند الدفع، تُعرض للمستهلك قبل إتمام الطلب بشاشة السلة
+      taxNo: store.taxNo,
       branches: store.branches,
       services: store.services,
       products: store.products,

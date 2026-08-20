@@ -439,6 +439,12 @@ model Order {
   coupon         Coupon?  @relation(fields: [couponId], references: [id])
   discountAmount Decimal? @map("discount_amount") @db.Decimal(10, 2)
 
+  // ضريبة القيمة المضافة (15%) — تُضاف فوق سعر المنتجات (الأسعار قبل الضريبة)، وتُحسب
+  // فقط لمتجر مسجّل بضريبة القيمة المضافة (عنده رقم ضريبي وقت الطلب). null يعني بلا ضريبة.
+  // نسخة محفوظة وقت الطلب (لا تتأثر لو تسجيل المتجر الضريبي تغيّر لاحقاً) — total أعلاه
+  // يشمل هذا المبلغ إن وُجد.
+  vatAmount Decimal? @map("vat_amount") @db.Decimal(10, 2)
+
   items OrderItem[]
 
   @@map("orders")

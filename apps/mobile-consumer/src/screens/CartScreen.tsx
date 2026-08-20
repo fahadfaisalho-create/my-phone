@@ -43,6 +43,7 @@ interface StoreDeliveryInfo {
   agentZoneLat: number | null;
   agentZoneLng: number | null;
   agentZoneRadiusKm: number | null;
+  taxNo: string | null;
 }
 
 // حساب المسافة بين نقطتين جغرافيتين (كم) — صيغة Haversine، نفس المستخدمة بالباك إند
@@ -116,7 +117,11 @@ export default function CartScreen({ route, navigation }: Props) {
       ? Number((deliveryMethod === 'store_agent' ? storeInfo?.agentDeliveryFee : storeInfo?.deliveryFee) || 0)
       : 0;
   const discountAmount = appliedCoupon?.discountAmount ?? 0;
-  const grandTotal = cart.total - discountAmount + feeAmount;
+  // الأسعار قبل الضريبة — تُضاف ضريبة القيمة المضافة (15%) فوق المبلغ الخاضع لها
+  // فقط لمتجر مسجّل ضريبياً (عنده رقم ضريبي)، لتطابق ما سيُحسب فعلياً عند الدفع
+  const taxableAmount = cart.total - discountAmount + feeAmount;
+  const vatAmount = storeInfo?.taxNo ? Math.round(taxableAmount * 0.15 * 100) / 100 : 0;
+  const grandTotal = taxableAmount + vatAmount;
 
   async function handleApplyCoupon() {
     if (!couponCode.trim()) return;
@@ -467,7 +472,10 @@ export default function CartScreen({ route, navigation }: Props) {
             {feeAmount > 0 ? ` + توصيل ${feeAmount} ﷼` : ''}
           </Text>
         )}
-        <Text style={styles.total}>الإجمالي: {grandTotal} ﷼</Text>
+        {vatAmount > 0 && (
+          <Text style={styles.subtotal}>+ ضريبة القيمة المضافة (15%): {vatAmount.toFixed(2)} ﷼</Text>
+        )}
+        <Text style={styles.total}>الإجمالي: {grandTotal.toFixed(2)} ﷼</Text>
         {error ? <ErrorText>{error}</ErrorText> : null}
         <PrimaryButton
           title="إتمام الطلب"

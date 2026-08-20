@@ -118,7 +118,11 @@ export class OrdersService {
           await this.couponsService.redeem(tx, resolved.coupon.id);
         }
 
-        const total = subtotal - (discountAmount ?? 0) + (deliveryFee ?? 0);
+        // الأسعار المسجّلة (المنتجات + التوصيل) قبل الضريبة — تُضاف ضريبة القيمة المضافة
+        // (15%) فوقها فقط لمتجر مسجّل ضريبياً (عنده رقم ضريبي وقت الطلب)
+        const taxableAmount = subtotal - (discountAmount ?? 0) + (deliveryFee ?? 0);
+        const vatAmount = store.taxNo ? Math.round(taxableAmount * 0.15 * 100) / 100 : null;
+        const total = taxableAmount + (vatAmount ?? 0);
 
         return tx.order.create({
           data: {
@@ -137,6 +141,7 @@ export class OrdersService {
             branchId,
             couponId,
             discountAmount,
+            vatAmount,
             items: { create: itemsData },
           },
           include: { items: true },
@@ -265,13 +270,13 @@ export class OrdersService {
     const subtotal = order.items.reduce((sum, i) => sum + Number(i.price) * i.qty, 0);
     const total = Number(order.total);
 
-    // فاتورة ضريبية مبسطة (متوافقة مع نمط زاتكا) فقط للمتاجر المسجّلة بضريبة القيمة
-    // المضافة (عندها رقم ضريبي) — بدون رقم ضريبي تصدر "فاتورة مبسطة" بدون تفصيل ضريبي،
-    // لأنه لا يحق قانونياً إظهار ضريبة بدون تسجيل. الأسعار المعروضة تُعامل كشاملة للضريبة
-    // (نمط التجزئة المعتاد بالسعودية) فتُستخرج الضريبة من الإجمالي بدل إضافتها عليه.
-    const vatRate = order.store.taxNo ? 15 : null;
-    const taxableAmount = vatRate ? Math.round((total / 1.15) * 100) / 100 : null;
-    const vatAmount = vatRate && taxableAmount !== null ? Math.round((total - taxableAmount) * 100) / 100 : null;
+    // فاتورة ضريبية مبسطة (متوافقة مع نمط زاتكا) فقط للطلبات المحسوب لها ضريبة وقت
+    // الشراء (vatAmount محفوظة حينها حسب تسجيل المتجر الضريبي وقتها — لا تتأثر لو
+    // تسجيله تغيّر لاحقاً). الأسعار قبل الضريبة وتُضاف الضريبة (15%) فوقها، لذا
+    // المبلغ الخاضع للضريبة = الإجمالي ناقص الضريبة، لا استخراجاً منه.
+    const vatAmount = order.vatAmount !== null ? Number(order.vatAmount) : null;
+    const vatRate = vatAmount !== null ? 15 : null;
+    const taxableAmount = vatAmount !== null ? Math.round((total - vatAmount) * 100) / 100 : null;
 
     return {
       invoiceNo: `INV-${order.id.slice(-8).toUpperCase()}`,
