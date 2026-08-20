@@ -111,18 +111,24 @@ export class StoresService {
 
     return this.prisma.$transaction(
       async (tx) => {
+        // الكوبون يُطبّق على السعر قبل الضريبة، وتُعاد حساب الضريبة (15%) بعده — price
+        // النهائي يبقى شامل الضريبة، بنفس نمط الحساب وقت التسجيل
+        const taxableBefore = Number(subscription.price) - Number(subscription.vatAmount ?? 0);
         const { coupon, discountAmount } = await this.couponsService.resolveCoupon(dto.couponCode, {
           storeId: store.id,
           scope: 'subscriptions',
-          amount: Number(subscription.price),
+          amount: taxableBefore,
         });
         await this.couponsService.redeem(tx, coupon.id);
+        const taxableAfter = taxableBefore - discountAmount;
+        const vatAmount = Math.round(taxableAfter * 0.15 * 100) / 100;
         return tx.subscription.update({
           where: { id: subscription.id },
           data: {
-            price: Number(subscription.price) - discountAmount,
+            price: taxableAfter + vatAmount,
             couponId: coupon.id,
             discountAmount,
+            vatAmount,
           },
         });
       },

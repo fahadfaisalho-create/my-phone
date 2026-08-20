@@ -159,18 +159,23 @@ export class AuthService {
       // ما تنطبق هنا أصلاً لأن نطاقها دائماً "orders")
       let couponId: string | null = null;
       let discountAmount: number | null = null;
-      let price = PLAN_PRICE[dto.plan];
+      let taxableAmount = PLAN_PRICE[dto.plan];
       if (dto.couponCode) {
         const resolved = await this.couponsService.resolveCoupon(dto.couponCode, {
           storeId: store.id,
           scope: 'subscriptions',
-          amount: price,
+          amount: taxableAmount,
         });
         couponId = resolved.coupon.id;
         discountAmount = resolved.discountAmount;
-        price -= discountAmount;
+        taxableAmount -= discountAmount;
         await this.couponsService.redeem(tx, resolved.coupon.id);
       }
+
+      // ضريبة القيمة المضافة (15%) — المنصة هي البائع هنا (تبيع خدمة الاشتراك للمحل
+      // مباشرة)، فتُضاف دائماً فوق سعر الباقة بعد الخصم
+      const vatAmount = Math.round(taxableAmount * 0.15 * 100) / 100;
+      const price = taxableAmount + vatAmount;
 
       await tx.subscription.create({
         data: {
@@ -182,6 +187,7 @@ export class AuthService {
           status: 'active',
           couponId,
           discountAmount,
+          vatAmount,
         },
       });
 

@@ -160,7 +160,8 @@ export default function StoreRequestCard({
         {sub && (
           <>
             {' '}
-            · الباقة: {PLAN_LABEL[sub.plan]} ({Number(sub.price).toLocaleString('ar-SA')} ﷼)
+            · الباقة: {PLAN_LABEL[sub.plan]} ({Number(sub.price).toLocaleString('ar-SA')} ﷼
+            {sub.vatAmount ? ` شامل ضريبة ${sub.vatAmount} ﷼` : ''})
           </>
         )}
       </div>

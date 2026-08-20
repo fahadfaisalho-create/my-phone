@@ -10,6 +10,7 @@ export interface Subscription {
   endDate: string;
   status: 'active' | 'expired';
   paidAt: string | null;
+  vatAmount: string | null;
 }
 
 export interface StoreRequest {

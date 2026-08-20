@@ -13,6 +13,7 @@ export interface Subscription {
   paidAt: string | null;
   couponId: string | null;
   discountAmount: string | null;
+  vatAmount: string | null;
 }
 
 export type CouponDiscountType = 'percentage' | 'fixed';
@@ -161,10 +162,11 @@ export const PLAN_LABEL: Record<SubscriptionPlan, string> = {
   six_months: '6 أشهر',
   yearly: 'سنة',
 };
+// شاملة ضريبة القيمة المضافة (15%) — السعر الأساسي 300 / 1,200 / 2,000 ﷼ + الضريبة
 export const PLAN_PRICE: Record<SubscriptionPlan, string> = {
-  monthly: '300 ﷼',
-  six_months: '1,200 ﷼',
-  yearly: '2,000 ﷼',
+  monthly: '345 ﷼ (شامل الضريبة)',
+  six_months: '1,380 ﷼ (شامل الضريبة)',
+  yearly: '2,300 ﷼ (شامل الضريبة)',
 };
 
 export const DEVICE_LABEL: Record<DeviceSupport, string> = {

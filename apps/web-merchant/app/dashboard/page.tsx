@@ -126,8 +126,9 @@ export default function DashboardPage() {
       {sub && !sub.paidAt && (
         <div className="note" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
           <span>
-            فاتورة الاشتراك ({sub.price} ﷼{sub.discountAmount ? ` بعد خصم ${sub.discountAmount} ﷼` : ''}) غير
-            مدفوعة بعد. بوابة الدفع الفعلية غير مربوطة حالياً — هذا الزر يحاكي نجاح الدفع فوراً.
+            فاتورة الاشتراك ({sub.price} ﷼{sub.discountAmount ? ` بعد خصم ${sub.discountAmount} ﷼` : ''}
+            {sub.vatAmount ? ` شاملة ضريبة القيمة المضافة ${sub.vatAmount} ﷼` : ''}) غير مدفوعة بعد. بوابة الدفع
+            الفعلية غير مربوطة حالياً — هذا الزر يحاكي نجاح الدفع فوراً.
           </span>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             {!sub.couponId && (

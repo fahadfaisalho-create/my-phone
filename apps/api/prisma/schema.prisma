@@ -336,6 +336,11 @@ model Subscription {
   coupon         Coupon?  @relation(fields: [couponId], references: [id])
   discountAmount Decimal? @map("discount_amount") @db.Decimal(10, 2)
 
+  // ضريبة القيمة المضافة (15%) على اشتراك المحل بالمنصة — المنصة هي البائع هنا (تبيع
+  // خدمة الاشتراك للمحل مباشرة، عكس الطلبات اللي المحل فيها هو البائع)، فتُضاف دائماً.
+  // price أعلاه شامل هذا المبلغ (نفس نمط Order.total شامل Order.vatAmount)
+  vatAmount Decimal? @map("vat_amount") @db.Decimal(10, 2)
+
   @@map("subscriptions")
 }
 
