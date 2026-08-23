@@ -9,10 +9,12 @@ import { apiFetch, ApiError, fileUrl } from '@/lib/api';
 import { ChatMessage } from '@/lib/types';
 import { colors, fonts } from '@/theme/colors';
 import { ErrorText, PrimaryButton, ScreenLoading } from '@/components/ui';
+import { useLocale } from '@/lib/i18n';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ChatThread'>;
 
 export default function ChatThreadScreen({ route, navigation }: Props) {
+  const { t, row, textAlign } = useLocale();
   const { chatId, storeName } = route.params;
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [text, setText] = useState('');
@@ -40,7 +42,7 @@ export default function ChatThreadScreen({ route, navigation }: Props) {
           if (ack.ok) {
             setMessages(ack.messages || []);
           } else {
-            setError(ack.message || 'تعذّر فتح المحادثة');
+            setError(ack.message || t('chatThread.openChatError'));
           }
           setLoading(false);
         });
@@ -73,15 +75,15 @@ export default function ChatThreadScreen({ route, navigation }: Props) {
     const value = text.trim();
     if (!value || !socketRef.current) return;
     socketRef.current.emit('message', { chatId, text: value }, (ack: { ok: boolean; message?: string }) => {
-      if (!ack.ok) setError(typeof ack.message === 'string' ? ack.message : 'تعذّر إرسال الرسالة');
+      if (!ack.ok) setError(typeof ack.message === 'string' ? ack.message : t('chatThread.sendMessageError'));
     });
     setText('');
-  }, [chatId, text]);
+  }, [chatId, text, t]);
 
   const handleAttach = useCallback(async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (perm.status !== 'granted') {
-      setError('نحتاج إذن الوصول للصور لإرفاق صورة');
+      setError(t('chatThread.photoPermissionError'));
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -110,26 +112,26 @@ export default function ChatThreadScreen({ route, navigation }: Props) {
         method: 'POST',
         body: form,
       });
-      if (!socketRef.current) throw new Error('غير متصل');
+      if (!socketRef.current) throw new Error(t('chatThread.notConnected'));
       socketRef.current.emit(
         'message',
         { chatId, imageUrl: res.imageUrl },
         (ack: { ok: boolean; message?: string }) => {
-          if (!ack.ok) setError(typeof ack.message === 'string' ? ack.message : 'تعذّر إرسال الصورة');
+          if (!ack.ok) setError(typeof ack.message === 'string' ? ack.message : t('chatThread.sendImageError'));
         },
       );
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'تعذّر رفع الصورة');
+      setError(err instanceof ApiError ? err.message : t('chatThread.uploadError'));
     } finally {
       setUploading(false);
     }
-  }, [chatId]);
+  }, [chatId, t]);
 
   if (loading) return <ScreenLoading />;
 
   return (
     <View style={styles.flex}>
-      {!connected && <Text style={styles.offline}>جارٍ الاتصال...</Text>}
+      {!connected && <Text style={styles.offline}>{t('chatThread.connecting')}</Text>}
       {error ? <ErrorText>{error}</ErrorText> : null}
       <FlatList
         ref={listRef}
@@ -143,28 +145,28 @@ export default function ChatThreadScreen({ route, navigation }: Props) {
               <Image source={{ uri: fileUrl(item.imageUrl) || undefined }} style={styles.bubbleImage} resizeMode="cover" />
             ) : null}
             {item.text ? (
-              <Text style={item.senderType === 'consumer' ? styles.bubbleTextMine : styles.bubbleTextTheirs}>
+              <Text style={[item.senderType === 'consumer' ? styles.bubbleTextMine : styles.bubbleTextTheirs, { textAlign }]}>
                 {item.text}
               </Text>
             ) : null}
           </View>
         )}
-        ListEmptyComponent={<Text style={styles.empty}>ابدأ المحادثة بإرسال رسالة</Text>}
+        ListEmptyComponent={<Text style={styles.empty}>{t('chatThread.startConversation')}</Text>}
       />
-      <View style={styles.inputRow}>
+      <View style={[styles.inputRow, { flexDirection: row }]}>
         <Pressable style={styles.attachBtn} onPress={handleAttach} disabled={uploading}>
           <Text style={styles.attachBtnText}>{uploading ? '...' : '📎'}</Text>
         </Pressable>
         <TextInput
           style={styles.input}
-          placeholder="اكتب رسالتك..."
+          placeholder={t('chatThread.messagePlaceholder')}
           placeholderTextColor={colors.muted}
-          textAlign="right"
+          textAlign={textAlign}
           value={text}
           onChangeText={setText}
           onSubmitEditing={handleSend}
         />
-        <PrimaryButton title="إرسال" onPress={handleSend} disabled={!text.trim()} />
+        <PrimaryButton title={t('chatThread.send')} onPress={handleSend} disabled={!text.trim()} />
       </View>
     </View>
   );

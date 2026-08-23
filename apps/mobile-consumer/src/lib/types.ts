@@ -107,3 +107,8 @@ export const DEVICE_LABEL: Record<DeviceSupport, string> = {
   apple: 'أبل فقط',
   samsung: 'سامسونج فقط',
 };
+export const DEVICE_LABEL_EN: Record<DeviceSupport, string> = {
+  all: 'All devices',
+  apple: 'Apple only',
+  samsung: 'Samsung only',
+};

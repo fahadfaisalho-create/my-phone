@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { Animated, ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, fonts, radius } from '@/theme/colors';
 import { cardShadow } from '@/theme/shadow';
+import { useLocale } from '@/lib/i18n';
 
 export function Card({ children, style }: { children: React.ReactNode; style?: any }) {
   return <View style={[styles.card, style]}>{children}</View>;
@@ -99,13 +100,14 @@ export function Stars({
   size?: number;
   reviewsCount?: number;
 }) {
+  const { t, row } = useLocale();
   if (rating === null) {
-    return <Text style={[styles.muted, { fontSize: size - 1 }]}>لا يوجد تقييمات بعد</Text>;
+    return <Text style={[styles.muted, { fontSize: size - 1 }]}>{t('ui.noReviewsYet')}</Text>;
   }
   const full = Math.round(rating);
   const str = Array.from({ length: 5 }, (_, i) => (i < full ? '★' : '☆')).join('');
   return (
-    <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 4 }}>
+    <View style={{ flexDirection: row, alignItems: 'center', gap: 4 }}>
       <Text style={{ color: colors.star, fontSize: size, letterSpacing: 1 }}>{str}</Text>
       <Text style={[styles.muted, { fontSize: size - 2 }]}>
         {rating.toFixed(1)}
@@ -116,13 +118,15 @@ export function Stars({
 }
 
 export function ErrorText({ children }: { children: React.ReactNode }) {
-  return <Text style={styles.errorText}>{children}</Text>;
+  const { textAlign } = useLocale();
+  return <Text style={[styles.errorText, { textAlign }]}>{children}</Text>;
 }
 
 export function Note({ children }: { children: React.ReactNode }) {
+  const { textAlign } = useLocale();
   return (
     <View style={styles.note}>
-      <Text style={styles.noteText}>{children}</Text>
+      <Text style={[styles.noteText, { textAlign }]}>{children}</Text>
     </View>
   );
 }

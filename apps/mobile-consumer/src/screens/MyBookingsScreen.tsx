@@ -6,6 +6,7 @@ import { apiFetch, ApiError } from '@/lib/api';
 import { confirmAsync } from '@/lib/confirm';
 import { colors, fonts } from '@/theme/colors';
 import { Badge, EmptyState, ErrorText, ScreenLoading } from '@/components/ui';
+import { useLocale } from '@/lib/i18n';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'MyBookings'>;
 
@@ -22,17 +23,6 @@ interface BookingItem {
   branch: { name: string };
 }
 
-const VISIT_LABEL: Record<BookingItem['visitType'], string> = {
-  in_store: '🏬 بالمحل',
-  home_visit: '🚗 زيارة منزلية',
-};
-
-const STATUS_LABEL: Record<BookingItem['status'], string> = {
-  pending: 'قيد المراجعة',
-  accepted: 'مقبول',
-  completed: 'مكتمل',
-  cancelled: 'ملغى',
-};
 const STATUS_TONE: Record<BookingItem['status'], 'green' | 'amber' | 'red'> = {
   pending: 'amber',
   accepted: 'green',
@@ -46,6 +36,20 @@ function openInMaps(lat: number, lng: number) {
 }
 
 export default function MyBookingsScreen({}: Props) {
+  const { t, locale, textAlign, row } = useLocale();
+  const dateLocale = locale === 'ar' ? 'ar-SA' : 'en-US';
+
+  const VISIT_LABEL: Record<BookingItem['visitType'], string> = {
+    in_store: t('myBookings.visitInStore'),
+    home_visit: t('myBookings.visitHomeVisit'),
+  };
+  const STATUS_LABEL: Record<BookingItem['status'], string> = {
+    pending: t('myBookings.statusPending'),
+    accepted: t('myBookings.statusAccepted'),
+    completed: t('myBookings.statusCompleted'),
+    cancelled: t('myBookings.statusCancelled'),
+  };
+
   const [bookings, setBookings] = useState<BookingItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -56,11 +60,11 @@ export default function MyBookingsScreen({}: Props) {
       const data = await apiFetch<BookingItem[]>('/bookings/me');
       setBookings(data);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'تعذّر تحميل الحجوزات');
+      setError(err instanceof ApiError ? err.message : t('myBookings.loadError'));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     load();
@@ -73,14 +77,14 @@ export default function MyBookingsScreen({}: Props) {
       await apiFetch(`/bookings/${id}/cancel`, { method: 'PATCH' });
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'تعذّر إلغاء الحجز');
+      setError(err instanceof ApiError ? err.message : t('myBookings.cancelError'));
     } finally {
       setCancellingId(null);
     }
   }
 
   async function handleCancel(id: string) {
-    const ok = await confirmAsync('إلغاء الحجز', 'هل تريد إلغاء هذا الحجز؟');
+    const ok = await confirmAsync(t('myBookings.cancelTitle'), t('myBookings.cancelConfirm'));
     if (ok) await doCancel(id);
   }
 
@@ -93,16 +97,16 @@ export default function MyBookingsScreen({}: Props) {
         data={bookings}
         keyExtractor={(b) => b.id}
         contentContainerStyle={{ padding: 14 }}
-        ListEmptyComponent={<EmptyState icon="📅" text="لا يوجد حجوزات بعد" />}
+        ListEmptyComponent={<EmptyState icon="📅" text={t('myBookings.empty')} />}
         renderItem={({ item }) => (
           <View style={styles.card}>
-            <View style={styles.rowTop}>
+            <View style={[styles.rowTop, { flexDirection: row }]}>
               <Text style={styles.store}>{item.store.name}</Text>
               <Badge label={STATUS_LABEL[item.status]} tone={STATUS_TONE[item.status]} />
             </View>
-            <Text style={styles.service}>{item.service.name} · {item.branch.name}</Text>
-            <Text style={styles.date}>
-              {new Date(item.scheduledAt).toLocaleString('ar-SA', {
+            <Text style={[styles.service, { textAlign }]}>{item.service.name} · {item.branch.name}</Text>
+            <Text style={[styles.date, { textAlign }]}>
+              {new Date(item.scheduledAt).toLocaleString(dateLocale, {
                 weekday: 'long',
                 day: 'numeric',
                 month: 'long',
@@ -110,16 +114,16 @@ export default function MyBookingsScreen({}: Props) {
                 minute: '2-digit',
               })}
             </Text>
-            <Text style={styles.visitType}>{VISIT_LABEL[item.visitType]}</Text>
+            <Text style={[styles.visitType, { textAlign }]}>{VISIT_LABEL[item.visitType]}</Text>
             {item.visitType === 'home_visit' && item.customerAddress && (
-              <Text style={styles.address}>📍 {item.customerAddress}</Text>
+              <Text style={[styles.address, { textAlign }]}>📍 {item.customerAddress}</Text>
             )}
             {item.visitType === 'home_visit' && item.customerLat != null && item.customerLng != null && (
               <Pressable
                 onPress={() => openInMaps(Number(item.customerLat), Number(item.customerLng))}
                 style={styles.mapsLink}
               >
-                <Text style={styles.mapsLinkText}>🗺️ عرض الموقع بالخرائط</Text>
+                <Text style={styles.mapsLinkText}>{t('myBookings.viewOnMap')}</Text>
               </Pressable>
             )}
             {item.status === 'pending' && (
@@ -129,7 +133,7 @@ export default function MyBookingsScreen({}: Props) {
                 disabled={cancellingId === item.id}
               >
                 <Text style={styles.cancelBtnText}>
-                  {cancellingId === item.id ? 'جارٍ الإلغاء...' : 'إلغاء الحجز'}
+                  {cancellingId === item.id ? t('myBookings.cancelling') : t('myBookings.cancelBooking')}
                 </Text>
               </Pressable>
             )}
@@ -150,12 +154,12 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 10,
   },
-  rowTop: { flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+  rowTop: { justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
   store: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.text },
-  service: { fontFamily: fonts.body, fontSize: 12.5, color: colors.muted, textAlign: 'right', marginBottom: 4 },
-  date: { fontFamily: fonts.bodyMedium, fontSize: 12, color: colors.ink, textAlign: 'right' },
-  visitType: { fontFamily: fonts.bodyMedium, fontSize: 11.5, color: colors.tealDark, textAlign: 'right', marginTop: 4 },
-  address: { fontFamily: fonts.body, fontSize: 11.5, color: colors.muted, textAlign: 'right', marginTop: 2 },
+  service: { fontFamily: fonts.body, fontSize: 12.5, color: colors.muted, marginBottom: 4 },
+  date: { fontFamily: fonts.bodyMedium, fontSize: 12, color: colors.ink },
+  visitType: { fontFamily: fonts.bodyMedium, fontSize: 11.5, color: colors.tealDark, marginTop: 4 },
+  address: { fontFamily: fonts.body, fontSize: 11.5, color: colors.muted, marginTop: 2 },
   mapsLink: { alignSelf: 'flex-end', marginTop: 4 },
   mapsLinkText: { fontFamily: fonts.bodyMedium, fontSize: 11.5, color: colors.tealDark, textDecorationLine: 'underline' },
   empty: { textAlign: 'center', color: colors.muted, fontFamily: fonts.body, marginTop: 40 },

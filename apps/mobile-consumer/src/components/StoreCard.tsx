@@ -3,8 +3,10 @@ import { colors, fonts, radius } from '@/theme/colors';
 import { cardShadow } from '@/theme/shadow';
 import { fileUrl } from '@/lib/api';
 import { StoreListItem } from '@/lib/types';
+import { useLocale } from '@/lib/i18n';
 
 export default function StoreCard({ store, onPress }: { store: StoreListItem; onPress: () => void }) {
+  const { t, tf, textAlign } = useLocale();
   const logo = fileUrl(store.logoUrl);
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.card, pressed && styles.pressed]}>
@@ -21,26 +23,26 @@ export default function StoreCard({ store, onPress }: { store: StoreListItem; on
         )}
         {store.providerType === 'individual' && (
           <View style={styles.individualBadge}>
-            <Text style={styles.individualBadgeText}>🔧 فني مستقل</Text>
+            <Text style={styles.individualBadgeText}>{t('storeCard.individual')}</Text>
           </View>
         )}
         {!store.available && (
           <View style={styles.unavailableBadge}>
-            <Text style={styles.unavailableBadgeText}>غير متاح الآن</Text>
+            <Text style={styles.unavailableBadgeText}>{t('storeCard.unavailable')}</Text>
           </View>
         )}
       </View>
       <View style={styles.body}>
-        <Text style={styles.name} numberOfLines={1}>
+        <Text style={[styles.name, { textAlign }]} numberOfLines={1}>
           {store.name}
         </Text>
-        <Text style={styles.meta}>
+        <Text style={[styles.meta, { textAlign }]}>
           {store.providerType === 'individual'
-            ? `🛠️ ${store.servicesCount} خدمة`
-            : `🛠️ ${store.servicesCount} خدمة · 📦 ${store.productsCount} منتج`}
+            ? tf('storeCard.serviceCountOnly', String(store.servicesCount))
+            : tf('storeCard.serviceAndProductCount', String(store.servicesCount), String(store.productsCount))}
         </Text>
         {store.avgRating !== null && (
-          <Text style={styles.reviewsMeta}>({store.reviewsCount} تقييم)</Text>
+          <Text style={[styles.reviewsMeta, { textAlign }]}>{tf('storeCard.reviewCount', String(store.reviewsCount))}</Text>
         )}
       </View>
     </Pressable>

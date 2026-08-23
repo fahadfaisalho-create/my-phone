@@ -4,14 +4,17 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@/navigation/types';
 import { apiFetch, ApiError, fileUrl } from '@/lib/api';
 import { requireAuth } from '@/lib/authGuard';
-import { DEVICE_LABEL, StoreDetail } from '@/lib/types';
+import { DEVICE_LABEL, DEVICE_LABEL_EN, StoreDetail } from '@/lib/types';
 import { colors, fonts, radius } from '@/theme/colors';
 import { Badge, Card, ErrorText, PrimaryButton, ScreenLoading, SecondaryButton, Stars } from '@/components/ui';
 import { useCart } from '@/lib/CartContext';
+import { useLocale } from '@/lib/i18n';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'StoreDetail'>;
 
 export default function StoreDetailScreen({ route, navigation }: Props) {
+  const { t, tf, locale, row, textAlign } = useLocale();
+  const deviceLabel = locale === 'ar' ? DEVICE_LABEL : DEVICE_LABEL_EN;
   const { storeId } = route.params;
   const [store, setStore] = useState<StoreDetail | null>(null);
   const [error, setError] = useState('');
@@ -32,7 +35,7 @@ export default function StoreDetailScreen({ route, navigation }: Props) {
       // فرع واحد فقط: نختاره تلقائياً بدون إزعاج المستهلك بخطوة اختيار
       if (data.branches.length === 1) setSelectedBranchId(data.branches[0].id);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'تعذّر تحميل بيانات المحل');
+      setError(err instanceof ApiError ? err.message : t('storeDetail.loadError'));
     }
   }
 
@@ -49,7 +52,7 @@ export default function StoreDetailScreen({ route, navigation }: Props) {
   async function submitReview() {
     if (!(await requireAuth(navigation, { screen: 'StoreDetail', params: { storeId } }))) return;
     if (!chosenRating) {
-      setReviewError('اختر عدد النجوم أولاً');
+      setReviewError(t('storeDetail.ratingRequired'));
       return;
     }
     setReviewError('');
@@ -63,7 +66,7 @@ export default function StoreDetailScreen({ route, navigation }: Props) {
       setChosenRating(0);
       await load();
     } catch (err) {
-      setReviewError(err instanceof ApiError ? err.message : 'تعذّر إرسال التقييم');
+      setReviewError(err instanceof ApiError ? err.message : t('storeDetail.reviewError'));
     } finally {
       setSubmitting(false);
     }
@@ -79,7 +82,7 @@ export default function StoreDetailScreen({ route, navigation }: Props) {
       });
       navigation.navigate('ChatThread', { chatId: chat.id, storeName: store?.name || '' });
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'تعذّر بدء المحادثة');
+      setError(err instanceof ApiError ? err.message : t('storeDetail.chatError'));
     } finally {
       setContacting(false);
     }
@@ -142,8 +145,8 @@ export default function StoreDetailScreen({ route, navigation }: Props) {
           <Text style={styles.storeName}>{store.name}</Text>
           {store.providerType === 'individual' && (
             <View style={styles.individualRow}>
-              <Text style={styles.individualText}>🔧 فني مستقل</Text>
-              {store.idVerified && <Text style={styles.individualText}>· ✅ هوية موثّقة</Text>}
+              <Text style={styles.individualText}>{t('storeDetail.individual')}</Text>
+              {store.idVerified && <Text style={styles.individualText}>{t('storeDetail.idVerified')}</Text>}
             </View>
           )}
           <View style={{ marginTop: 4 }}>
@@ -151,24 +154,25 @@ export default function StoreDetailScreen({ route, navigation }: Props) {
           </View>
           {!store.available && (
             <View style={{ marginTop: 8 }}>
-              <Badge label="غير متاح الآن" tone="red" />
+              <Badge label={t('storeDetail.unavailable')} tone="red" />
             </View>
           )}
         </View>
 
         <View style={{ paddingHorizontal: 16 }}>
           {store.available && (
-            <SecondaryButton title={contacting ? 'جارٍ الفتح...' : '💬 تواصل مع المحل'} onPress={handleContact} />
+            <SecondaryButton
+              title={contacting ? t('storeDetail.contactingStore') : t('storeDetail.contactStore')}
+              onPress={handleContact}
+            />
           )}
           <View style={{ height: 14 }} />
 
           {store.branches.length > 1 && (
             <Card>
-              <Text style={styles.sectionTitle}>📍 اختر فرعك للتسوق</Text>
-              <Text style={styles.mutedText}>
-                هذا المحل عنده أكثر من فرع — حدد الفرع الأقرب لك لعرض المنتجات المتوفرة فيه
-              </Text>
-              <View style={styles.branchPickRow}>
+              <Text style={styles.sectionTitle}>{t('storeDetail.chooseBranchHeading')}</Text>
+              <Text style={[styles.mutedText, { textAlign }]}>{t('storeDetail.chooseBranchNote')}</Text>
+              <View style={[styles.branchPickRow, { flexDirection: row }]}>
                 {store.branches.map((b) => (
                   <Pressable
                     key={b.id}
@@ -192,15 +196,15 @@ export default function StoreDetailScreen({ route, navigation }: Props) {
 
           {store.branches.length > 0 && (
             <Card>
-              <Text style={styles.sectionTitle}>الفروع</Text>
+              <Text style={styles.sectionTitle}>{t('storeDetail.branchesHeading')}</Text>
               {store.branches.map((b) => (
-                <View style={styles.branchRow} key={b.id}>
+                <View style={[styles.branchRow, { flexDirection: row }]} key={b.id}>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.branchName}>📍 {b.name}</Text>
+                    <Text style={[styles.branchName, { textAlign }]}>📍 {b.name}</Text>
                     {b.address ? (
-                      <Text style={styles.branchAddress}>{b.address}</Text>
+                      <Text style={[styles.branchAddress, { textAlign }]}>{b.address}</Text>
                     ) : (
-                      <Text style={styles.branchAddressMuted}>لم يحدد المحل عنوان هذا الفرع بعد</Text>
+                      <Text style={[styles.branchAddressMuted, { textAlign }]}>{t('storeDetail.noBranchAddress')}</Text>
                     )}
                   </View>
                   {b.address && (
@@ -208,7 +212,7 @@ export default function StoreDetailScreen({ route, navigation }: Props) {
                       style={styles.mapsBtn}
                       onPress={() => openInMaps(`${store.name} ${b.address}`)}
                     >
-                      <Text style={styles.mapsBtnText}>افتح بالخرائط</Text>
+                      <Text style={styles.mapsBtnText}>{t('storeDetail.openInMaps')}</Text>
                     </Pressable>
                   )}
                 </View>
@@ -218,11 +222,11 @@ export default function StoreDetailScreen({ route, navigation }: Props) {
 
           {store.technicians.length > 0 && (
             <Card>
-              <Text style={styles.sectionTitle}>🛠️ فريق الصيانة</Text>
-              {store.technicians.map((t) => {
-                const photo = fileUrl(t.photoUrl);
+              <Text style={styles.sectionTitle}>{t('storeDetail.teamHeading')}</Text>
+              {store.technicians.map((tech) => {
+                const photo = fileUrl(tech.photoUrl);
                 return (
-                  <View style={styles.techRow} key={t.id}>
+                  <View style={[styles.techRow, { flexDirection: row }]} key={tech.id}>
                     <View style={styles.techPhotoWrap}>
                       {photo ? (
                         <Image source={{ uri: photo }} style={styles.techPhoto} />
@@ -231,28 +235,28 @@ export default function StoreDetailScreen({ route, navigation }: Props) {
                       )}
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.techName}>{t.name}</Text>
-                      <Text style={styles.techMeta}>
-                        {t.nationality}
-                        {t.experienceYears != null ? ` · خبرة ${t.experienceYears} سنة` : ''}
+                      <Text style={[styles.techName, { textAlign }]}>{tech.name}</Text>
+                      <Text style={[styles.techMeta, { textAlign }]}>
+                        {tech.nationality}
+                        {tech.experienceYears != null ? tf('storeDetail.experienceYears', String(tech.experienceYears)) : ''}
                       </Text>
-                      {t.freelanceLicenseNo && (
+                      {tech.freelanceLicenseNo && (
                         <Pressable
-                          disabled={!t.freelanceLicenseFileUrl}
+                          disabled={!tech.freelanceLicenseFileUrl}
                           onPress={() => {
-                            const url = fileUrl(t.freelanceLicenseFileUrl);
+                            const url = fileUrl(tech.freelanceLicenseFileUrl);
                             if (url) Linking.openURL(url).catch(() => undefined);
                           }}
                         >
-                          <Text style={styles.techLicense}>
-                            📄 رخصة عمل حر: {t.freelanceLicenseNo}
-                            {t.freelanceLicenseFileUrl ? ' (عرض الملف)' : ''}
+                          <Text style={[styles.techLicense, { textAlign }]}>
+                            {tf('storeDetail.freelanceLicense', tech.freelanceLicenseNo)}
+                            {tech.freelanceLicenseFileUrl ? t('storeDetail.viewFile') : ''}
                           </Text>
                         </Pressable>
                       )}
-                      {t.certificates.length > 0 && (
-                        <View style={styles.techCerts}>
-                          {t.certificates.map((c) => (
+                      {tech.certificates.length > 0 && (
+                        <View style={[styles.techCerts, { flexDirection: row }]}>
+                          {tech.certificates.map((c) => (
                             <Pressable
                               key={c.id}
                               disabled={!c.fileUrl}
@@ -275,19 +279,19 @@ export default function StoreDetailScreen({ route, navigation }: Props) {
           )}
 
           <Card>
-            <Text style={styles.sectionTitle}>الخدمات</Text>
+            <Text style={styles.sectionTitle}>{t('storeDetail.servicesHeading')}</Text>
             {store.services.length === 0 ? (
-              <Text style={styles.mutedText}>لا يوجد خدمات بعد</Text>
+              <Text style={[styles.mutedText, { textAlign }]}>{t('storeDetail.noServicesYet')}</Text>
             ) : (
               <View style={styles.serviceGrid}>
                 {store.services.map((sv) => (
                   <View style={styles.serviceCard} key={sv.id}>
-                    <Text style={styles.serviceName}>{sv.name}</Text>
-                    <Text style={styles.serviceMeta}>{DEVICE_LABEL[sv.deviceSupport]}</Text>
-                    <Text style={styles.servicePrice}>شغل يد {sv.laborPrice} ﷼</Text>
+                    <Text style={[styles.serviceName, { textAlign }]}>{sv.name}</Text>
+                    <Text style={[styles.serviceMeta, { textAlign }]}>{deviceLabel[sv.deviceSupport]}</Text>
+                    <Text style={[styles.servicePrice, { textAlign }]}>{tf('storeDetail.laborPrice', sv.laborPrice)}</Text>
                     {store.available && (
                       <Pressable style={styles.bookBtn} onPress={() => handleBook(sv.id, sv.name)}>
-                        <Text style={styles.bookBtnText}>احجز موعد</Text>
+                        <Text style={styles.bookBtnText}>{t('storeDetail.bookAppointment')}</Text>
                       </Pressable>
                     )}
                   </View>
@@ -298,23 +302,23 @@ export default function StoreDetailScreen({ route, navigation }: Props) {
 
           {store.providerType !== 'individual' && (
           <Card>
-            <Text style={styles.sectionTitle}>المنتجات</Text>
+            <Text style={styles.sectionTitle}>{t('storeDetail.productsHeading')}</Text>
             {store.products.length === 0 ? (
-              <Text style={styles.mutedText}>لا يوجد منتجات بعد</Text>
+              <Text style={[styles.mutedText, { textAlign }]}>{t('storeDetail.noProductsYet')}</Text>
             ) : needsBranchChoice ? (
-              <Text style={styles.mutedText}>اختر فرعك من الأعلى ⬆️ لعرض المنتجات المتوفرة فيه</Text>
+              <Text style={[styles.mutedText, { textAlign }]}>{t('storeDetail.chooseBranchAbove')}</Text>
             ) : branchProducts.length === 0 ? (
-              <Text style={styles.mutedText}>لا يوجد منتجات متوفرة بهذا الفرع حالياً</Text>
+              <Text style={[styles.mutedText, { textAlign }]}>{t('storeDetail.noProductsInBranch')}</Text>
             ) : (
               <>
                 {categories.length > 1 && (
-                  <View style={styles.categoryRow}>
+                  <View style={[styles.categoryRow, { flexDirection: row }]}>
                     <Pressable
                       style={[styles.categoryChip, !selectedCategory && styles.categoryChipOn]}
                       onPress={() => setSelectedCategory(null)}
                     >
                       <Text style={[styles.categoryChipText, !selectedCategory && styles.categoryChipTextOn]}>
-                        الكل
+                        {t('storeDetail.all')}
                       </Text>
                     </Pressable>
                     {categories.map((c) => (
@@ -343,21 +347,21 @@ export default function StoreDetailScreen({ route, navigation }: Props) {
                             <Text style={styles.productImgFallback}>📦</Text>
                           )}
                         </View>
-                        <Text style={styles.productName} numberOfLines={2}>
+                        <Text style={[styles.productName, { textAlign }]} numberOfLines={2}>
                           {p.name}
                         </Text>
-                        <Text style={styles.productPrice}>{p.price} ﷼</Text>
+                        <Text style={[styles.productPrice, { textAlign }]}>{p.price} ﷼</Text>
                         {store.available && p.quantity > 0 && (
                           <Pressable
                             style={[styles.addCartBtn, inCart && styles.addCartBtnOn]}
                             onPress={() => handleAddToCart(p)}
                           >
                             <Text style={[styles.addCartBtnText, inCart && styles.addCartBtnTextOn]}>
-                              {inCart ? '✓ في السلة' : '+ أضف للسلة'}
+                              {inCart ? t('storeDetail.inCart') : t('storeDetail.addToCart')}
                             </Text>
                           </Pressable>
                         )}
-                        {p.quantity <= 0 && <Text style={styles.outOfStock}>نفدت الكمية</Text>}
+                        {p.quantity <= 0 && <Text style={styles.outOfStock}>{t('storeDetail.outOfStock')}</Text>}
                       </View>
                     );
                   })}
@@ -368,8 +372,8 @@ export default function StoreDetailScreen({ route, navigation }: Props) {
           )}
 
           <Card>
-            <Text style={styles.sectionTitle}>قيّم هذا المحل</Text>
-            <View style={styles.starPicker}>
+            <Text style={styles.sectionTitle}>{t('storeDetail.rateStore')}</Text>
+            <View style={[styles.starPicker, { flexDirection: row }]}>
               {[1, 2, 3, 4, 5].map((n) => (
                 <Pressable key={n} onPress={() => setChosenRating(n)} hitSlop={6}>
                   <Text style={[styles.starPick, n <= chosenRating && styles.starPickOn]}>
@@ -380,24 +384,24 @@ export default function StoreDetailScreen({ route, navigation }: Props) {
             </View>
             <TextInput
               style={styles.commentInput}
-              placeholder="تعليقك (اختياري)"
+              placeholder={t('storeDetail.commentPlaceholder')}
               placeholderTextColor={colors.muted}
-              textAlign="right"
+              textAlign={textAlign}
               multiline
               value={comment}
               onChangeText={setComment}
             />
             {reviewError ? <ErrorText>{reviewError}</ErrorText> : null}
-            <PrimaryButton title="إرسال التقييم" onPress={submitReview} loading={submitting} />
+            <PrimaryButton title={t('storeDetail.submitReview')} onPress={submitReview} loading={submitting} />
 
             <View style={{ marginTop: 14 }}>
               {store.reviews.length === 0 ? (
-                <Text style={styles.mutedText}>لا يوجد تقييمات بعد — كن أول من يقيّم</Text>
+                <Text style={[styles.mutedText, { textAlign }]}>{t('storeDetail.noReviewsYet')}</Text>
               ) : (
                 store.reviews.map((r) => (
                   <View style={styles.reviewRow} key={r.id}>
                     <Stars rating={r.rating} size={12} />
-                    {r.comment ? <Text style={styles.reviewComment}>{r.comment}</Text> : null}
+                    {r.comment ? <Text style={[styles.reviewComment, { textAlign }]}>{r.comment}</Text> : null}
                   </View>
                 ))
               )}
@@ -407,13 +411,13 @@ export default function StoreDetailScreen({ route, navigation }: Props) {
       </ScrollView>
       {showCartBar && (
         <Pressable
-          style={({ pressed }) => [styles.cartBar, pressed && { opacity: 0.9 }]}
+          style={({ pressed }) => [styles.cartBar, { flexDirection: row }, pressed && { opacity: 0.9 }]}
           onPress={() => navigation.navigate('Cart', { storeId, storeName: store.name })}
         >
           <Text style={styles.cartBarText}>
-            🛒 {cart.items.reduce((n, i) => n + i.qty, 0)} منتج — {cart.total} ﷼
+            {tf('storeDetail.cartBar', String(cart.items.reduce((n, i) => n + i.qty, 0)), String(cart.total))}
           </Text>
-          <Text style={styles.cartBarAction}>عرض السلة ←</Text>
+          <Text style={styles.cartBarAction}>{t('storeDetail.viewCart')}</Text>
         </Pressable>
       )}
     </View>
@@ -461,8 +465,8 @@ const styles = StyleSheet.create({
     borderRightColor: colors.teal,
     paddingRight: 8,
   },
-  mutedText: { color: colors.muted, fontFamily: fonts.body, fontSize: 13, textAlign: 'right' },
-  branchPickRow: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: 8, marginTop: 10 },
+  mutedText: { color: colors.muted, fontFamily: fonts.body, fontSize: 13 },
+  branchPickRow: { flexWrap: 'wrap', gap: 8, marginTop: 10 },
   branchPickChip: {
     borderWidth: 1,
     borderColor: colors.teal,
@@ -475,7 +479,6 @@ const styles = StyleSheet.create({
   branchPickChipText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.tealDark },
   branchPickChipTextOn: { color: '#fff' },
   branchRow: {
-    flexDirection: 'row-reverse',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 10,
@@ -483,13 +486,12 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  branchName: { fontFamily: fonts.bodySemi, fontSize: 13.5, color: colors.text, textAlign: 'right' },
-  branchAddress: { fontFamily: fonts.body, fontSize: 12, color: colors.muted, textAlign: 'right', marginTop: 3 },
+  branchName: { fontFamily: fonts.bodySemi, fontSize: 13.5, color: colors.text },
+  branchAddress: { fontFamily: fonts.body, fontSize: 12, color: colors.muted, marginTop: 3 },
   branchAddressMuted: {
     fontFamily: fonts.body,
     fontSize: 12,
     color: colors.muted,
-    textAlign: 'right',
     marginTop: 3,
     fontStyle: 'italic',
   },
@@ -502,7 +504,6 @@ const styles = StyleSheet.create({
   },
   mapsBtnText: { color: colors.tealDark, fontFamily: fonts.bodyMedium, fontSize: 11.5 },
   techRow: {
-    flexDirection: 'row-reverse',
     gap: 10,
     paddingVertical: 10,
     borderBottomWidth: 1,
@@ -519,10 +520,10 @@ const styles = StyleSheet.create({
   },
   techPhoto: { width: '100%', height: '100%' },
   techPhotoFallback: { fontSize: 20 },
-  techName: { fontFamily: fonts.bodySemi, fontSize: 13.5, color: colors.text, textAlign: 'right' },
-  techMeta: { fontFamily: fonts.body, fontSize: 12, color: colors.muted, textAlign: 'right', marginTop: 2 },
-  techLicense: { fontFamily: fonts.body, fontSize: 11.5, color: colors.tealDark, textAlign: 'right', marginTop: 4 },
-  techCerts: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: 6, marginTop: 6 },
+  techName: { fontFamily: fonts.bodySemi, fontSize: 13.5, color: colors.text },
+  techMeta: { fontFamily: fonts.body, fontSize: 12, color: colors.muted, marginTop: 2 },
+  techLicense: { fontFamily: fonts.body, fontSize: 11.5, color: colors.tealDark, marginTop: 4 },
+  techCerts: { flexWrap: 'wrap', gap: 6, marginTop: 6 },
   certChip: {
     backgroundColor: colors.tealBg,
     borderRadius: 20,
@@ -530,7 +531,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   certChipText: { fontFamily: fonts.bodyMedium, fontSize: 11, color: colors.tealDark },
-  categoryRow: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
+  categoryRow: { flexWrap: 'wrap', gap: 8, marginBottom: 12 },
   categoryChip: {
     borderWidth: 1,
     borderColor: colors.border,
@@ -550,9 +551,9 @@ const styles = StyleSheet.create({
     minWidth: 140,
     flexGrow: 1,
   },
-  serviceName: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.text, textAlign: 'right' },
-  serviceMeta: { fontFamily: fonts.body, fontSize: 11, color: colors.muted, textAlign: 'right', marginTop: 4 },
-  servicePrice: { fontFamily: fonts.bodyMedium, fontSize: 12, color: colors.ink, textAlign: 'right', marginTop: 2 },
+  serviceName: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.text },
+  serviceMeta: { fontFamily: fonts.body, fontSize: 11, color: colors.muted, marginTop: 4 },
+  servicePrice: { fontFamily: fonts.bodyMedium, fontSize: 12, color: colors.ink, marginTop: 2 },
   bookBtn: {
     marginTop: 8,
     backgroundColor: colors.teal,
@@ -580,7 +581,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     backgroundColor: colors.ink,
-    flexDirection: 'row-reverse',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 18,
@@ -607,16 +607,15 @@ const styles = StyleSheet.create({
   },
   productImg: { width: '100%', height: '100%' },
   productImgFallback: { fontSize: 24, opacity: 0.4 },
-  productName: { fontSize: 11.5, fontFamily: fonts.bodyMedium, color: colors.text, padding: 6, textAlign: 'right' },
+  productName: { fontSize: 11.5, fontFamily: fonts.bodyMedium, color: colors.text, padding: 6 },
   productPrice: {
     fontFamily: fonts.heading,
     fontSize: 13,
     color: colors.ink,
     paddingHorizontal: 6,
     paddingBottom: 8,
-    textAlign: 'right',
   },
-  starPicker: { flexDirection: 'row-reverse', gap: 6, marginBottom: 10 },
+  starPicker: { gap: 6, marginBottom: 10 },
   starPick: { fontSize: 30, color: colors.star },
   starPickOn: { color: colors.star },
   commentInput: {
@@ -632,5 +631,5 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   reviewRow: { borderBottomWidth: 1, borderBottomColor: colors.border, paddingVertical: 8 },
-  reviewComment: { fontFamily: fonts.body, fontSize: 12.5, color: colors.text, textAlign: 'right', marginTop: 4 },
+  reviewComment: { fontFamily: fonts.body, fontSize: 12.5, color: colors.text, marginTop: 4 },
 });

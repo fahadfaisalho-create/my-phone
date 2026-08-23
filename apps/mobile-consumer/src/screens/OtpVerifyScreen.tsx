@@ -6,6 +6,7 @@ import { apiFetch, ApiError, ConsumerUser, setSession } from '@/lib/api';
 import { colors, fonts } from '@/theme/colors';
 import { Card, ErrorText, LinkButton, Note, PrimaryButton } from '@/components/ui';
 import TextField from '@/components/TextField';
+import { useLocale } from '@/lib/i18n';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'OtpVerify'>;
 
@@ -15,6 +16,7 @@ interface VerifyResponse {
 }
 
 export default function OtpVerifyScreen({ route, navigation }: Props) {
+  const { t, tf, textAlign } = useLocale();
   const { phone, devOtp, returnTo } = route.params;
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
@@ -23,7 +25,7 @@ export default function OtpVerifyScreen({ route, navigation }: Props) {
 
   async function handleSubmit() {
     if (code.trim().length !== 6) {
-      setError('رمز التحقق مكوّن من 6 أرقام');
+      setError(t('otpVerify.codeRequired'));
       return;
     }
     setError('');
@@ -43,7 +45,7 @@ export default function OtpVerifyScreen({ route, navigation }: Props) {
         navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
       }
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'تعذّر التحقق من الرمز');
+      setError(err instanceof ApiError ? err.message : t('otpVerify.genericError'));
     } finally {
       setLoading(false);
     }
@@ -53,11 +55,11 @@ export default function OtpVerifyScreen({ route, navigation }: Props) {
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.container}>
         <Card>
-          <Text style={styles.title}>تأكيد رقم الجوال</Text>
-          <Text style={styles.subtitle}>أدخلنا رمز التحقق المرسل إلى {phone}</Text>
-          {devOtp ? <Note>وضع تجريبي بدون بوابة SMS — رمز التحقق: {devOtp}</Note> : null}
+          <Text style={[styles.title, { textAlign }]}>{t('otpVerify.title')}</Text>
+          <Text style={[styles.subtitle, { textAlign }]}>{tf('otpVerify.subtitle', phone)}</Text>
+          {devOtp ? <Note>{tf('otpVerify.devMode', devOtp)}</Note> : null}
           <TextField
-            label="رمز التحقق"
+            label={t('otpVerify.codeLabel')}
             placeholder="000000"
             keyboardType="number-pad"
             maxLength={6}
@@ -65,14 +67,14 @@ export default function OtpVerifyScreen({ route, navigation }: Props) {
             onChangeText={setCode}
           />
           <TextField
-            label="اسمك (لأول مرة فقط)"
-            placeholder="اختياري"
+            label={t('otpVerify.nameLabel')}
+            placeholder={t('otpVerify.optional')}
             value={name}
             onChangeText={setName}
           />
           {error ? <ErrorText>{error}</ErrorText> : null}
-          <PrimaryButton title="تأكيد" onPress={handleSubmit} loading={loading} />
-          <LinkButton title="رجوع" onPress={() => navigation.goBack()} />
+          <PrimaryButton title={t('otpVerify.confirm')} onPress={handleSubmit} loading={loading} />
+          <LinkButton title={t('otpVerify.back')} onPress={() => navigation.goBack()} />
         </Card>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -82,6 +84,6 @@ export default function OtpVerifyScreen({ route, navigation }: Props) {
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.bg },
   container: { flexGrow: 1, padding: 20, justifyContent: 'center' },
-  title: { fontFamily: fonts.heading, fontSize: 18, color: colors.ink, marginBottom: 6, textAlign: 'right' },
-  subtitle: { fontFamily: fonts.body, fontSize: 13, color: colors.muted, marginBottom: 14, textAlign: 'right' },
+  title: { fontFamily: fonts.heading, fontSize: 18, color: colors.ink, marginBottom: 6 },
+  subtitle: { fontFamily: fonts.body, fontSize: 13, color: colors.muted, marginBottom: 14 },
 });

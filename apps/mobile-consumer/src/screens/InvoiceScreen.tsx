@@ -5,6 +5,7 @@ import type { RootStackParamList } from '@/navigation/types';
 import { apiFetch, ApiError } from '@/lib/api';
 import { colors, fonts, radius } from '@/theme/colors';
 import { Card, ErrorText, PrimaryButton, ScreenLoading } from '@/components/ui';
+import { useLocale } from '@/lib/i18n';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Invoice'>;
 type CourierProvider = 'aramex' | 'fedex';
@@ -43,6 +44,7 @@ function formatTime(iso: string) {
 }
 
 export default function InvoiceScreen({ route }: Props) {
+  const { t } = useLocale();
   const { orderId } = route.params;
   const [invoice, setInvoice] = useState<InvoiceData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -54,11 +56,12 @@ export default function InvoiceScreen({ route }: Props) {
         const data = await apiFetch<InvoiceData>(`/orders/${orderId}/invoice`);
         setInvoice(data);
       } catch (err) {
-        setError(err instanceof ApiError ? err.message : 'تعذّر تحميل الفاتورة');
+        setError(err instanceof ApiError ? err.message : t('invoice.loadError'));
       } finally {
         setLoading(false);
       }
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderId]);
 
   function handlePrint() {
@@ -72,7 +75,7 @@ export default function InvoiceScreen({ route }: Props) {
   if (error || !invoice) {
     return (
       <View style={styles.center}>
-        <ErrorText>{error || 'تعذّر تحميل الفاتورة'}</ErrorText>
+        <ErrorText>{error || t('invoice.loadError')}</ErrorText>
       </View>
     );
   }
@@ -206,7 +209,7 @@ export default function InvoiceScreen({ route }: Props) {
 
         {Platform.OS === 'web' && (
           <View style={{ marginTop: 16 }}>
-            <PrimaryButton title="🖨️ طباعة / حفظ PDF" onPress={handlePrint} />
+            <PrimaryButton title={t('invoice.print')} onPress={handlePrint} />
           </View>
         )}
       </Card>

@@ -6,10 +6,12 @@ import { apiFetch, ApiError, fileUrl } from '@/lib/api';
 import { ChatListItem } from '@/lib/types';
 import { colors, fonts } from '@/theme/colors';
 import { EmptyState, ErrorText, ScreenLoading } from '@/components/ui';
+import { useLocale } from '@/lib/i18n';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ChatList'>;
 
 export default function ChatListScreen({ navigation }: Props) {
+  const { t, textAlign, row } = useLocale();
   const [chats, setChats] = useState<ChatListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -19,11 +21,11 @@ export default function ChatListScreen({ navigation }: Props) {
       const data = await apiFetch<ChatListItem[]>('/chats/me');
       setChats(data);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'تعذّر تحميل المحادثات');
+      setError(err instanceof ApiError ? err.message : t('chatList.loadError'));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     const unsub = navigation.addListener('focus', load);
@@ -39,13 +41,13 @@ export default function ChatListScreen({ navigation }: Props) {
         data={chats}
         keyExtractor={(c) => c.id}
         contentContainerStyle={{ padding: 12 }}
-        ListEmptyComponent={<EmptyState icon="💬" text="لا يوجد محادثات بعد" />}
+        ListEmptyComponent={<EmptyState icon="💬" text={t('chatList.empty')} />}
         renderItem={({ item }) => {
           const logo = fileUrl(item.store.logoUrl);
           const last = item.messages?.[0];
           return (
             <Pressable
-              style={styles.row}
+              style={[styles.row, { flexDirection: row }]}
               onPress={() => navigation.navigate('ChatThread', { chatId: item.id, storeName: item.store.name })}
             >
               {logo ? (
@@ -56,9 +58,9 @@ export default function ChatListScreen({ navigation }: Props) {
                 </View>
               )}
               <View style={{ flex: 1 }}>
-                <Text style={styles.name}>{item.store.name}</Text>
-                <Text style={styles.preview} numberOfLines={1}>
-                  {last ? (last.senderType === 'consumer' ? 'أنت: ' : '') + (last.text || '') : 'لا رسائل بعد'}
+                <Text style={[styles.name, { textAlign }]}>{item.store.name}</Text>
+                <Text style={[styles.preview, { textAlign }]} numberOfLines={1}>
+                  {last ? (last.senderType === 'consumer' ? t('chatList.youPrefix') : '') + (last.text || '') : t('chatList.noMessagesYet')}
                 </Text>
               </View>
             </Pressable>

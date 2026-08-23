@@ -6,6 +6,7 @@ import { apiFetch, ApiError } from '@/lib/api';
 import { colors, fonts } from '@/theme/colors';
 import { Badge, Card, EmptyState, ErrorText, PrimaryButton } from '@/components/ui';
 import TextField from '@/components/TextField';
+import { useLocale } from '@/lib/i18n';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Support'>;
 
@@ -18,11 +19,6 @@ interface Ticket {
   createdAt: string;
 }
 
-const STATUS_LABEL: Record<TicketStatus, string> = {
-  open: 'مفتوحة',
-  in_progress: 'قيد المعالجة',
-  closed: 'مغلقة',
-};
 const STATUS_TONE: Record<TicketStatus, 'green' | 'amber'> = {
   open: 'amber',
   in_progress: 'amber',
@@ -30,6 +26,13 @@ const STATUS_TONE: Record<TicketStatus, 'green' | 'amber'> = {
 };
 
 export default function SupportScreen({}: Props) {
+  const { t, locale, textAlign, row } = useLocale();
+  const dateLocale = locale === 'ar' ? 'ar-SA' : 'en-US';
+  const STATUS_LABEL: Record<TicketStatus, string> = {
+    open: t('support.statusOpen'),
+    in_progress: t('support.statusInProgress'),
+    closed: t('support.statusClosed'),
+  };
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
   const [subject, setSubject] = useState('');
@@ -41,7 +44,7 @@ export default function SupportScreen({}: Props) {
       const data = await apiFetch<Ticket[]>('/support-tickets/me');
       setTickets(data);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'تعذّر تحميل تذاكرك');
+      setError(err instanceof ApiError ? err.message : t('support.loadError'));
     } finally {
       setLoading(false);
     }
@@ -63,7 +66,7 @@ export default function SupportScreen({}: Props) {
       setSubject('');
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'تعذّر فتح التذكرة');
+      setError(err instanceof ApiError ? err.message : t('support.submitError'));
     } finally {
       setSaving(false);
     }
@@ -77,25 +80,25 @@ export default function SupportScreen({}: Props) {
         contentContainerStyle={{ padding: 14 }}
         ListHeaderComponent={
           <Card>
-            <Text style={styles.title}>فتح تذكرة دعم جديدة</Text>
+            <Text style={[styles.title, { textAlign }]}>{t('support.newTicket')}</Text>
             <TextField
-              label="موضوع المشكلة أو الاستفسار"
-              placeholder="اكتب هنا..."
+              label={t('support.subjectLabel')}
+              placeholder={t('support.subjectPlaceholder')}
               value={subject}
               onChangeText={setSubject}
             />
             {error ? <ErrorText>{error}</ErrorText> : null}
-            <PrimaryButton title="إرسال للدعم" onPress={handleSubmit} loading={saving} />
+            <PrimaryButton title={t('support.send')} onPress={handleSubmit} loading={saving} />
           </Card>
         }
         ListEmptyComponent={
-          !loading ? <EmptyState icon="🆘" text="لا يوجد تذاكر بعد" /> : null
+          !loading ? <EmptyState icon="🆘" text={t('support.empty')} /> : null
         }
         renderItem={({ item }) => (
-          <View style={styles.row}>
+          <View style={[styles.row, { flexDirection: row }]}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.subject}>{item.subject}</Text>
-              <Text style={styles.date}>{new Date(item.createdAt).toLocaleDateString('ar-SA')}</Text>
+              <Text style={[styles.subject, { textAlign }]}>{item.subject}</Text>
+              <Text style={[styles.date, { textAlign }]}>{new Date(item.createdAt).toLocaleDateString(dateLocale)}</Text>
             </View>
             <Badge label={STATUS_LABEL[item.status]} tone={STATUS_TONE[item.status]} />
           </View>

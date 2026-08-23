@@ -8,26 +8,12 @@ import { requireAuth } from '@/lib/authGuard';
 import { colors, fonts, radius } from '@/theme/colors';
 import { Card, ErrorText, PrimaryButton, SecondaryButton } from '@/components/ui';
 import { useCart } from '@/lib/CartContext';
+import { useLocale } from '@/lib/i18n';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Cart'>;
 type DeliveryType = 'pickup' | 'delivery';
 type CourierProvider = 'aramex' | 'fedex';
 type DeliveryMethod = 'courier' | 'store_agent';
-
-const DELIVERY_LABEL: Record<DeliveryType, string> = {
-  pickup: '🏬 استلام من الفرع',
-  delivery: '🚚 توصيل',
-};
-
-const COURIER_LABEL: Record<CourierProvider, string> = {
-  aramex: '📦 أرامكس',
-  fedex: '📦 فيدكس',
-};
-
-const DELIVERY_METHOD_LABEL: Record<DeliveryMethod, string> = {
-  courier: '📦 شركة شحن',
-  store_agent: '🛵 توصيل من المحل',
-};
 
 interface OrderResponse {
   id: string;
@@ -62,6 +48,21 @@ function distanceKm(lat1: number, lng1: number, lat2: number, lng2: number): num
 }
 
 export default function CartScreen({ route, navigation }: Props) {
+  const { t, tf, row, textAlign } = useLocale();
+
+  const DELIVERY_LABEL: Record<DeliveryType, string> = {
+    pickup: t('cart.deliveryPickup'),
+    delivery: t('cart.deliveryDelivery'),
+  };
+  const COURIER_LABEL: Record<CourierProvider, string> = {
+    aramex: t('cart.courierAramex'),
+    fedex: t('cart.courierFedex'),
+  };
+  const DELIVERY_METHOD_LABEL: Record<DeliveryMethod, string> = {
+    courier: t('cart.methodCourier'),
+    store_agent: t('cart.methodAgent'),
+  };
+
   const { storeId } = route.params;
   const cart = useCart();
   const [error, setError] = useState('');
@@ -136,7 +137,7 @@ export default function CartScreen({ route, navigation }: Props) {
       setCouponCode('');
     } catch (err) {
       setAppliedCoupon(null);
-      setCouponError(err instanceof ApiError ? err.message : 'تعذّر التحقق من الكود');
+      setCouponError(err instanceof ApiError ? err.message : t('cart.couponInvalid'));
     } finally {
       setCouponChecking(false);
     }
@@ -154,7 +155,7 @@ export default function CartScreen({ route, navigation }: Props) {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        setLocateError('يجب السماح بالوصول لموقعك من إعدادات الجهاز لاستخدام هذه الميزة');
+        setLocateError(t('cart.locationPermission'));
         return;
       }
       const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
@@ -169,7 +170,7 @@ export default function CartScreen({ route, navigation }: Props) {
         setAddress(`${latitude.toFixed(5)}, ${longitude.toFixed(5)}`);
       }
     } catch {
-      setLocateError('تعذّر تحديد موقعك، تأكد من تفعيل خدمة الموقع بالجهاز');
+      setLocateError(t('cart.locationError'));
     } finally {
       setLocating(false);
     }
@@ -180,15 +181,15 @@ export default function CartScreen({ route, navigation }: Props) {
     if (deliveryType === 'delivery') {
       if (deliveryMethod === 'store_agent') {
         if (!coords) {
-          setError('حدد موقعك أولاً للتحقق من أهليتك لتوصيل المحل');
+          setError(t('cart.selectLocationForAgent'));
           return;
         }
         if (agentEligibility === false) {
-          setError('موقعك خارج نطاق توصيل هذا المحل — جرّب طريقة استلام أخرى');
+          setError(t('cart.outOfAgentZone'));
           return;
         }
       } else if (!address.trim()) {
-        setError('اكتب عنوان التوصيل');
+        setError(t('cart.addressRequired'));
         return;
       }
     }
@@ -216,7 +217,7 @@ export default function CartScreen({ route, navigation }: Props) {
       setOrder(res);
       cart.clear();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'تعذّر إنشاء الطلب');
+      setError(err instanceof ApiError ? err.message : t('cart.orderError'));
     } finally {
       setPlacing(false);
     }
@@ -230,7 +231,7 @@ export default function CartScreen({ route, navigation }: Props) {
       await apiFetch(`/orders/${order.id}/confirm-payment`, { method: 'POST' });
       setPaid(true);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'تعذّر تأكيد الدفع');
+      setError(err instanceof ApiError ? err.message : t('cart.paymentError'));
     } finally {
       setPaying(false);
     }
@@ -240,9 +241,9 @@ export default function CartScreen({ route, navigation }: Props) {
     return (
       <View style={styles.center}>
         <Card style={{ width: '100%' }}>
-          <Text style={styles.successTitle}>تم الدفع بنجاح ✅</Text>
-          <Text style={styles.mutedText}>سيقوم المحل بتجهيز طلبك. يمكنك متابعته من &quot;طلباتي&quot;.</Text>
-          <PrimaryButton title="طلباتي" onPress={() => navigation.replace('MyOrders')} />
+          <Text style={styles.successTitle}>{t('cart.paidTitle')}</Text>
+          <Text style={styles.mutedText}>{t('cart.paidNote')}</Text>
+          <PrimaryButton title={t('cart.myOrders')} onPress={() => navigation.replace('MyOrders')} />
         </Card>
       </View>
     );
@@ -252,13 +253,11 @@ export default function CartScreen({ route, navigation }: Props) {
     return (
       <View style={styles.center}>
         <Card style={{ width: '100%' }}>
-          <Text style={styles.successTitle}>تم إنشاء الطلب</Text>
-          <Text style={styles.mutedText}>الإجمالي: {order.total} ﷼</Text>
-          <Text style={styles.note}>
-            بوابة الدفع الفعلية غير مربوطة بعد — هذا الزر يحاكي نجاح الدفع فوراً (مثل تفعيل اشتراك المحل).
-          </Text>
+          <Text style={styles.successTitle}>{t('cart.orderCreatedTitle')}</Text>
+          <Text style={styles.mutedText}>{tf('cart.totalLabel', order.total)}</Text>
+          <Text style={[styles.note, { textAlign }]}>{t('cart.paymentGatewayNote')}</Text>
           {error ? <ErrorText>{error}</ErrorText> : null}
-          <PrimaryButton title="ادفع الآن" onPress={handleConfirmPayment} loading={paying} />
+          <PrimaryButton title={t('cart.payNow')} onPress={handleConfirmPayment} loading={paying} />
         </Card>
       </View>
     );
@@ -267,7 +266,7 @@ export default function CartScreen({ route, navigation }: Props) {
   if (cart.items.length === 0) {
     return (
       <View style={styles.center}>
-        <Text style={styles.mutedText}>السلة فارغة</Text>
+        <Text style={styles.mutedText}>{t('cart.emptyCart')}</Text>
       </View>
     );
   }
@@ -276,7 +275,7 @@ export default function CartScreen({ route, navigation }: Props) {
     <View style={styles.flex}>
       {cart.branchName && (
         <View style={styles.branchBanner}>
-          <Text style={styles.branchBannerText}>🏬 تتسوق من فرع: {cart.branchName}</Text>
+          <Text style={[styles.branchBannerText, { textAlign }]}>{tf('cart.shoppingFromBranch', cart.branchName)}</Text>
         </View>
       )}
       <FlatList
@@ -286,8 +285,8 @@ export default function CartScreen({ route, navigation }: Props) {
         ListHeaderComponent={
           supportsDelivery || supportsAgentDelivery ? (
             <View style={{ marginBottom: 4 }}>
-              <Text style={styles.label}>طريقة الاستلام</Text>
-              <View style={styles.chipsRow}>
+              <Text style={[styles.label, { textAlign }]}>{t('cart.pickupMethod')}</Text>
+              <View style={[styles.chipsRow, { flexDirection: row }]}>
                 {(['pickup', 'delivery'] as DeliveryType[]).map((v) => (
                   <Pressable
                     key={v}
@@ -305,8 +304,8 @@ export default function CartScreen({ route, navigation }: Props) {
                 <>
                   {bothDeliveryMethods && (
                     <>
-                      <Text style={styles.label}>طريقة التوصيل</Text>
-                      <View style={styles.chipsRow}>
+                      <Text style={[styles.label, { textAlign }]}>{t('cart.deliveryMethod')}</Text>
+                      <View style={[styles.chipsRow, { flexDirection: row }]}>
                         {(['courier', 'store_agent'] as DeliveryMethod[]).map((m) => (
                           <Pressable
                             key={m}
@@ -328,12 +327,9 @@ export default function CartScreen({ route, navigation }: Props) {
                   {deliveryMethod === 'store_agent' ? (
                     <>
                       {storeInfo?.agentDeliveryFee ? (
-                        <Text style={styles.priceNote}>+ رسوم توصيل {storeInfo.agentDeliveryFee} ﷼</Text>
+                        <Text style={[styles.priceNote, { textAlign }]}>{tf('cart.agentFee', storeInfo.agentDeliveryFee)}</Text>
                       ) : null}
-                      <Text style={styles.note2}>
-                        يوصّل هذا المحل بنفسه عبر مندوبه ضمن نطاق تغطية محدد — حدد موقعك للتحقق من توفر الخدمة في
-                        منطقتك.
-                      </Text>
+                      <Text style={[styles.note2, { textAlign }]}>{t('cart.agentNote')}</Text>
 
                       <Pressable
                         style={({ pressed }) => [styles.locateBtn, pressed && styles.btnPressed]}
@@ -343,33 +339,27 @@ export default function CartScreen({ route, navigation }: Props) {
                         {locating ? (
                           <ActivityIndicator color={colors.teal} size="small" />
                         ) : (
-                          <Text style={styles.locateBtnText}>📍 تحديد موقعي (إلزامي)</Text>
+                          <Text style={styles.locateBtnText}>{t('cart.setLocationRequired')}</Text>
                         )}
                       </Pressable>
                       {locateError ? <ErrorText>{locateError}</ErrorText> : null}
 
                       {coords && !locating && agentEligibility === true && (
-                        <Text style={styles.eligibleText}>
-                          ✅ أنت ضمن نطاق التوصيل — سيصلك الطلب خلال 24 ساعة
-                        </Text>
+                        <Text style={[styles.eligibleText, { textAlign }]}>{t('cart.eligible')}</Text>
                       )}
                       {coords && !locating && agentEligibility === false && (
-                        <Text style={styles.ineligibleText}>
-                          ❌ للأسف موقعك خارج نطاق توصيل هذا المحل — جرّب طريقة استلام أخرى
-                        </Text>
+                        <Text style={[styles.ineligibleText, { textAlign }]}>{t('cart.ineligible')}</Text>
                       )}
                     </>
                   ) : (
                     <>
                       {storeInfo?.deliveryFee ? (
-                        <Text style={styles.priceNote}>+ رسوم توصيل {storeInfo.deliveryFee} ﷼</Text>
+                        <Text style={[styles.priceNote, { textAlign }]}>{tf('cart.courierFee', storeInfo.deliveryFee)}</Text>
                       ) : null}
-                      <Text style={styles.note2}>
-                        التوصيل حالياً يدوي — المحل يتواصل معك لترتيب موعد التسليم مع شركة الشحن.
-                      </Text>
+                      <Text style={[styles.note2, { textAlign }]}>{t('cart.courierNote')}</Text>
 
-                      <Text style={styles.label}>شركة الشحن</Text>
-                      <View style={styles.chipsRow}>
+                      <Text style={[styles.label, { textAlign }]}>{t('cart.courierCompany')}</Text>
+                      <View style={[styles.chipsRow, { flexDirection: row }]}>
                         {(['aramex', 'fedex'] as CourierProvider[]).map((c) => (
                           <Pressable
                             key={c}
@@ -383,7 +373,7 @@ export default function CartScreen({ route, navigation }: Props) {
                         ))}
                       </View>
 
-                      <Text style={styles.label}>عنوان التوصيل</Text>
+                      <Text style={[styles.label, { textAlign }]}>{t('cart.deliveryAddress')}</Text>
 
                       <Pressable
                         style={({ pressed }) => [styles.locateBtn, pressed && styles.btnPressed]}
@@ -393,21 +383,21 @@ export default function CartScreen({ route, navigation }: Props) {
                         {locating ? (
                           <ActivityIndicator color={colors.teal} size="small" />
                         ) : (
-                          <Text style={styles.locateBtnText}>📍 استخدام موقعي الحالي</Text>
+                          <Text style={styles.locateBtnText}>{t('cart.useCurrentLocation')}</Text>
                         )}
                       </Pressable>
-                      {coords && !locating && <Text style={styles.locatedNote}>✓ تم تحديد موقعك بدقة GPS</Text>}
+                      {coords && !locating && <Text style={[styles.locatedNote, { textAlign }]}>{t('cart.locationConfirmed')}</Text>}
                       {locateError ? <ErrorText>{locateError}</ErrorText> : null}
 
                       <TextInput
                         style={styles.addressInput}
-                        placeholder="أو اكتب عنوانك بالتفصيل (الحي، الشارع، رقم المبنى...)"
+                        placeholder={t('cart.addressPlaceholder')}
                         placeholderTextColor={colors.muted}
-                        textAlign="right"
+                        textAlign={textAlign}
                         multiline
                         value={address}
-                        onChangeText={(t) => {
-                          setAddress(t);
+                        onChangeText={(val) => {
+                          setAddress(val);
                           setCoords(null);
                         }}
                       />
@@ -419,33 +409,33 @@ export default function CartScreen({ route, navigation }: Props) {
           ) : null
         }
         renderItem={({ item }) => (
-          <View style={styles.row}>
+          <View style={[styles.row, { flexDirection: row }]}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.name}>{item.name}</Text>
-              <Text style={styles.qty}>الكمية: {item.qty}</Text>
+              <Text style={[styles.name, { textAlign }]}>{item.name}</Text>
+              <Text style={[styles.qty, { textAlign }]}>{tf('cart.qtyLabel', String(item.qty))}</Text>
             </View>
             <Text style={styles.price}>{item.price * item.qty} ﷼</Text>
-            <SecondaryButton title="حذف" onPress={() => cart.removeItem(item.productId)} />
+            <SecondaryButton title={t('cart.delete')} onPress={() => cart.removeItem(item.productId)} />
           </View>
         )}
       />
       <View style={styles.footer}>
         {appliedCoupon ? (
-          <View style={styles.couponAppliedRow}>
+          <View style={[styles.couponAppliedRow, { flexDirection: row }]}>
             <Text style={styles.couponAppliedText}>
-              🏷️ {appliedCoupon.code} — خصم {appliedCoupon.discountAmount} ﷼
+              {tf('cart.couponApplied', appliedCoupon.code, String(appliedCoupon.discountAmount))}
             </Text>
             <Pressable onPress={handleRemoveCoupon} hitSlop={6}>
-              <Text style={styles.couponRemoveText}>إزالة</Text>
+              <Text style={styles.couponRemoveText}>{t('cart.remove')}</Text>
             </Pressable>
           </View>
         ) : (
-          <View style={styles.couponRow}>
+          <View style={[styles.couponRow, { flexDirection: row }]}>
             <TextInput
               style={styles.couponInput}
-              placeholder="كود الخصم (اختياري)"
+              placeholder={t('cart.couponPlaceholder')}
               placeholderTextColor={colors.muted}
-              textAlign="right"
+              textAlign={textAlign}
               autoCapitalize="characters"
               value={couponCode}
               onChangeText={setCouponCode}
@@ -458,7 +448,7 @@ export default function CartScreen({ route, navigation }: Props) {
               {couponChecking ? (
                 <ActivityIndicator color={colors.teal} size="small" />
               ) : (
-                <Text style={styles.couponBtnText}>تطبيق</Text>
+                <Text style={styles.couponBtnText}>{t('cart.apply')}</Text>
               )}
             </Pressable>
           </View>
@@ -466,19 +456,19 @@ export default function CartScreen({ route, navigation }: Props) {
         {couponError ? <ErrorText>{couponError}</ErrorText> : null}
 
         {(feeAmount > 0 || discountAmount > 0) && (
-          <Text style={styles.subtotal}>
-            المنتجات: {cart.total} ﷼
-            {discountAmount > 0 ? ` − خصم ${discountAmount} ﷼` : ''}
-            {feeAmount > 0 ? ` + توصيل ${feeAmount} ﷼` : ''}
+          <Text style={[styles.subtotal, { textAlign }]}>
+            {tf('cart.productsLine', String(cart.total))}
+            {discountAmount > 0 ? tf('cart.discountSuffix', String(discountAmount)) : ''}
+            {feeAmount > 0 ? tf('cart.deliverySuffix', String(feeAmount)) : ''}
           </Text>
         )}
         {vatAmount > 0 && (
-          <Text style={styles.subtotal}>+ ضريبة القيمة المضافة (15%): {vatAmount.toFixed(2)} ﷼</Text>
+          <Text style={[styles.subtotal, { textAlign }]}>{tf('cart.vatLine', vatAmount.toFixed(2))}</Text>
         )}
-        <Text style={styles.total}>الإجمالي: {grandTotal.toFixed(2)} ﷼</Text>
+        <Text style={[styles.total, { textAlign }]}>{tf('cart.grandTotal', grandTotal.toFixed(2))}</Text>
         {error ? <ErrorText>{error}</ErrorText> : null}
         <PrimaryButton
-          title="إتمام الطلب"
+          title={t('cart.placeOrder')}
           onPress={handlePlaceOrder}
           loading={placing}
           disabled={deliveryType === 'delivery' && deliveryMethod === 'store_agent' && agentEligibility !== true}
@@ -492,9 +482,8 @@ const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg, padding: 20 },
   branchBanner: { backgroundColor: colors.tealBg, paddingVertical: 8, paddingHorizontal: 14 },
-  branchBannerText: { fontFamily: fonts.bodyMedium, fontSize: 12.5, color: colors.tealDark, textAlign: 'right' },
+  branchBannerText: { fontFamily: fonts.bodyMedium, fontSize: 12.5, color: colors.tealDark },
   row: {
-    flexDirection: 'row-reverse',
     alignItems: 'center',
     gap: 10,
     backgroundColor: colors.card,
@@ -504,11 +493,11 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 10,
   },
-  name: { fontFamily: fonts.bodySemi, fontSize: 13.5, color: colors.text, textAlign: 'right' },
-  qty: { fontFamily: fonts.body, fontSize: 12, color: colors.muted, textAlign: 'right', marginTop: 2 },
+  name: { fontFamily: fonts.bodySemi, fontSize: 13.5, color: colors.text },
+  qty: { fontFamily: fonts.body, fontSize: 12, color: colors.muted, marginTop: 2 },
   price: { fontFamily: fonts.heading, fontSize: 13, color: colors.ink },
   footer: { padding: 16, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.card },
-  couponRow: { flexDirection: 'row-reverse', gap: 8, marginBottom: 10 },
+  couponRow: { gap: 8, marginBottom: 10 },
   couponInput: {
     flex: 1,
     borderWidth: 1,
@@ -531,7 +520,6 @@ const styles = StyleSheet.create({
   },
   couponBtnText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.tealDark },
   couponAppliedRow: {
-    flexDirection: 'row-reverse',
     justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: colors.greenBg,
@@ -542,15 +530,15 @@ const styles = StyleSheet.create({
   },
   couponAppliedText: { fontFamily: fonts.bodySemi, fontSize: 12.5, color: colors.green },
   couponRemoveText: { fontFamily: fonts.bodyMedium, fontSize: 12, color: colors.red, textDecorationLine: 'underline' },
-  subtotal: { fontFamily: fonts.body, fontSize: 12, color: colors.muted, textAlign: 'right', marginBottom: 4 },
-  total: { fontFamily: fonts.heading, fontSize: 16, color: colors.ink, textAlign: 'right', marginBottom: 12 },
+  subtotal: { fontFamily: fonts.body, fontSize: 12, color: colors.muted, marginBottom: 4 },
+  total: { fontFamily: fonts.heading, fontSize: 16, color: colors.ink, marginBottom: 12 },
   mutedText: { color: colors.muted, fontFamily: fonts.body, fontSize: 13, textAlign: 'center', marginBottom: 12 },
   successTitle: { fontFamily: fonts.heading, fontSize: 16, color: colors.ink, textAlign: 'center', marginBottom: 8 },
-  note: { fontFamily: fonts.body, fontSize: 12, color: colors.inkAlt, textAlign: 'right', marginVertical: 10 },
-  note2: { fontFamily: fonts.body, fontSize: 11.5, color: colors.muted, textAlign: 'right', marginBottom: 10 },
-  label: { fontFamily: fonts.bodyMedium, fontSize: 12.5, color: colors.muted, textAlign: 'right', marginBottom: 8 },
-  priceNote: { fontFamily: fonts.body, fontSize: 12, color: colors.muted, textAlign: 'right', marginBottom: 4 },
-  chipsRow: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: 8, marginBottom: 10 },
+  note: { fontFamily: fonts.body, fontSize: 12, color: colors.inkAlt, marginVertical: 10 },
+  note2: { fontFamily: fonts.body, fontSize: 11.5, color: colors.muted, marginBottom: 10 },
+  label: { fontFamily: fonts.bodyMedium, fontSize: 12.5, color: colors.muted, marginBottom: 8 },
+  priceNote: { fontFamily: fonts.body, fontSize: 12, color: colors.muted, marginBottom: 4 },
+  chipsRow: { flexWrap: 'wrap', gap: 8, marginBottom: 10 },
   chip: {
     backgroundColor: colors.chipBg,
     borderWidth: 1,
@@ -575,12 +563,11 @@ const styles = StyleSheet.create({
   },
   locateBtnText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.tealDark },
   btnPressed: { opacity: 0.8 },
-  locatedNote: { fontFamily: fonts.body, fontSize: 12, color: colors.green, textAlign: 'right', marginBottom: 8 },
+  locatedNote: { fontFamily: fonts.body, fontSize: 12, color: colors.green, marginBottom: 8 },
   eligibleText: {
     fontFamily: fonts.bodySemi,
     fontSize: 12.5,
     color: colors.green,
-    textAlign: 'right',
     backgroundColor: colors.greenBg,
     padding: 10,
     borderRadius: radius.sm,
@@ -590,7 +577,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodySemi,
     fontSize: 12.5,
     color: colors.red,
-    textAlign: 'right',
     backgroundColor: colors.redBg,
     padding: 10,
     borderRadius: radius.sm,

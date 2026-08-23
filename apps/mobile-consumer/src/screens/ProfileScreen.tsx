@@ -5,6 +5,7 @@ import type { RootStackParamList } from '@/navigation/types';
 import { apiFetch, ApiError, clearSession, getUser } from '@/lib/api';
 import { colors, fonts } from '@/theme/colors';
 import { Card, EmptyState, ErrorText, PrimaryButton, Stars } from '@/components/ui';
+import { useLocale } from '@/lib/i18n';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Profile'>;
 
@@ -17,6 +18,7 @@ interface MyReview {
 }
 
 export default function ProfileScreen({ navigation }: Props) {
+  const { t, textAlign, row } = useLocale();
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [reviews, setReviews] = useState<MyReview[]>([]);
@@ -31,7 +33,7 @@ export default function ProfileScreen({ navigation }: Props) {
       const data = await apiFetch<MyReview[]>('/reviews/me');
       setReviews(data);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'تعذّر تحميل تقييماتك');
+      setError(err instanceof ApiError ? err.message : t('profile.loadError'));
     } finally {
       setLoading(false);
     }
@@ -55,26 +57,26 @@ export default function ProfileScreen({ navigation }: Props) {
         ListHeaderComponent={
           <>
             <Card style={{ marginBottom: 14 }}>
-              <Text style={styles.name}>{name || 'مستخدم'}</Text>
-              <Text style={styles.phone}>{phone}</Text>
+              <Text style={[styles.name, { textAlign }]}>{name || t('profile.defaultUser')}</Text>
+              <Text style={[styles.phone, { textAlign }]}>{phone}</Text>
               <View style={{ marginTop: 14 }}>
-                <PrimaryButton title="تسجيل الخروج" onPress={handleLogout} />
+                <PrimaryButton title={t('profile.logout')} onPress={handleLogout} />
               </View>
             </Card>
-            <Text style={styles.sectionTitle}>تقييماتي</Text>
+            <Text style={[styles.sectionTitle, { textAlign }]}>{t('profile.myReviews')}</Text>
             {error ? <ErrorText>{error}</ErrorText> : null}
           </>
         }
         ListEmptyComponent={
-          !loading ? <EmptyState icon="⭐" text="لم تقيّم أي محل بعد" /> : null
+          !loading ? <EmptyState icon="⭐" text={t('profile.noReviewsYet')} /> : null
         }
         renderItem={({ item }) => (
           <View style={styles.reviewCard}>
-            <View style={styles.reviewTop}>
+            <View style={[styles.reviewTop, { flexDirection: row }]}>
               <Text style={styles.storeName}>{item.store.name}</Text>
               <Stars rating={item.rating} size={12} />
             </View>
-            {item.comment ? <Text style={styles.comment}>{item.comment}</Text> : null}
+            {item.comment ? <Text style={[styles.comment, { textAlign }]}>{item.comment}</Text> : null}
           </View>
         )}
       />

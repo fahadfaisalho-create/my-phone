@@ -8,23 +8,26 @@ import { requireAuth } from '@/lib/authGuard';
 import { StoreBranch, VisitType } from '@/lib/types';
 import { colors, fonts, radius } from '@/theme/colors';
 import { Card, ErrorText, PrimaryButton, ScreenLoading } from '@/components/ui';
-
-const VISIT_LABEL: Record<VisitType, string> = {
-  in_store: '🏬 بالمحل',
-  home_visit: '🚗 زيارة منزلية',
-};
+import { useLocale } from '@/lib/i18n';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Booking'>;
 
 const TIME_SLOTS = ['09:00', '11:00', '13:00', '15:00', '17:00', '19:00'];
 
-function dateLabel(offsetDays: number) {
+function dateLabel(offsetDays: number, dateLocale: string) {
   const d = new Date();
   d.setDate(d.getDate() + offsetDays);
-  return { date: d, label: d.toLocaleDateString('ar-SA', { weekday: 'short', day: 'numeric', month: 'short' }) };
+  return { date: d, label: d.toLocaleDateString(dateLocale, { weekday: 'short', day: 'numeric', month: 'short' }) };
 }
 
 export default function BookingScreen({ route, navigation }: Props) {
+  const { t, tf, locale, row, textAlign } = useLocale();
+  const dateLocale = locale === 'ar' ? 'ar-SA' : 'en-US';
+  const VISIT_LABEL: Record<VisitType, string> = {
+    in_store: t('booking.visitInStore'),
+    home_visit: t('booking.visitHomeVisit'),
+  };
+
   const { storeId, serviceId, serviceName } = route.params;
   const [branches, setBranches] = useState<StoreBranch[]>([]);
   const [laborPrice, setLaborPrice] = useState<string | null>(null);
@@ -44,7 +47,7 @@ export default function BookingScreen({ route, navigation }: Props) {
   const [success, setSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  const days = [0, 1, 2, 3].map((n) => ({ offset: n, ...dateLabel(n) }));
+  const days = [0, 1, 2, 3].map((n) => ({ offset: n, ...dateLabel(n, dateLocale) }));
 
   useEffect(() => {
     (async () => {
@@ -70,11 +73,12 @@ export default function BookingScreen({ route, navigation }: Props) {
           setVisitType(svc.supportsInStore ? 'in_store' : 'home_visit');
         }
       } catch (err) {
-        setError(err instanceof ApiError ? err.message : 'تعذّر تحميل الفروع');
+        setError(err instanceof ApiError ? err.message : t('booking.loadError'));
       } finally {
         setLoading(false);
       }
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storeId]);
 
   // يجيب موقع الجهاز فعليًا (GPS) بدل الاعتماد على كتابة العنوان يدويًا — لدقة أعلى بالزيارة المنزلية
@@ -84,7 +88,7 @@ export default function BookingScreen({ route, navigation }: Props) {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        setLocateError('يجب السماح بالوصول لموقعك من إعدادات الجهاز لاستخدام هذه الميزة');
+        setLocateError(t('booking.locationPermission'));
         return;
       }
       const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
@@ -99,7 +103,7 @@ export default function BookingScreen({ route, navigation }: Props) {
         setAddress(`${latitude.toFixed(5)}, ${longitude.toFixed(5)}`);
       }
     } catch {
-      setLocateError('تعذّر تحديد موقعك، تأكد من تفعيل خدمة الموقع بالجهاز');
+      setLocateError(t('booking.locationError'));
     } finally {
       setLocating(false);
     }
@@ -108,11 +112,11 @@ export default function BookingScreen({ route, navigation }: Props) {
   async function handleSubmit() {
     if (!(await requireAuth(navigation, { screen: 'StoreDetail', params: { storeId } }))) return;
     if (!branchId || dayOffset === null || !time) {
-      setError('اختر الفرع والتاريخ والوقت');
+      setError(t('booking.selectBranchDateTime'));
       return;
     }
     if (visitType === 'home_visit' && !address.trim()) {
-      setError('اكتب عنوان الزيارة');
+      setError(t('booking.addressRequired'));
       return;
     }
     setError('');
@@ -140,7 +144,7 @@ export default function BookingScreen({ route, navigation }: Props) {
       });
       setSuccess(true);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'تعذّر إنشاء الحجز');
+      setError(err instanceof ApiError ? err.message : t('booking.submitError'));
     } finally {
       setSubmitting(false);
     }
@@ -152,9 +156,9 @@ export default function BookingScreen({ route, navigation }: Props) {
     return (
       <View style={styles.center}>
         <Card style={{ width: '100%' }}>
-          <Text style={styles.successTitle}>تم إرسال طلب الحجز ✅</Text>
-          <Text style={styles.mutedText}>سيتواصل معك المحل لتأكيد الموعد. يمكنك متابعة حالة الحجز من "حجوزاتي".</Text>
-          <PrimaryButton title="حجوزاتي" onPress={() => navigation.replace('MyBookings')} />
+          <Text style={styles.successTitle}>{t('booking.successTitle')}</Text>
+          <Text style={[styles.mutedText, { textAlign }]}>{t('booking.successNote')}</Text>
+          <PrimaryButton title={t('booking.myBookings')} onPress={() => navigation.replace('MyBookings')} />
         </Card>
       </View>
     );
@@ -163,13 +167,13 @@ export default function BookingScreen({ route, navigation }: Props) {
   return (
     <ScrollView style={styles.flex} contentContainerStyle={{ padding: 16 }}>
       <Card>
-        <Text style={styles.title}>حجز: {serviceName}</Text>
-        {laborPrice ? <Text style={styles.priceNote}>شغل يد {laborPrice} ﷼ (قد يضاف سعر قطع الغيار عند الفحص)</Text> : null}
+        <Text style={[styles.title, { textAlign }]}>{tf('booking.bookingTitle', serviceName)}</Text>
+        {laborPrice ? <Text style={[styles.priceNote, { textAlign }]}>{tf('booking.laborPrice', laborPrice)}</Text> : null}
 
         {supportsInStore && supportsHomeVisit && (
           <>
-            <Text style={styles.label}>نوع الحجز</Text>
-            <View style={styles.chipsRow}>
+            <Text style={[styles.label, { textAlign }]}>{t('booking.bookingType')}</Text>
+            <View style={[styles.chipsRow, { flexDirection: row }]}>
               {(['in_store', 'home_visit'] as VisitType[]).map((v) => (
                 <Pressable
                   key={v}
@@ -186,9 +190,9 @@ export default function BookingScreen({ route, navigation }: Props) {
         {visitType === 'home_visit' && (
           <>
             {homeVisitFee ? (
-              <Text style={styles.priceNote}>+ رسوم زيارة منزلية {homeVisitFee} ﷼</Text>
+              <Text style={[styles.priceNote, { textAlign }]}>{tf('booking.homeVisitFee', homeVisitFee)}</Text>
             ) : null}
-            <Text style={styles.label}>عنوان الزيارة</Text>
+            <Text style={[styles.label, { textAlign }]}>{t('booking.visitAddress')}</Text>
 
             <Pressable
               style={({ pressed }) => [styles.locateBtn, pressed && styles.btnPressed]}
@@ -198,29 +202,29 @@ export default function BookingScreen({ route, navigation }: Props) {
               {locating ? (
                 <ActivityIndicator color={colors.teal} size="small" />
               ) : (
-                <Text style={styles.locateBtnText}>📍 استخدام موقعي الحالي</Text>
+                <Text style={styles.locateBtnText}>{t('booking.useCurrentLocation')}</Text>
               )}
             </Pressable>
-            {coords && !locating && <Text style={styles.locatedNote}>✓ تم تحديد موقعك بدقة GPS</Text>}
+            {coords && !locating && <Text style={[styles.locatedNote, { textAlign }]}>{t('booking.locationConfirmed')}</Text>}
             {locateError ? <ErrorText>{locateError}</ErrorText> : null}
 
             <TextInput
               style={styles.addressInput}
-              placeholder="أو اكتب عنوانك بالتفصيل (الحي، الشارع، رقم المبنى...)"
+              placeholder={t('booking.addressPlaceholder')}
               placeholderTextColor={colors.muted}
-              textAlign="right"
+              textAlign={textAlign}
               multiline
               value={address}
-              onChangeText={(t) => {
-                setAddress(t);
+              onChangeText={(val) => {
+                setAddress(val);
                 setCoords(null);
               }}
             />
           </>
         )}
 
-        <Text style={styles.label}>الفرع</Text>
-        <View style={styles.chipsRow}>
+        <Text style={[styles.label, { textAlign }]}>{t('booking.branch')}</Text>
+        <View style={[styles.chipsRow, { flexDirection: row }]}>
           {branches.map((b) => (
             <Pressable
               key={b.id}
@@ -230,11 +234,11 @@ export default function BookingScreen({ route, navigation }: Props) {
               <Text style={[styles.chipText, branchId === b.id && styles.chipTextOn]}>{b.name}</Text>
             </Pressable>
           ))}
-          {branches.length === 0 && <Text style={styles.mutedText}>لا يوجد فروع متاحة</Text>}
+          {branches.length === 0 && <Text style={[styles.mutedText, { textAlign }]}>{t('booking.noBranches')}</Text>}
         </View>
 
-        <Text style={styles.label}>التاريخ</Text>
-        <View style={styles.chipsRow}>
+        <Text style={[styles.label, { textAlign }]}>{t('booking.date')}</Text>
+        <View style={[styles.chipsRow, { flexDirection: row }]}>
           {days.map((d) => (
             <Pressable
               key={d.offset}
@@ -246,17 +250,17 @@ export default function BookingScreen({ route, navigation }: Props) {
           ))}
         </View>
 
-        <Text style={styles.label}>الوقت</Text>
-        <View style={styles.chipsRow}>
-          {TIME_SLOTS.map((t) => (
-            <Pressable key={t} style={[styles.chip, time === t && styles.chipOn]} onPress={() => setTime(t)}>
-              <Text style={[styles.chipText, time === t && styles.chipTextOn]}>{t}</Text>
+        <Text style={[styles.label, { textAlign }]}>{t('booking.time')}</Text>
+        <View style={[styles.chipsRow, { flexDirection: row }]}>
+          {TIME_SLOTS.map((slot) => (
+            <Pressable key={slot} style={[styles.chip, time === slot && styles.chipOn]} onPress={() => setTime(slot)}>
+              <Text style={[styles.chipText, time === slot && styles.chipTextOn]}>{slot}</Text>
             </Pressable>
           ))}
         </View>
 
         {error ? <ErrorText>{error}</ErrorText> : null}
-        <PrimaryButton title="تأكيد الحجز" onPress={handleSubmit} loading={submitting} />
+        <PrimaryButton title={t('booking.confirmBooking')} onPress={handleSubmit} loading={submitting} />
       </Card>
     </ScrollView>
   );
@@ -265,10 +269,10 @@ export default function BookingScreen({ route, navigation }: Props) {
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg, padding: 20 },
-  title: { fontFamily: fonts.heading, fontSize: 16, color: colors.ink, textAlign: 'right', marginBottom: 4 },
-  priceNote: { fontFamily: fonts.body, fontSize: 12, color: colors.muted, textAlign: 'right', marginBottom: 16 },
-  label: { fontFamily: fonts.bodyMedium, fontSize: 12.5, color: colors.muted, textAlign: 'right', marginBottom: 8 },
-  chipsRow: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
+  title: { fontFamily: fonts.heading, fontSize: 16, color: colors.ink, marginBottom: 4 },
+  priceNote: { fontFamily: fonts.body, fontSize: 12, color: colors.muted, marginBottom: 16 },
+  label: { fontFamily: fonts.bodyMedium, fontSize: 12.5, color: colors.muted, marginBottom: 8 },
+  chipsRow: { flexWrap: 'wrap', gap: 8, marginBottom: 16 },
   chip: {
     backgroundColor: colors.chipBg,
     borderWidth: 1,
@@ -280,7 +284,7 @@ const styles = StyleSheet.create({
   chipOn: { backgroundColor: colors.teal, borderColor: colors.teal },
   chipText: { fontFamily: fonts.bodyMedium, fontSize: 12.5, color: colors.text },
   chipTextOn: { color: '#fff' },
-  mutedText: { color: colors.muted, fontFamily: fonts.body, fontSize: 13, textAlign: 'right', marginBottom: 14 },
+  mutedText: { color: colors.muted, fontFamily: fonts.body, fontSize: 13, marginBottom: 14 },
   locateBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -298,7 +302,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body,
     fontSize: 12,
     color: colors.green,
-    textAlign: 'right',
     marginBottom: 8,
   },
   addressInput: {
