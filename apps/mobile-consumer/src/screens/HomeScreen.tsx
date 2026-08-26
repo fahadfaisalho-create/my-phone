@@ -129,7 +129,9 @@ export default function HomeScreen({ navigation }: Props) {
             style={({ pressed }) => [styles.quickLink, pressed && styles.quickLinkPressed]}
             onPress={() => handleQuickLink(q.screen)}
           >
-            <Text style={styles.quickLinkIcon}>{q.icon}</Text>
+            <View style={styles.quickLinkIconWrap}>
+              <Text style={styles.quickLinkIcon}>{q.icon}</Text>
+            </View>
             <Text style={styles.quickLinkText}>{t(q.labelKey)}</Text>
           </Pressable>
         ))}
@@ -280,7 +282,15 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   quickLinkPressed: { backgroundColor: colors.chipBg },
-  quickLinkIcon: { fontSize: 18 },
+  quickLinkIconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: radius.sm,
+    backgroundColor: colors.indigoTint,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickLinkIcon: { fontSize: 16 },
   quickLinkText: { fontFamily: fonts.bodyMedium, fontSize: 11.5, color: colors.text },
   featuredSection: { marginTop: 18 },
   featuredTitle: {
