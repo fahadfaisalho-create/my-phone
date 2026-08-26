@@ -6,7 +6,7 @@ import { Technician } from '@/lib/types';
 import FileField from '@/components/FileField';
 import { useLocale } from '@/lib/i18n';
 
-export default function TechniciansTab() {
+export default function TechniciansTab({ onChanged }: { onChanged?: () => void }) {
   const { t, tf } = useLocale();
   const [technicians, setTechnicians] = useState<Technician[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,6 +63,7 @@ export default function TechniciansTab() {
       setPhoto(null);
       setLicenseFile(null);
       await load();
+      onChanged?.();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t('technicians.saveError'));
     } finally {
@@ -74,6 +75,7 @@ export default function TechniciansTab() {
     try {
       await apiFetch(`/stores/me/technicians/${id}`, { method: 'DELETE' });
       await load();
+      onChanged?.();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t('technicians.deleteError'));
     }

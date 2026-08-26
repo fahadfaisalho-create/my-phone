@@ -6,7 +6,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../auth/types';
 import { BranchesService } from './branches.service';
 import { CreateBranchDto } from './dto/create-branch.dto';
-import { UpdateBranchDto } from './dto/update-branch.dto';
+import { RenameBranchDto } from './dto/rename-branch.dto';
 
 @Controller('stores/me/branches')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -24,13 +24,14 @@ export class BranchesController {
     return this.branchesService.create(user.id, dto);
   }
 
+  // تعديل الفرع بعد الإنشاء يقتصر على الاسم فقط — الموقع مقفل نهائياً
   @Patch(':id')
-  update(
+  rename(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
-    @Body() dto: UpdateBranchDto,
+    @Body() dto: RenameBranchDto,
   ) {
-    return this.branchesService.update(user.id, id, dto);
+    return this.branchesService.rename(user.id, id, dto);
   }
 
   @Delete(':id')

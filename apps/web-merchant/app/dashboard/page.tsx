@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiFetch, ApiError, clearSession, getToken } from '@/lib/api';
 import { routeForStatus } from '@/lib/routing';
@@ -39,9 +39,15 @@ const TABS = [
 
 type TabKey = (typeof TABS)[number]['key'];
 
+// خطوات فتح لوحة التاجر تدريجياً: الفروع وفريق الصيانة متاحين من البداية،
+// المنتجات تحتاج فرعاً واحداً على الأقل، المخزون وبقية الأقسام تحتاج منتجاً
+// واحداً على الأقل، والخدمات تحتاج فرداً واحداً على الأقل بفريق الصيانة.
+// يطبَّق فقط على حسابات المحلات (الشركات) — الفني المستقل ليس له هذا التدرج أصلاً.
+const NEEDS_PRODUCT: TabKey[] = ['inventory', 'bookings', 'orders', 'coupons', 'ads', 'messages', 'stats', 'support', 'settings'];
+
 export default function DashboardPage() {
   const router = useRouter();
-  const { t } = useLocale();
+  const { t, tf } = useLocale();
   const [store, setStore] = useState<Store | null>(null);
   const [tab, setTab] = useState<TabKey>('branches');
   const [paying, setPaying] = useState(false);
@@ -50,6 +56,26 @@ export default function DashboardPage() {
   const [applyingCoupon, setApplyingCoupon] = useState(false);
   const [couponError, setCouponError] = useState('');
   const [couponSuccess, setCouponSuccess] = useState(false);
+
+  const [branchCount, setBranchCount] = useState<number | null>(null);
+  const [productCount, setProductCount] = useState<number | null>(null);
+  const [technicianCount, setTechnicianCount] = useState<number | null>(null);
+  const [lockHint, setLockHint] = useState('');
+
+  const loadUnlockCounts = useCallback(async () => {
+    try {
+      const [branches, products, technicians] = await Promise.all([
+        apiFetch<unknown[]>('/stores/me/branches'),
+        apiFetch<unknown[]>('/stores/me/products'),
+        apiFetch<unknown[]>('/stores/me/technicians'),
+      ]);
+      setBranchCount(branches.length);
+      setProductCount(products.length);
+      setTechnicianCount(technicians.length);
+    } catch {
+      // فشل تحميل عدّادات الفتح التدريجي — يبقى كل شي مقفل احتياطاً لحد نجاح التحميل
+    }
+  }, []);
 
   async function loadStore() {
     try {
@@ -70,8 +96,22 @@ export default function DashboardPage() {
       return;
     }
     loadStore();
+    loadUnlockCounts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
+
+  // لو صار القسم الحالي مقفلاً بسبب تغيّر البيانات (مثلاً حذف آخر منتج وهو
+  // بشاشة المخزون)، يرجّعه تلقائياً لأول قسم متاح بدل ما يبقى معلّقاً بمحتوى مقفل
+  useEffect(() => {
+    if (!store || store.providerType === 'individual') return;
+    const needsProduct = NEEDS_PRODUCT.includes(tab);
+    const currentlyLocked =
+      (tab === 'products' && (branchCount ?? 0) === 0) ||
+      (tab === 'services' && (technicianCount ?? 0) === 0) ||
+      (needsProduct && (productCount ?? 0) === 0);
+    if (currentlyLocked) setTab('branches');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [branchCount, productCount, technicianCount, store]);
 
   function handleExit() {
     clearSession();
@@ -85,7 +125,7 @@ export default function DashboardPage() {
       await apiFetch('/stores/me/subscription/confirm-payment', { method: 'POST' });
       await loadStore();
     } catch (err) {
-      setPayError(err instanceof ApiError ? err.message : 'تعذّر تأكيد الدفع');
+      setPayError(err instanceof ApiError ? err.message : t('dashboard.paymentError'));
     } finally {
       setPaying(false);
     }
@@ -105,74 +145,106 @@ export default function DashboardPage() {
       setCouponSuccess(true);
       await loadStore();
     } catch (err) {
-      setCouponError(err instanceof ApiError ? err.message : 'تعذّر تطبيق الكوبون');
+      setCouponError(err instanceof ApiError ? err.message : t('dashboard.couponError'));
     } finally {
       setApplyingCoupon(false);
     }
   }
 
-  if (!store) return <div className="app spinner-wrap">جارٍ التحميل...</div>;
+  if (!store) return <div className="app spinner-wrap">{t('dashboard.loading')}</div>;
 
   const sub = store.subscriptions?.[0];
+  const isIndividual = store.providerType === 'individual';
   // الفني المستقل: بدون فروع متعددة أو منتجات/مخزون أو موظفين — خدمات شخصية فقط
   // (وبدون كوبونات — الكوبون يخصم من طلبات شراء المنتجات وهو ما عنده منتجات أصلاً)
   const HIDDEN_FOR_INDIVIDUAL: TabKey[] = ['branches', 'products', 'inventory', 'technicians', 'orders', 'coupons'];
-  const visibleTabs =
-    store.providerType === 'individual' ? TABS.filter((t) => !HIDDEN_FOR_INDIVIDUAL.includes(t.key)) : TABS;
-  const effectiveTab = visibleTabs.some((t) => t.key === tab) ? tab : visibleTabs[0].key;
+  const visibleTabs = isIndividual ? TABS.filter((tabDef) => !HIDDEN_FOR_INDIVIDUAL.includes(tabDef.key)) : TABS;
+  const effectiveTab = visibleTabs.some((tabDef) => tabDef.key === tab) ? tab : visibleTabs[0].key;
+
+  // خرائط القفل — لا تُطبَّق أبداً على حساب الفني المستقل
+  const countsReady = branchCount !== null && productCount !== null && technicianCount !== null;
+  function lockReason(key: TabKey): string | null {
+    if (isIndividual || !countsReady) return null;
+    if (key === 'products' && (branchCount ?? 0) === 0) return t('unlock.needBranch');
+    if (key === 'services' && (technicianCount ?? 0) === 0) return t('unlock.needTechnician');
+    if (NEEDS_PRODUCT.includes(key) && (productCount ?? 0) === 0) return t('unlock.needProduct');
+    return null;
+  }
+
+  function handleTabClick(key: TabKey) {
+    const reason = lockReason(key);
+    if (reason) {
+      setLockHint(reason);
+      return;
+    }
+    setLockHint('');
+    setTab(key);
+  }
 
   return (
     <div className="app">
       <Topbar
         title={store.name}
-        roleLabel={store.providerType === 'individual' ? t('dashboard.roleIndividual') : t('dashboard.roleMerchant')}
+        roleLabel={isIndividual ? t('dashboard.roleIndividual') : t('dashboard.roleMerchant')}
         onExit={handleExit}
       />
 
       {sub && !sub.paidAt && (
         <div className="note" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
           <span>
-            فاتورة الاشتراك ({sub.price} ﷼{sub.discountAmount ? ` بعد خصم ${sub.discountAmount} ﷼` : ''}
-            {sub.vatAmount ? ` شاملة ضريبة القيمة المضافة ${sub.vatAmount} ﷼` : ''}) غير مدفوعة بعد. بوابة الدفع
-            الفعلية غير مربوطة حالياً — هذا الزر يحاكي نجاح الدفع فوراً.
+            {tf('dashboard.invoiceLine', sub.price)}
+            {sub.discountAmount ? tf('dashboard.afterDiscount', sub.discountAmount) : ''}
+            {sub.vatAmount ? tf('dashboard.vatIncluded', sub.vatAmount) : ''}
+            {t('dashboard.invoiceUnpaidNote')}
           </span>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             {!sub.couponId && (
               <>
                 <input
-                  placeholder="كود خصم (اختياري)"
+                  placeholder={t('dashboard.couponPlaceholder')}
                   value={couponCode}
                   onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
                   style={{ marginBottom: 0, width: 160 }}
                 />
                 <button className="secondary" onClick={handleApplyCoupon} disabled={applyingCoupon || !couponCode.trim()}>
-                  {applyingCoupon ? '...' : 'تطبيق'}
+                  {applyingCoupon ? '...' : t('dashboard.apply')}
                 </button>
               </>
             )}
             <button className="primary" onClick={handlePaySubscription} disabled={paying}>
-              {paying ? 'جارٍ الدفع...' : 'ادفع الآن'}
+              {paying ? t('dashboard.paying') : t('dashboard.payNow')}
             </button>
           </div>
         </div>
       )}
       {couponError && <div className="err">{couponError}</div>}
-      {couponSuccess && <div className="note" style={{ color: 'var(--ink)' }}>✓ تم تطبيق الكوبون على اشتراكك</div>}
+      {couponSuccess && <div className="note" style={{ color: 'var(--ink)' }}>{t('dashboard.couponAppliedSuccess')}</div>}
       {payError && <div className="err">{payError}</div>}
 
       <div className="tabs">
-        {visibleTabs.map((tabItem) => (
-          <button key={tabItem.key} className={effectiveTab === tabItem.key ? 'on' : ''} onClick={() => setTab(tabItem.key)}>
-            {t(tabItem.navKey)}
-          </button>
-        ))}
+        {visibleTabs.map((tabItem) => {
+          const locked = !!lockReason(tabItem.key);
+          return (
+            <button
+              key={tabItem.key}
+              className={effectiveTab === tabItem.key ? 'on' : ''}
+              onClick={() => handleTabClick(tabItem.key)}
+              style={locked ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
+              title={lockReason(tabItem.key) || undefined}
+            >
+              {locked ? '🔒 ' : ''}
+              {t(tabItem.navKey)}
+            </button>
+          );
+        })}
       </div>
+      {lockHint && <div className="note" style={{ color: 'var(--amber, #8A5A0B)' }}>{lockHint}</div>}
 
-      {effectiveTab === 'branches' && <BranchesTab />}
+      {effectiveTab === 'branches' && <BranchesTab onChanged={loadUnlockCounts} />}
       {effectiveTab === 'services' && <ServicesTab />}
-      {effectiveTab === 'products' && <ProductsTab />}
+      {effectiveTab === 'products' && <ProductsTab onChanged={loadUnlockCounts} />}
       {effectiveTab === 'inventory' && <InventoryTab />}
-      {effectiveTab === 'technicians' && <TechniciansTab />}
+      {effectiveTab === 'technicians' && <TechniciansTab onChanged={loadUnlockCounts} />}
       {effectiveTab === 'bookings' && <BookingsTab />}
       {effectiveTab === 'orders' && <OrdersTab />}
       {effectiveTab === 'coupons' && <CouponsTab />}

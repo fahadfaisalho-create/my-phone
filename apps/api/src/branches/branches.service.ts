@@ -2,7 +2,7 @@ import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/commo
 import { PrismaService } from '../prisma/prisma.service';
 import { getOwnedStoreOrThrow } from '../common/get-owned-store.util';
 import { CreateBranchDto } from './dto/create-branch.dto';
-import { UpdateBranchDto } from './dto/update-branch.dto';
+import { RenameBranchDto } from './dto/rename-branch.dto';
 
 @Injectable()
 export class BranchesService {
@@ -29,9 +29,10 @@ export class BranchesService {
     return branch;
   }
 
-  async update(ownerUserId: string, branchId: string, dto: UpdateBranchDto) {
+  // الاسم فقط قابل للتعديل — الموقع (العنوان/الإحداثيات) يبقى كما أُنشئ به الفرع
+  async rename(ownerUserId: string, branchId: string, dto: RenameBranchDto) {
     await this.findOwned(ownerUserId, branchId);
-    return this.prisma.branch.update({ where: { id: branchId }, data: dto });
+    return this.prisma.branch.update({ where: { id: branchId }, data: { name: dto.name } });
   }
 
   async remove(ownerUserId: string, branchId: string) {

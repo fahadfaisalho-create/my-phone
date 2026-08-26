@@ -6,7 +6,7 @@ import { Branch } from '@/lib/types';
 import BranchMapPicker from '@/components/BranchMapPicker';
 import { useLocale } from '@/lib/i18n';
 
-export default function BranchesTab() {
+export default function BranchesTab({ onChanged }: { onChanged?: () => void }) {
   const { t } = useLocale();
   const [branches, setBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState(true);
@@ -16,6 +16,10 @@ export default function BranchesTab() {
   const [lat, setLat] = useState<number | null>(null);
   const [lng, setLng] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
+
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState('');
+  const [renaming, setRenaming] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -53,6 +57,7 @@ export default function BranchesTab() {
       setLat(null);
       setLng(null);
       await load();
+      onChanged?.();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t('branches.addError'));
     } finally {
@@ -64,8 +69,38 @@ export default function BranchesTab() {
     try {
       await apiFetch(`/stores/me/branches/${id}`, { method: 'DELETE' });
       await load();
+      onChanged?.();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t('branches.deleteError'));
+    }
+  }
+
+  function startEdit(b: Branch) {
+    setEditingId(b.id);
+    setEditName(b.name);
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setEditName('');
+  }
+
+  async function saveEdit(id: string) {
+    if (!editName.trim()) return;
+    setRenaming(true);
+    setError('');
+    try {
+      await apiFetch(`/stores/me/branches/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ name: editName.trim() }),
+      });
+      setEditingId(null);
+      setEditName('');
+      await load();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : t('branches.renameError'));
+    } finally {
+      setRenaming(false);
     }
   }
 
@@ -102,29 +137,52 @@ export default function BranchesTab() {
           <p style={{ color: 'var(--muted)', fontSize: 13 }}>{t('branches.empty')}</p>
         ) : (
           branches.map((b) => (
-            <div className="rowline" key={b.id}>
-              <span>{b.name}</span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={{ color: 'var(--muted)' }}>
-                  {b.address}
-                  {b.lat !== null && b.lng !== null && (
-                    <>
-                      {' '}
-                      ·{' '}
-                      <a
-                        href={`https://www.google.com/maps?q=${b.lat},${b.lng}`}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        {t('branches.viewOnMap')}
-                      </a>
-                    </>
-                  )}
+            <div className="rowline" key={b.id} style={{ alignItems: 'flex-start' }}>
+              {editingId === b.id ? (
+                <span style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
+                  <input
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    style={{ marginBottom: 0, flex: 1 }}
+                    autoFocus
+                  />
+                  <button className="link" onClick={() => saveEdit(b.id)} disabled={renaming || !editName.trim()}>
+                    {t('branches.save')}
+                  </button>
+                  <button className="link" onClick={cancelEdit} disabled={renaming}>
+                    {t('branches.cancel')}
+                  </button>
                 </span>
-                <button className="link" onClick={() => handleDelete(b.id)}>
-                  {t('common.delete')}
-                </button>
-              </span>
+              ) : (
+                <>
+                  <span>{b.name}</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ color: 'var(--muted)' }}>
+                      {b.address}
+                      {b.lat !== null && b.lng !== null && (
+                        <>
+                          {' '}
+                          ·{' '}
+                          <a
+                            href={`https://www.google.com/maps?q=${b.lat},${b.lng}`}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            {t('branches.viewOnMap')}
+                          </a>
+                        </>
+                      )}
+                      {' '}· <span title={t('branches.locationLocked')}>🔒</span>
+                    </span>
+                    <button className="link" onClick={() => startEdit(b)}>
+                      {t('branches.edit')}
+                    </button>
+                    <button className="link" onClick={() => handleDelete(b.id)}>
+                      {t('common.delete')}
+                    </button>
+                  </span>
+                </>
+              )}
             </div>
           ))
         )}

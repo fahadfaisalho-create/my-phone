@@ -5,14 +5,16 @@ import { apiFetch, ApiError, fileUrl } from '@/lib/api';
 import { Branch, Product } from '@/lib/types';
 import FileField from '@/components/FileField';
 import { useLocale } from '@/lib/i18n';
+import { removeImageBackground } from '@/lib/removeImageBackground';
 
-export default function ProductsTab() {
+export default function ProductsTab({ onChanged }: { onChanged?: () => void }) {
   const { t, tf } = useLocale();
   const [products, setProducts] = useState<Product[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [processingImage, setProcessingImage] = useState(false);
 
   const [name, setName] = useState('');
   const [category, setCategory] = useState('');
@@ -44,8 +46,32 @@ export default function ProductsTab() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // يشتغل بالكامل بالمتصفح (بدون أي خدمة خارجية أو مفتاح API) — يزيل خلفية
+  // الصورة تلقائياً ويستبدلها بخلفية بيضاء نظيفة، ثم يعتمد الصورة المعالَجة
+  async function handlePickImage(file: File | null) {
+    if (!file) {
+      setImage(null);
+      return;
+    }
+    setError('');
+    setProcessingImage(true);
+    try {
+      const processed = await removeImageBackground(file);
+      setImage(processed);
+    } catch {
+      setError(t('products.imageProcessError'));
+      setImage(file);
+    } finally {
+      setProcessingImage(false);
+    }
+  }
+
   async function handleAdd() {
     if (!name.trim() || !price) return;
+    if (!image) {
+      setError(t('products.imageRequired'));
+      return;
+    }
     setSaving(true);
     setError('');
     try {
@@ -55,7 +81,7 @@ export default function ProductsTab() {
       form.append('price', price);
       if (qty) form.append('quantity', qty);
       if (desc.trim()) form.append('description', desc.trim());
-      if (image) form.append('image', image);
+      form.append('image', image);
       if (branchId) form.append('branchId', branchId);
 
       await apiFetch('/stores/me/products', { method: 'POST', body: form });
@@ -67,6 +93,7 @@ export default function ProductsTab() {
       setImage(null);
       setBranchId('');
       await load();
+      onChanged?.();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t('products.saveError'));
     } finally {
@@ -78,6 +105,7 @@ export default function ProductsTab() {
     try {
       await apiFetch(`/stores/me/products/${id}`, { method: 'DELETE' });
       await load();
+      onChanged?.();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t('products.deleteError'));
     }
@@ -127,9 +155,17 @@ export default function ProductsTab() {
             </select>
           </>
         )}
-        <FileField label={t('products.imageLabel')} accept="image/*" file={image} onChange={setImage} previewAsImage />
+        <FileField
+          label={`${t('products.imageLabel')} *`}
+          required
+          accept="image/*"
+          file={image}
+          onChange={handlePickImage}
+          previewAsImage
+        />
+        {processingImage && <p className="note">{t('products.processingImage')}</p>}
         {error && <div className="err">{error}</div>}
-        <button className="primary" onClick={handleAdd} disabled={saving || !name.trim() || !price}>
+        <button className="primary" onClick={handleAdd} disabled={saving || processingImage || !name.trim() || !price || !image}>
           {saving ? t('common.saving') : t('products.saveAndPublish')}
         </button>
       </div>

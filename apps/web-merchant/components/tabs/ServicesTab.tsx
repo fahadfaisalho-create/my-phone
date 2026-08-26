@@ -13,6 +13,7 @@ export default function ServicesTab() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [busyName, setBusyName] = useState<string | null>(null);
+  const [customService, setCustomService] = useState('');
 
   async function load() {
     setLoading(true);
@@ -95,6 +96,29 @@ export default function ServicesTab() {
             </span>
           );
         })}
+      </div>
+      <div className="row2" style={{ marginTop: 10 }}>
+        <input
+          placeholder={t('services.customServicePlaceholder')}
+          value={customService}
+          onChange={(e) => setCustomService(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && customService.trim()) {
+              toggleService(customService.trim());
+              setCustomService('');
+            }
+          }}
+        />
+        <button
+          className="secondary"
+          disabled={!!busyName || !customService.trim()}
+          onClick={() => {
+            toggleService(customService.trim());
+            setCustomService('');
+          }}
+        >
+          {t('services.addCustomService')}
+        </button>
       </div>
       {error && <div className="err" style={{ marginTop: 10 }}>{error}</div>}
 

@@ -37,6 +37,9 @@ export class ProductsService {
     if (store.providerType === 'individual') {
       throw new BadRequestException('حسابات الفنيين المستقلين تقدّم خدمات فقط، بدون منتجات');
     }
+    if (!image) {
+      throw new BadRequestException('صورة المنتج مطلوبة');
+    }
     const branchId = await this.resolveBranchId(store.id, dto.branchId);
     return this.prisma.product.create({
       data: {
