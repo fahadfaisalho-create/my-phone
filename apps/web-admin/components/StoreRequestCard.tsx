@@ -125,8 +125,8 @@ export default function StoreRequestCard({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                background: 'var(--teal-bg)',
-                color: 'var(--teal-d)',
+                background: 'var(--indigo-bg)',
+                color: 'var(--indigo-d)',
                 fontWeight: 700,
                 fontFamily: 'var(--font-cairo)',
               }}
