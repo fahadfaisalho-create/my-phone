@@ -585,7 +585,7 @@ const styles = StyleSheet.create({
   addressInput: {
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 9,
+    borderRadius: radius.sm,
     padding: 12,
     minHeight: 60,
     backgroundColor: colors.fieldBg,
