@@ -114,7 +114,7 @@ export default function BookingsTab() {
                   href={`https://www.google.com/maps/search/?api=1&query=${b.customerLat},${b.customerLng}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  style={{ fontSize: 12, color: 'var(--teal-d, var(--ink))', marginTop: 2, display: 'inline-block' }}
+                  style={{ fontSize: 12, color: 'var(--indigo-d, var(--ink))', marginTop: 2, display: 'inline-block' }}
                 >
                   {t('bookings.openMap')}
                 </a>
