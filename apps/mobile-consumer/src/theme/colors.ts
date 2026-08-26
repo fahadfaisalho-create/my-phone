@@ -1,15 +1,18 @@
-// نفس ألوان النموذج الأولي (HTML) — الهوية الكحلي/التركواز
+// هوية "نبض" — إندجو تقني على خلفية باردة فاتحة، اعتُمدت بعد استعراض 3 اتجاهات
+// بصرية على قماشة تصميم واختيار المستخدم لها (خلفت هوية الكحلي/التركواز القديمة)
 export const colors = {
-  ink: '#101B2E',
-  inkAlt: '#1B2E4A',
-  teal: '#00A896',
-  tealDark: '#028174',
-  tealBg: '#E4F5F2',
-  bg: '#F5F3EE',
+  ink: '#161A2E',
+  inkAlt: '#2B2F4A',
+  indigo: '#4F46E5',
+  indigoDeep: '#3730A3',
+  indigoTint: '#EEEDFB',
+  tintBorder: '#D9D6F8',
+  bg: '#FAFAFC',
   card: '#FFFFFF',
-  border: '#E4E0D6',
-  text: '#1B2333',
-  muted: '#69707F',
+  fieldBg: '#F6F6FB',
+  border: '#E7E7EF',
+  text: '#20233A',
+  muted: '#6B6F85',
   green: '#0F6E56',
   greenBg: '#E1F5EE',
   amber: '#8A5A0B',
@@ -17,16 +20,17 @@ export const colors = {
   red: '#A32D2D',
   redBg: '#FCEBEB',
   star: '#E7A33E',
-  chipBg: '#F1EEE6',
+  chipBg: '#F1F0F7',
   white: '#FFFFFF',
 };
 
-// مقياس انحناء موحّد للبطاقات والأزرار — يعطي شكل أحدث وأكثر نعومة
+// مقياس انحناء موحّد للبطاقات والأزرار — أكثر نعومة من الهوية القديمة
 export const radius = {
-  sm: 10,
-  md: 14,
-  lg: 20,
-  xl: 26,
+  sm: 12,
+  md: 16,
+  lg: 22,
+  xl: 28,
+  pill: 100,
 };
 
 export const fonts = {

@@ -158,10 +158,10 @@ const styles = StyleSheet.create({
   store: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.text },
   service: { fontFamily: fonts.body, fontSize: 12.5, color: colors.muted, marginBottom: 4 },
   date: { fontFamily: fonts.bodyMedium, fontSize: 12, color: colors.ink },
-  visitType: { fontFamily: fonts.bodyMedium, fontSize: 11.5, color: colors.tealDark, marginTop: 4 },
+  visitType: { fontFamily: fonts.bodyMedium, fontSize: 11.5, color: colors.indigoDeep, marginTop: 4 },
   address: { fontFamily: fonts.body, fontSize: 11.5, color: colors.muted, marginTop: 2 },
   mapsLink: { alignSelf: 'flex-end', marginTop: 4 },
-  mapsLinkText: { fontFamily: fonts.bodyMedium, fontSize: 11.5, color: colors.tealDark, textDecorationLine: 'underline' },
+  mapsLinkText: { fontFamily: fonts.bodyMedium, fontSize: 11.5, color: colors.indigoDeep, textDecorationLine: 'underline' },
   empty: { textAlign: 'center', color: colors.muted, fontFamily: fonts.body, marginTop: 40 },
   cancelBtn: {
     marginTop: 10,

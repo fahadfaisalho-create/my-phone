@@ -27,7 +27,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 11,
     fontSize: 14,
-    backgroundColor: '#FCFBF8',
+    backgroundColor: colors.fieldBg,
     color: colors.text,
     fontFamily: fonts.body,
   },

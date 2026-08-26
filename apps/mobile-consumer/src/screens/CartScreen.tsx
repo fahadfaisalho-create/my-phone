@@ -337,7 +337,7 @@ export default function CartScreen({ route, navigation }: Props) {
                         disabled={locating}
                       >
                         {locating ? (
-                          <ActivityIndicator color={colors.teal} size="small" />
+                          <ActivityIndicator color={colors.indigo} size="small" />
                         ) : (
                           <Text style={styles.locateBtnText}>{t('cart.setLocationRequired')}</Text>
                         )}
@@ -381,7 +381,7 @@ export default function CartScreen({ route, navigation }: Props) {
                         disabled={locating}
                       >
                         {locating ? (
-                          <ActivityIndicator color={colors.teal} size="small" />
+                          <ActivityIndicator color={colors.indigo} size="small" />
                         ) : (
                           <Text style={styles.locateBtnText}>{t('cart.useCurrentLocation')}</Text>
                         )}
@@ -446,7 +446,7 @@ export default function CartScreen({ route, navigation }: Props) {
               disabled={couponChecking || !couponCode.trim()}
             >
               {couponChecking ? (
-                <ActivityIndicator color={colors.teal} size="small" />
+                <ActivityIndicator color={colors.indigo} size="small" />
               ) : (
                 <Text style={styles.couponBtnText}>{t('cart.apply')}</Text>
               )}
@@ -481,8 +481,8 @@ export default function CartScreen({ route, navigation }: Props) {
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg, padding: 20 },
-  branchBanner: { backgroundColor: colors.tealBg, paddingVertical: 8, paddingHorizontal: 14 },
-  branchBannerText: { fontFamily: fonts.bodyMedium, fontSize: 12.5, color: colors.tealDark },
+  branchBanner: { backgroundColor: colors.indigoTint, paddingVertical: 8, paddingHorizontal: 14 },
+  branchBannerText: { fontFamily: fonts.bodyMedium, fontSize: 12.5, color: colors.indigoDeep },
   row: {
     alignItems: 'center',
     gap: 10,
@@ -505,20 +505,20 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    backgroundColor: '#FCFBF8',
+    backgroundColor: colors.fieldBg,
     fontFamily: fonts.body,
     fontSize: 13,
     color: colors.text,
   },
   couponBtn: {
     borderWidth: 1,
-    borderColor: colors.teal,
+    borderColor: colors.indigo,
     borderRadius: radius.sm,
     paddingHorizontal: 18,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  couponBtnText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.tealDark },
+  couponBtnText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.indigoDeep },
   couponAppliedRow: {
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -547,21 +547,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
   },
-  chipOn: { backgroundColor: colors.teal, borderColor: colors.teal },
+  chipOn: { backgroundColor: colors.indigo, borderColor: colors.indigo },
   chipText: { fontFamily: fonts.bodyMedium, fontSize: 12.5, color: colors.text },
   chipTextOn: { color: '#fff' },
   locateBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.tealBg,
+    backgroundColor: colors.indigoTint,
     borderWidth: 1,
-    borderColor: '#BFE6DF',
+    borderColor: colors.tintBorder,
     borderRadius: radius.sm,
     paddingVertical: 11,
     marginBottom: 8,
   },
-  locateBtnText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.tealDark },
+  locateBtnText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.indigoDeep },
   btnPressed: { opacity: 0.8 },
   locatedNote: { fontFamily: fonts.body, fontSize: 12, color: colors.green, marginBottom: 8 },
   eligibleText: {
@@ -588,7 +588,7 @@ const styles = StyleSheet.create({
     borderRadius: 9,
     padding: 12,
     minHeight: 60,
-    backgroundColor: '#FCFBF8',
+    backgroundColor: colors.fieldBg,
     fontFamily: fonts.body,
     fontSize: 14,
     color: colors.text,

@@ -200,7 +200,7 @@ export default function BookingScreen({ route, navigation }: Props) {
               disabled={locating}
             >
               {locating ? (
-                <ActivityIndicator color={colors.teal} size="small" />
+                <ActivityIndicator color={colors.indigo} size="small" />
               ) : (
                 <Text style={styles.locateBtnText}>{t('booking.useCurrentLocation')}</Text>
               )}
@@ -281,7 +281,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
   },
-  chipOn: { backgroundColor: colors.teal, borderColor: colors.teal },
+  chipOn: { backgroundColor: colors.indigo, borderColor: colors.indigo },
   chipText: { fontFamily: fonts.bodyMedium, fontSize: 12.5, color: colors.text },
   chipTextOn: { color: '#fff' },
   mutedText: { color: colors.muted, fontFamily: fonts.body, fontSize: 13, marginBottom: 14 },
@@ -289,14 +289,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.tealBg,
+    backgroundColor: colors.indigoTint,
     borderWidth: 1,
-    borderColor: '#BFE6DF',
+    borderColor: colors.tintBorder,
     borderRadius: radius.sm,
     paddingVertical: 11,
     marginBottom: 8,
   },
-  locateBtnText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.tealDark },
+  locateBtnText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.indigoDeep },
   btnPressed: { opacity: 0.8 },
   locatedNote: {
     fontFamily: fonts.body,
@@ -310,7 +310,7 @@ const styles = StyleSheet.create({
     borderRadius: 9,
     padding: 12,
     minHeight: 60,
-    backgroundColor: '#FCFBF8',
+    backgroundColor: colors.fieldBg,
     fontFamily: fonts.body,
     fontSize: 14,
     color: colors.text,

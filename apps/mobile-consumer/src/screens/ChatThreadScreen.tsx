@@ -198,7 +198,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    backgroundColor: '#FCFBF8',
+    backgroundColor: colors.fieldBg,
     fontFamily: fonts.body,
     fontSize: 14,
     color: colors.text,
@@ -211,7 +211,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FCFBF8',
+    backgroundColor: colors.fieldBg,
   },
   attachBtnText: { fontSize: 18 },
 });

@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     textAlign: 'right',
     borderRightWidth: 3,
-    borderRightColor: colors.teal,
+    borderRightColor: colors.indigo,
     paddingRight: 8,
   },
   reviewCard: {

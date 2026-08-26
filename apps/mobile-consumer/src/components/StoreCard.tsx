@@ -63,12 +63,12 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.85, transform: [{ scale: 0.99 }] },
   cover: {
     height: 108,
-    backgroundColor: colors.tealBg,
+    backgroundColor: colors.indigoTint,
     alignItems: 'center',
     justifyContent: 'center',
   },
   coverImg: { width: '100%', height: '100%' },
-  coverFallback: { fontSize: 32, fontFamily: fonts.headingExtra, color: colors.tealDark },
+  coverFallback: { fontSize: 32, fontFamily: fonts.headingExtra, color: colors.indigoDeep },
   ratingBadge: {
     position: 'absolute',
     top: 8,

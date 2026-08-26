@@ -182,7 +182,7 @@ export default function HomeScreen({ navigation }: Props) {
               setRefreshing(true);
               load();
             }}
-            colors={[colors.teal]}
+            colors={[colors.indigo]}
           />
         }
         renderItem={({ item }) => (
