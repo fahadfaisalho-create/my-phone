@@ -4,7 +4,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@/navigation/types';
 import { apiFetch, ApiError, fileUrl } from '@/lib/api';
 import { ChatListItem } from '@/lib/types';
-import { colors, fonts } from '@/theme/colors';
+import { colors, fonts, radius } from '@/theme/colors';
 import { EmptyState, ErrorText, ScreenLoading } from '@/components/ui';
 import { useLocale } from '@/lib/i18n';
 
@@ -78,7 +78,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     backgroundColor: colors.card,
-    borderRadius: 12,
+    borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.border,
     padding: 12,

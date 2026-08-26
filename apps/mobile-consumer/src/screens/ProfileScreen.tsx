@@ -3,7 +3,7 @@ import { FlatList, StyleSheet, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@/navigation/types';
 import { apiFetch, ApiError, clearSession, getUser } from '@/lib/api';
-import { colors, fonts } from '@/theme/colors';
+import { colors, fonts, radius } from '@/theme/colors';
 import { Card, EmptyState, ErrorText, PrimaryButton, Stars } from '@/components/ui';
 import { useLocale } from '@/lib/i18n';
 
@@ -102,7 +102,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 12,
+    borderRadius: radius.md,
     padding: 14,
     marginBottom: 10,
   },

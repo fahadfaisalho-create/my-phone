@@ -441,7 +441,7 @@ const styles = StyleSheet.create({
   heroLogoWrap: {
     width: 76,
     height: 76,
-    borderRadius: 22,
+    borderRadius: radius.lg,
     backgroundColor: colors.indigoTint,
     alignItems: 'center',
     justifyContent: 'center',
@@ -470,7 +470,7 @@ const styles = StyleSheet.create({
   branchPickChip: {
     borderWidth: 1,
     borderColor: colors.indigo,
-    borderRadius: 20,
+    borderRadius: radius.pill,
     paddingHorizontal: 16,
     paddingVertical: 9,
     backgroundColor: colors.card,
@@ -526,7 +526,7 @@ const styles = StyleSheet.create({
   techCerts: { flexWrap: 'wrap', gap: 6, marginTop: 6 },
   certChip: {
     backgroundColor: colors.indigoTint,
-    borderRadius: 20,
+    borderRadius: radius.pill,
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
@@ -535,7 +535,7 @@ const styles = StyleSheet.create({
   categoryChip: {
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 20,
+    borderRadius: radius.pill,
     paddingHorizontal: 14,
     paddingVertical: 6,
     backgroundColor: colors.card,

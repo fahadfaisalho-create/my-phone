@@ -7,7 +7,7 @@ import type { RootStackParamList } from '@/navigation/types';
 import { getSocket } from '@/lib/socket';
 import { apiFetch, ApiError, fileUrl } from '@/lib/api';
 import { ChatMessage } from '@/lib/types';
-import { colors, fonts } from '@/theme/colors';
+import { colors, fonts, radius } from '@/theme/colors';
 import { ErrorText, PrimaryButton, ScreenLoading } from '@/components/ui';
 import { useLocale } from '@/lib/i18n';
 
@@ -175,7 +175,7 @@ export default function ChatThreadScreen({ route, navigation }: Props) {
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.bg },
   offline: { textAlign: 'center', color: colors.amber, fontFamily: fonts.body, fontSize: 12, paddingVertical: 4 },
-  bubble: { maxWidth: '78%', borderRadius: 14, paddingHorizontal: 13, paddingVertical: 9, marginBottom: 8 },
+  bubble: { maxWidth: '78%', borderRadius: radius.md, paddingHorizontal: 13, paddingVertical: 9, marginBottom: 8 },
   bubbleMine: { backgroundColor: colors.ink, alignSelf: 'flex-start', borderBottomLeftRadius: 3 },
   bubbleTheirs: { backgroundColor: colors.chipBg, alignSelf: 'flex-end', borderBottomRightRadius: 3 },
   bubbleTextMine: { color: '#fff', fontFamily: fonts.body, fontSize: 13.5, textAlign: 'right' },
@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
     flex: 1,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 10,
+    borderRadius: radius.md,
     paddingHorizontal: 12,
     paddingVertical: 10,
     backgroundColor: colors.fieldBg,
@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
   attachBtn: {
     width: 42,
     height: 42,
-    borderRadius: 10,
+    borderRadius: radius.sm,
     borderWidth: 1,
     borderColor: colors.border,
     alignItems: 'center',

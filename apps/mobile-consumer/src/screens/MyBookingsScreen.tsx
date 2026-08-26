@@ -4,7 +4,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@/navigation/types';
 import { apiFetch, ApiError } from '@/lib/api';
 import { confirmAsync } from '@/lib/confirm';
-import { colors, fonts } from '@/theme/colors';
+import { colors, fonts, radius } from '@/theme/colors';
 import { Badge, EmptyState, ErrorText, ScreenLoading } from '@/components/ui';
 import { useLocale } from '@/lib/i18n';
 
@@ -150,7 +150,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 12,
+    borderRadius: radius.md,
     padding: 14,
     marginBottom: 10,
   },
@@ -167,7 +167,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     borderWidth: 1,
     borderColor: colors.red,
-    borderRadius: 8,
+    borderRadius: radius.pill,
     paddingVertical: 7,
     alignItems: 'center',
   },
