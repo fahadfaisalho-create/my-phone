@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@/navigation/types';
 import { apiFetch, ApiError, ConsumerUser, setSession } from '@/lib/api';
-import { colors, fonts } from '@/theme/colors';
-import { Card, ErrorText, LinkButton, Note, PrimaryButton } from '@/components/ui';
+import { colors, fonts, radius } from '@/theme/colors';
+import { ErrorText, LinkButton, Note, PrimaryButton } from '@/components/ui';
 import TextField from '@/components/TextField';
 import { useLocale } from '@/lib/i18n';
 
@@ -54,28 +54,31 @@ export default function OtpVerifyScreen({ route, navigation }: Props) {
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.container}>
-        <Card>
-          <Text style={[styles.title, { textAlign }]}>{t('otpVerify.title')}</Text>
-          <Text style={[styles.subtitle, { textAlign }]}>{tf('otpVerify.subtitle', phone)}</Text>
-          {devOtp ? <Note>{tf('otpVerify.devMode', devOtp)}</Note> : null}
-          <TextField
-            label={t('otpVerify.codeLabel')}
-            placeholder="000000"
-            keyboardType="number-pad"
-            maxLength={6}
-            value={code}
-            onChangeText={setCode}
-          />
-          <TextField
-            label={t('otpVerify.nameLabel')}
-            placeholder={t('otpVerify.optional')}
-            value={name}
-            onChangeText={setName}
-          />
-          {error ? <ErrorText>{error}</ErrorText> : null}
-          <PrimaryButton title={t('otpVerify.confirm')} onPress={handleSubmit} loading={loading} />
+        <View style={styles.iconBadge}>
+          <Text style={styles.iconBadgeText}>🔐</Text>
+        </View>
+        <Text style={[styles.title, { textAlign }]}>{t('otpVerify.title')}</Text>
+        <Text style={[styles.subtitle, { textAlign }]}>{tf('otpVerify.subtitle', phone)}</Text>
+        {devOtp ? <Note>{tf('otpVerify.devMode', devOtp)}</Note> : null}
+        <TextField
+          label={t('otpVerify.codeLabel')}
+          placeholder="000000"
+          keyboardType="number-pad"
+          maxLength={6}
+          value={code}
+          onChangeText={setCode}
+        />
+        <TextField
+          label={t('otpVerify.nameLabel')}
+          placeholder={t('otpVerify.optional')}
+          value={name}
+          onChangeText={setName}
+        />
+        {error ? <ErrorText>{error}</ErrorText> : null}
+        <PrimaryButton title={t('otpVerify.confirm')} onPress={handleSubmit} loading={loading} />
+        <View style={styles.backLink}>
           <LinkButton title={t('otpVerify.back')} onPress={() => navigation.goBack()} />
-        </Card>
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -83,7 +86,18 @@ export default function OtpVerifyScreen({ route, navigation }: Props) {
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.bg },
-  container: { flexGrow: 1, padding: 20, justifyContent: 'center' },
-  title: { fontFamily: fonts.heading, fontSize: 18, color: colors.ink, marginBottom: 6 },
+  container: { flexGrow: 1, padding: 24, paddingTop: 32, justifyContent: 'center' },
+  iconBadge: {
+    width: 60,
+    height: 60,
+    borderRadius: radius.lg,
+    backgroundColor: colors.indigo,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  iconBadgeText: { fontSize: 28 },
+  title: { fontFamily: fonts.headingExtra, fontSize: 22, color: colors.ink, marginBottom: 6 },
   subtitle: { fontFamily: fonts.body, fontSize: 13, color: colors.muted, marginBottom: 14 },
+  backLink: { marginTop: 4 },
 });

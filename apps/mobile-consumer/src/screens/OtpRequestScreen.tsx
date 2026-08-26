@@ -3,8 +3,8 @@ import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } fr
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@/navigation/types';
 import { apiFetch, ApiError } from '@/lib/api';
-import { colors, fonts } from '@/theme/colors';
-import { Card, ErrorText, LinkButton, Note, PrimaryButton } from '@/components/ui';
+import { colors, fonts, radius } from '@/theme/colors';
+import { ErrorText, LinkButton, Note, PrimaryButton } from '@/components/ui';
 import TextField from '@/components/TextField';
 import { useLocale } from '@/lib/i18n';
 
@@ -43,28 +43,30 @@ export default function OtpRequestScreen({ navigation, route }: Props) {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.brand}>📱 My Phone</Text>
         <LinkButton title={`🌐 ${t('common.langToggle')}`} onPress={toggleLocale} />
-        <Card style={{ marginTop: 14 }}>
-          <Text style={[styles.title, { textAlign }]}>{t('otpRequest.title')}</Text>
-          <Note>{t('otpRequest.subtitle')}</Note>
-          <TextField
-            label={t('otpRequest.phoneLabel')}
-            placeholder={t('otpRequest.phonePlaceholder')}
-            keyboardType="phone-pad"
-            value={phone}
-            onChangeText={setPhone}
-          />
-          {error ? <ErrorText>{error}</ErrorText> : null}
-          <PrimaryButton
-            title={loading ? t('otpRequest.submitting') : t('otpRequest.submit')}
-            onPress={handleSubmit}
-            loading={loading}
-          />
-          {navigation.canGoBack() && (
+        <View style={styles.iconBadge}>
+          <Text style={styles.iconBadgeText}>📱</Text>
+        </View>
+        <Text style={[styles.title, { textAlign }]}>{t('otpRequest.title')}</Text>
+        <Note>{t('otpRequest.subtitle')}</Note>
+        <TextField
+          label={t('otpRequest.phoneLabel')}
+          placeholder={t('otpRequest.phonePlaceholder')}
+          keyboardType="phone-pad"
+          value={phone}
+          onChangeText={setPhone}
+        />
+        {error ? <ErrorText>{error}</ErrorText> : null}
+        <PrimaryButton
+          title={loading ? t('otpRequest.submitting') : t('otpRequest.submit')}
+          onPress={handleSubmit}
+          loading={loading}
+        />
+        {navigation.canGoBack() && (
+          <View style={styles.backLink}>
             <LinkButton title={t('otpRequest.continueGuest')} onPress={() => navigation.goBack()} />
-          )}
-        </Card>
+          </View>
+        )}
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -72,17 +74,23 @@ export default function OtpRequestScreen({ navigation, route }: Props) {
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.bg },
-  container: { flexGrow: 1, padding: 20, justifyContent: 'center' },
-  brand: {
-    fontFamily: fonts.heading,
-    fontSize: 20,
-    color: colors.ink,
-    textAlign: 'center',
+  container: { flexGrow: 1, padding: 24, paddingTop: 32, justifyContent: 'center' },
+  iconBadge: {
+    width: 60,
+    height: 60,
+    borderRadius: radius.lg,
+    backgroundColor: colors.indigo,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 20,
+    marginBottom: 20,
   },
+  iconBadgeText: { fontSize: 28 },
   title: {
-    fontFamily: fonts.heading,
-    fontSize: 18,
+    fontFamily: fonts.headingExtra,
+    fontSize: 24,
     color: colors.ink,
-    marginBottom: 16,
+    marginBottom: 8,
   },
+  backLink: { marginTop: 4 },
 });
