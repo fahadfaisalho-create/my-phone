@@ -19,6 +19,7 @@ const dict = {
       confirm: 'تأكيد',
       all: 'الكل',
       vatIncluded: 'شامل ضريبة',
+      retry: 'إعادة المحاولة',
     },
     topbar: {
       exit: 'خروج',
@@ -205,6 +206,7 @@ const dict = {
       confirm: 'Confirm',
       all: 'All',
       vatIncluded: 'VAT included',
+      retry: 'Retry',
     },
     topbar: {
       exit: 'Sign out',

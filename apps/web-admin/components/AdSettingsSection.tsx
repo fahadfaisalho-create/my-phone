@@ -27,23 +27,37 @@ export default function AdSettingsSection() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [statsError, setStatsError] = useState('');
   const [saved, setSaved] = useState(false);
+
+  // كل قسم يحمّل بيانته بشكل مستقل — تعطّل مؤقت بأحد الطلبين (مثل بطء قاعدة
+  // البيانات وقت بدء الاتصال) ما يمنع القسم الثاني من الظهور، ولكل قسم زر
+  // إعادة محاولة خاص به بدل ما تختفي كل الصفحة بسبب خطأ بطلب واحد فقط.
+  async function loadSettings() {
+    try {
+      const s = await apiFetch<PlatformSettings>('/admin/settings');
+      setSettings(s);
+      setRate(String(s.adDailyRate));
+      setError('');
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : t('ads.loadError'));
+    }
+  }
+
+  async function loadStats() {
+    try {
+      const st = await apiFetch<AdStats>('/admin/stats');
+      setStats(st);
+      setStatsError('');
+    } catch (err) {
+      setStatsError(err instanceof ApiError ? err.message : t('ads.loadError'));
+    }
+  }
 
   async function load() {
     setLoading(true);
-    try {
-      const [s, st] = await Promise.all([
-        apiFetch<PlatformSettings>('/admin/settings'),
-        apiFetch<AdStats>('/admin/stats'),
-      ]);
-      setSettings(s);
-      setRate(String(s.adDailyRate));
-      setStats(st);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : t('ads.loadError'));
-    } finally {
-      setLoading(false);
-    }
+    await Promise.allSettled([loadSettings(), loadStats()]);
+    setLoading(false);
   }
 
   useEffect(() => {
@@ -79,45 +93,65 @@ export default function AdSettingsSection() {
         <p className="note" style={{ marginBottom: 12 }}>
           {t('ads.priceNote')}
         </p>
-        <div className="row2">
-          <div>
-            <label htmlFor="rate">{t('ads.dailyPrice')}</label>
-            <input
-              id="rate"
-              type="number"
-              min="0"
-              step="0.01"
-              value={rate}
-              onChange={(e) => {
-                setRate(e.target.value);
-                setSaved(false);
-              }}
-            />
+        {error && (
+          <div className="err" style={{ marginBottom: 12 }}>
+            {error}{' '}
+            <button className="link" onClick={loadSettings}>
+              {t('common.retry')}
+            </button>
           </div>
-        </div>
-        {error && <div className="err">{error}</div>}
-        {saved && !error && <p style={{ color: 'var(--accent, #16a34a)', fontSize: 13 }}>{t('ads.saveSuccess')}</p>}
-        <button
-          className="primary"
-          onClick={handleSave}
-          disabled={saving || !rate || Number(rate) === Number(settings?.adDailyRate ?? -1)}
-        >
-          {saving ? t('common.saving') : t('ads.savePrice')}
-        </button>
+        )}
+        {settings && (
+          <>
+            <div className="row2">
+              <div>
+                <label htmlFor="rate">{t('ads.dailyPrice')}</label>
+                <input
+                  id="rate"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={rate}
+                  onChange={(e) => {
+                    setRate(e.target.value);
+                    setSaved(false);
+                  }}
+                />
+              </div>
+            </div>
+            {saved && !error && <p style={{ color: 'var(--accent, #16a34a)', fontSize: 13 }}>{t('ads.saveSuccess')}</p>}
+            <button
+              className="primary"
+              onClick={handleSave}
+              disabled={saving || !rate || Number(rate) === Number(settings?.adDailyRate ?? -1)}
+            >
+              {saving ? t('common.saving') : t('ads.savePrice')}
+            </button>
+          </>
+        )}
       </div>
 
       <div className="card">
         <h3 style={{ marginBottom: 12 }}>{t('ads.revenueHeading')}</h3>
-        <div className="grid3">
-          <div className="metric">
-            <div className="v">{stats?.ads.paidCount ?? 0}</div>
-            <div className="l">{t('ads.paidCount')}</div>
+        {statsError ? (
+          <div className="err">
+            {statsError}{' '}
+            <button className="link" onClick={loadStats}>
+              {t('common.retry')}
+            </button>
           </div>
-          <div className="metric">
-            <div className="v">{riyal(stats?.ads.paidRevenue ?? 0)}</div>
-            <div className="l">{t('ads.totalRevenue')}</div>
+        ) : (
+          <div className="grid3">
+            <div className="metric">
+              <div className="v">{stats?.ads.paidCount ?? 0}</div>
+              <div className="l">{t('ads.paidCount')}</div>
+            </div>
+            <div className="metric">
+              <div className="v">{riyal(stats?.ads.paidRevenue ?? 0)}</div>
+              <div className="l">{t('ads.totalRevenue')}</div>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
