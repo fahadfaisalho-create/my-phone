@@ -1,5 +1,7 @@
 # منصة صيانة وبيع الجوالات — API
 
+**الريبو على GitHub:** https://github.com/fahadfaisalho-create/my-phone
+
 Backend أساسي (NestJS + Prisma + PostgreSQL) يغطي: قاعدة البيانات الكاملة حسب المواصفات + نظام تسجيل الدخول والتسجيل للتاجر والإدارة.
 
 ## البنية
