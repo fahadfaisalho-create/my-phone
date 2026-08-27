@@ -1,0 +1,6 @@
+{
+  "rewrites": [
+    { "source": "/admin", "destination": "https://my-phone-admin.vercel.app/admin" },
+    { "source": "/admin/:path*", "destination": "https://my-phone-admin.vercel.app/admin/:path*" }
+  ]
+}

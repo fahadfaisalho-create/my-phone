@@ -5,7 +5,6 @@ import { apiFetch, ApiError, fileUrl } from '@/lib/api';
 import { Branch, Product } from '@/lib/types';
 import FileField from '@/components/FileField';
 import { useLocale } from '@/lib/i18n';
-import { removeImageBackground } from '@/lib/removeImageBackground';
 
 export default function ProductsTab({ onChanged }: { onChanged?: () => void }) {
   const { t, tf } = useLocale();
@@ -46,24 +45,10 @@ export default function ProductsTab({ onChanged }: { onChanged?: () => void }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // يشتغل بالكامل بالمتصفح (بدون أي خدمة خارجية أو مفتاح API) — يزيل خلفية
-  // الصورة تلقائياً ويستبدلها بخلفية بيضاء نظيفة، ثم يعتمد الصورة المعالَجة
+  // ميزة إزالة الخلفية بالذكاء الاصطناعي معطّلة مؤقتاً (راجع تعليق
+  // lib/removeImageBackground.ts) — الصورة تُعتمد كما هي حالياً.
   async function handlePickImage(file: File | null) {
-    if (!file) {
-      setImage(null);
-      return;
-    }
-    setError('');
-    setProcessingImage(true);
-    try {
-      const processed = await removeImageBackground(file);
-      setImage(processed);
-    } catch {
-      setError(t('products.imageProcessError'));
-      setImage(file);
-    } finally {
-      setProcessingImage(false);
-    }
+    setImage(file);
   }
 
   async function handleAdd() {
