@@ -5,6 +5,7 @@ import { getOwnedStoreOrThrow } from '../common/get-owned-store.util';
 import { assertStoreAvailable } from '../common/store-availability.util';
 import { distanceKm } from '../common/geo.util';
 import { CouponsService } from '../coupons/coupons.service';
+import { TaxInvoicesService } from '../tax-invoices/tax-invoices.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 
 @Injectable()
@@ -12,6 +13,7 @@ export class OrdersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly couponsService: CouponsService,
+    private readonly taxInvoicesService: TaxInvoicesService,
   ) {}
 
   async create(consumerId: string, dto: CreateOrderDto) {
@@ -213,10 +215,14 @@ export class OrdersService {
     if (order.paymentStatus === 'paid') {
       throw new BadRequestException('تم دفع هذا الطلب مسبقاً');
     }
-    return this.prisma.order.update({
+    const updated = await this.prisma.order.update({
       where: { id: orderId },
       data: { paymentStatus: 'paid', paidAt: new Date() },
     });
+    // إصدار الفاتورة الضريبية (زاتكا) تلقائياً فور تأكد الدفع — لا توقف تأكيد
+    // الدفع نفسه لو فشل إصدارها لأي سبب (تبقى قابلة للمعالجة من لوحة الأدمن)
+    this.taxInvoicesService.createForPaidOrder(orderId).catch(() => undefined);
+    return updated;
   }
 
   async updateStatus(ownerUserId: string, orderId: string, status: OrderStatus) {
@@ -246,10 +252,15 @@ export class OrdersService {
   async setPaymentStatusAsAdmin(orderId: string, paid: boolean) {
     const order = await this.prisma.order.findUnique({ where: { id: orderId } });
     if (!order) throw new NotFoundException('الطلب غير موجود');
-    return this.prisma.order.update({
+    const updated = await this.prisma.order.update({
       where: { id: orderId },
       data: { paymentStatus: paid ? 'paid' : 'unpaid', paidAt: paid ? new Date() : null },
     });
+    if (paid) {
+      // راجع تعليق confirmPaymentAsConsumer أعلاه — نفس المنطق بالضبط
+      this.taxInvoicesService.createForPaidOrder(orderId).catch(() => undefined);
+    }
+    return updated;
   }
 
   // --- الفاتورة: لا تصدر أبداً قبل اكتمال الدفع فعلياً — التحقق هنا بالباك إند
@@ -261,6 +272,7 @@ export class OrdersService {
         items: { include: { product: true } },
         consumer: { select: { name: true, phone: true } },
         store: { select: { name: true, taxNo: true, commercialRegisterNo: true } },
+        taxInvoice: true,
       },
     });
     if (!order) throw new NotFoundException('الطلب غير موجود');
@@ -305,8 +317,10 @@ export class OrdersService {
       vatRate,
       taxableAmount,
       vatAmount,
-      // باركود الفاتورة الإلكترونية (زاتكا) — يبقى فارغاً لحد ربط منظومة الفوترة الفعلية
-      zatcaQrData: null as string | null,
+      // باركود الفاتورة الإلكترونية (زاتكا) — يظهر فقط بعد قبولها فعلياً (أو محاكاة القبول
+      // لحد ربط منظومة الفوترة الفعلية)، ويبقى فارغاً وهي قيد الإرسال أو مرفوضة
+      zatcaQrData: order.taxInvoice?.zatcaQrData ?? null,
+      zatcaStatus: order.taxInvoice?.status ?? 'not_sent',
     };
   }
 

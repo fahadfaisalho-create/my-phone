@@ -28,6 +28,10 @@ export interface StoreRequest {
   status: StoreStatus;
   rejectionReason: string | null;
   createdAt: string;
+  // تُعبّى فقط بعد موافقة الإدمن (approve)
+  verifiedAt: string | null;
+  // فقط لمزوّد فرد مستقل (providerType=individual)
+  freelanceLicenseExpiry: string | null;
   owner: { name: string; email: string | null; phone: string | null };
   subscriptions: Subscription[];
 }
@@ -56,6 +60,56 @@ export const ORDER_STATUS_LABEL_EN: Record<OrderStatus, string> = {
   processing: 'Being prepared',
   completed: 'Completed',
   cancelled: 'Cancelled',
+};
+
+export type ZatcaStatus =
+  | 'not_sent'
+  | 'pending'
+  | 'accepted'
+  | 'accepted_with_warnings'
+  | 'rejected'
+  | 'failed';
+
+export interface TaxInvoice {
+  id: string;
+  invoiceNo: string;
+  icv: number;
+  subtotal: string;
+  vatAmount: string;
+  total: string;
+  status: ZatcaStatus;
+  lastError: string | null;
+  attempts: number;
+  lastAttemptAt: string | null;
+  submittedAt: string | null;
+  createdAt: string;
+  store: { name: string };
+  order: { id: string; paidAt: string | null; consumer: { name: string; phone: string | null } };
+}
+
+export const ZATCA_STATUS_LABEL: Record<ZatcaStatus, string> = {
+  not_sent: 'لم تُرسل بعد',
+  pending: 'قيد الإرسال',
+  accepted: 'مقبولة',
+  accepted_with_warnings: 'مقبولة مع تحذيرات',
+  rejected: 'مرفوضة',
+  failed: 'فشل الإرسال',
+};
+export const ZATCA_STATUS_LABEL_EN: Record<ZatcaStatus, string> = {
+  not_sent: 'Not sent yet',
+  pending: 'Sending…',
+  accepted: 'Accepted',
+  accepted_with_warnings: 'Accepted with warnings',
+  rejected: 'Rejected',
+  failed: 'Failed to send',
+};
+export const ZATCA_STATUS_BADGE: Record<ZatcaStatus, string> = {
+  not_sent: 'b-pending',
+  pending: 'b-pending',
+  accepted: 'b-active',
+  accepted_with_warnings: 'b-active',
+  rejected: 'b-rejected',
+  failed: 'b-rejected',
 };
 
 export const PLAN_LABEL: Record<SubscriptionPlan, string> = {

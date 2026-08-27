@@ -170,6 +170,23 @@ export default function StoreRequestCard({
         )}
       </div>
 
+      {store.providerType === 'individual' && (
+        <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 12 }}>
+          {t('stores.verifiedAtLabel')}:{' '}
+          {store.verifiedAt ? new Date(store.verifiedAt).toLocaleDateString(dateLocale) : t('stores.notVerifiedYet')}
+          {' · '}
+          {t('stores.licenseExpiryLabel')}:{' '}
+          {store.freelanceLicenseExpiry ? (
+            <span style={{ color: new Date(store.freelanceLicenseExpiry) < new Date() ? 'var(--red)' : undefined }}>
+              {new Date(store.freelanceLicenseExpiry).toLocaleDateString(dateLocale)}
+              {new Date(store.freelanceLicenseExpiry) < new Date() ? ` (${t('stores.licenseExpired')})` : ''}
+            </span>
+          ) : (
+            t('stores.licenseExpiryMissing')
+          )}
+        </div>
+      )}
+
       {sub && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
           <span className={`badge ${sub.paidAt ? 'b-active' : 'b-pending'}`}>

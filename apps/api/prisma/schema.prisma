@@ -127,6 +127,18 @@ enum CouponScope {
   both
 }
 
+// حالة إرسال الفاتورة الضريبية الإلكترونية لبوابة فاتورة (زاتكا). الاتصال
+// الفعلي غير مربوط بعد — not_sent هي الحالة الافتراضية لحد ربطه، والباقي
+// (pending/accepted/...) نتائج محاكاة جاهزة لنفس شكل استجابة زاتكا الحقيقية.
+enum ZatcaStatus {
+  not_sent
+  pending
+  accepted
+  accepted_with_warnings
+  rejected
+  failed
+}
+
 // ---------- Models ----------
 
 model User {
@@ -169,6 +181,12 @@ model Store {
   status                StoreStatus @default(pending)
   rejectionReason       String?     @map("rejection_reason")
   createdAt             DateTime    @default(now()) @map("created_at")
+  // لحظة موافقة الإدمن الفعلية (approve) — تُعرض كـ"تاريخ التحقق" عند الفرد
+  // المستقل، وتبقى فارغة لطلب لم يُوافَق عليه بعد
+  verifiedAt             DateTime?   @map("verified_at")
+  // فقط لمزوّد فرد مستقل (providerType=individual) — تاريخ انتهاء رخصة العمل
+  // الحر التي رفعها عند التسجيل
+  freelanceLicenseExpiry DateTime?   @map("freelance_license_expiry")
 
   // خدمة التوصيل للطلبات (منتجات) — يفعّلها التاجر ويحدد رسومها، بيانات فقط حالياً
   // (بانتظار التنسيق مع أرامكس لربط فعلي لاحقاً)
@@ -195,6 +213,7 @@ model Store {
   deliveryAgents DeliveryAgent[]
   coupons        Coupon[]
   ads            StoreAd[]
+  taxInvoices    TaxInvoice[]
 
   @@map("stores")
 }
@@ -223,6 +242,16 @@ model StoreAd {
 model PlatformSettings {
   id           String  @id @default("default")
   adDailyRate  Decimal @default(50) @map("ad_daily_rate") @db.Decimal(10, 2)
+
+  // بيانات البائع الرسمي على الفاتورة الضريبية الإلكترونية — المنصة نفسها هي
+  // البائع أمام زاتكا (تُصدر فاتورة المستهلك، ثم تحاسب المحل بمبلغه لاحقاً
+  // بشكل منفصل) — الإدمن يعبّيها من إعدادات الفوترة قبل ربط زاتكا فعلياً
+  platformLegalName String? @map("platform_legal_name")
+  platformVatNo      String? @map("platform_vat_no")
+  platformCrNo       String? @map("platform_cr_no")
+  // عدّاد فاتورة زاتكا (ICV) — تسلسلي عام على مستوى المنصة كلها، يُستخدم أيضاً
+  // لبناء سلسلة تجزئة الفواتير (كل فاتورة تحمل هاش الفاتورة السابقة لها)
+  nextInvoiceIcv Int @default(1) @map("next_invoice_icv")
 
   @@map("platform_settings")
 }
@@ -450,9 +479,47 @@ model Order {
   // يشمل هذا المبلغ إن وُجد.
   vatAmount Decimal? @map("vat_amount") @db.Decimal(10, 2)
 
-  items OrderItem[]
+  items      OrderItem[]
+  taxInvoice TaxInvoice?
 
   @@map("orders")
+}
+
+// فاتورة ضريبية إلكترونية (زاتكا) تصدرها المنصة نفسها كبائع رسمي عن كل طلب
+// مدفوع — راجع تعليق PlatformSettings.platformVatNo. تُنشأ تلقائياً أول ما
+// يتأكد دفع الطلب. الإرسال الفعلي لبوابة فاتورة غير مربوط بعد (راجع
+// ZatcaClientService) — status تبقى not_sent لحد ربطه، وبعدها pending ثم
+// accepted/rejected/failed حسب رد زاتكا الفعلي.
+model TaxInvoice {
+  id        String @id @default(cuid())
+  invoiceNo String @unique @map("invoice_no")
+  // Invoice Counter Value — تسلسل زاتكا العام (لا يتكرر ولا ينقطع) على مستوى المنصة كلها
+  icv Int @unique
+
+  orderId String @unique @map("order_id")
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  storeId String @map("store_id")
+  store   Store  @relation(fields: [storeId], references: [id])
+
+  subtotal  Decimal @db.Decimal(10, 2)
+  vatAmount Decimal @map("vat_amount") @db.Decimal(10, 2)
+  total     Decimal @db.Decimal(10, 2)
+
+  // سلسلة التجزئة المطلوبة من زاتكا (كل فاتورة ترتبط بهاش سابقتها) — محسوبة
+  // محلياً الآن بخوارزمية مبسطة، تُستبدل بالحساب الرسمي عند الربط الفعلي
+  previousInvoiceHash String? @map("previous_invoice_hash")
+  invoiceHash         String? @map("invoice_hash")
+  zatcaUuid           String? @map("zatca_uuid")
+  zatcaQrData         String? @map("zatca_qr_data")
+
+  status        ZatcaStatus @default(not_sent)
+  lastError     String?     @map("last_error")
+  attempts      Int         @default(0)
+  lastAttemptAt DateTime?   @map("last_attempt_at")
+  submittedAt   DateTime?   @map("submitted_at")
+  createdAt     DateTime    @default(now()) @map("created_at")
+
+  @@map("tax_invoices")
 }
 
 model OrderItem {

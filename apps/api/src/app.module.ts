@@ -20,6 +20,7 @@ import { DeliveryAgentsModule } from './delivery-agents/delivery-agents.module';
 import { CouponsModule } from './coupons/coupons.module';
 import { SettingsModule } from './settings/settings.module';
 import { StoreAdsModule } from './store-ads/store-ads.module';
+import { TaxInvoicesModule } from './tax-invoices/tax-invoices.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { StoreAdsModule } from './store-ads/store-ads.module';
     CouponsModule,
     SettingsModule,
     StoreAdsModule,
+    TaxInvoicesModule,
   ],
 })
 export class AppModule {}

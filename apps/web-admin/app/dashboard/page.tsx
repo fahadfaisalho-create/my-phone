@@ -6,17 +6,19 @@ import { clearSession, getToken, getUser } from '@/lib/api';
 import Topbar from '@/components/Topbar';
 import StoresSection from '@/components/StoresSection';
 import OrdersPaymentTab from '@/components/OrdersPaymentTab';
+import TaxInvoicesSection from '@/components/TaxInvoicesSection';
 import SupportTicketsSection from '@/components/SupportTicketsSection';
 import ReportsSection from '@/components/ReportsSection';
 import CouponsSection from '@/components/CouponsSection';
 import AdSettingsSection from '@/components/AdSettingsSection';
 import { useLocale } from '@/lib/i18n';
 
-type Section = 'stores' | 'orders' | 'support' | 'reports' | 'coupons' | 'ads';
+type Section = 'stores' | 'orders' | 'invoices' | 'support' | 'reports' | 'coupons' | 'ads';
 
 const SECTION_KEYS: { key: Section; navKey: string }[] = [
   { key: 'stores', navKey: 'nav.stores' },
   { key: 'orders', navKey: 'nav.orders' },
+  { key: 'invoices', navKey: 'nav.invoices' },
   { key: 'coupons', navKey: 'nav.coupons' },
   { key: 'ads', navKey: 'nav.ads' },
   { key: 'support', navKey: 'nav.support' },
@@ -65,6 +67,7 @@ export default function DashboardPage() {
 
       {section === 'stores' && <StoresSection />}
       {section === 'orders' && <OrdersPaymentTab />}
+      {section === 'invoices' && <TaxInvoicesSection />}
       {section === 'coupons' && <CouponsSection />}
       {section === 'ads' && <AdSettingsSection />}
       {section === 'support' && <SupportTicketsSection />}

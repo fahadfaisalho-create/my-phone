@@ -27,4 +27,17 @@ export class SettingsService {
       create: { id: 'default', adDailyRate: rate },
     });
   }
+
+  updateSettings(data: {
+    adDailyRate: number;
+    platformLegalName?: string;
+    platformVatNo?: string;
+    platformCrNo?: string;
+  }) {
+    return this.prisma.platformSettings.upsert({
+      where: { id: 'default' },
+      update: data,
+      create: { id: 'default', ...data },
+    });
+  }
 }

@@ -18,6 +18,6 @@ export class AdminSettingsController {
 
   @Patch()
   update(@Body() dto: UpdateSettingsDto) {
-    return this.settingsService.updateAdDailyRate(dto.adDailyRate);
+    return this.settingsService.updateSettings(dto);
   }
 }

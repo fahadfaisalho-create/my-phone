@@ -1,4 +1,4 @@
-import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, MinLength, ValidateIf } from 'class-validator';
+import { IsDateString, IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, MinLength, ValidateIf } from 'class-validator';
 import { SubscriptionPlan, StoreProviderType } from '@prisma/client';
 
 // يصل عبر multipart/form-data (يرافقه ملفات: logo، crFile، bankFile)
@@ -45,6 +45,12 @@ export class RegisterMerchantDto {
   @IsOptional()
   @IsString()
   serviceArea?: string;
+
+  // تاريخ انتهاء رخصة العمل الحر — إلزامي للأفراد المستقلين فقط، يظهر لاحقاً
+  // للإدمن ضمن بيانات الطلب/الحساب
+  @ValidateIf((o) => o.providerType === 'individual')
+  @IsDateString({}, { message: 'تاريخ انتهاء رخصة العمل الحر غير صحيح' })
+  freelanceLicenseExpiry?: string;
 
   @IsOptional()
   @IsString()

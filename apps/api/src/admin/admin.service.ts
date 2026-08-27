@@ -29,7 +29,7 @@ export class AdminService {
     }
     const updated = await this.prisma.store.update({
       where: { id },
-      data: { status: 'active', rejectionReason: null },
+      data: { status: 'active', rejectionReason: null, verifiedAt: new Date() },
     });
     if (store.owner.email) {
       this.mail.sendStoreApproval(store.owner.email, store.name).catch(() => undefined);
