@@ -1,6 +1,7 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ZatcaStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { getOwnedStoreOrThrow } from '../common/get-owned-store.util';
 import { ZatcaClientService } from './zatca-client.service';
 
 @Injectable()
@@ -65,6 +66,35 @@ export class TaxInvoicesService {
       this.logger.warn(`فشلت المحاولة التلقائية الأولى لإرسال الفاتورة ${invoice.invoiceNo}: ${e}`);
       return invoice;
     }
+  }
+
+  // فواتير التاجر الخاصة بمحله فقط — بيانات الفاتورة التجارية البحتة (رقمها،
+  // تاريخها، طلبها، مبالغها)، بدون أي تفصيل عن حالة الإرسال لزاتكا (مقبولة/
+  // فشل/عدد المحاولات...) — هذا شأن داخلي بين المنصة وزاتكا، لا يعني التاجر
+  async listForMerchant(ownerUserId: string) {
+    const store = await getOwnedStoreOrThrow(this.prisma, ownerUserId);
+    const invoices = await this.prisma.taxInvoice.findMany({
+      where: { storeId: store.id },
+      orderBy: { icv: 'desc' },
+      include: {
+        order: {
+          select: {
+            id: true,
+            paidAt: true,
+            consumer: { select: { name: true, phone: true } },
+          },
+        },
+      },
+    });
+    return invoices.map((inv) => ({
+      id: inv.id,
+      invoiceNo: inv.invoiceNo,
+      subtotal: inv.subtotal,
+      vatAmount: inv.vatAmount,
+      total: inv.total,
+      createdAt: inv.createdAt,
+      order: inv.order,
+    }));
   }
 
   listForAdmin(status?: ZatcaStatus) {

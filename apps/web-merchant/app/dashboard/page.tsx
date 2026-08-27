@@ -12,6 +12,7 @@ import ProductsTab from '@/components/tabs/ProductsTab';
 import InventoryTab from '@/components/tabs/InventoryTab';
 import BookingsTab from '@/components/tabs/BookingsTab';
 import OrdersTab from '@/components/tabs/OrdersTab';
+import TaxInvoicesTab from '@/components/tabs/TaxInvoicesTab';
 import MessagesTab from '@/components/tabs/MessagesTab';
 import StatsTab from '@/components/tabs/StatsTab';
 import SupportTab from '@/components/tabs/SupportTab';
@@ -29,6 +30,7 @@ const TABS = [
   { key: 'technicians', navKey: 'nav.technicians' },
   { key: 'bookings', navKey: 'nav.bookings' },
   { key: 'orders', navKey: 'nav.orders' },
+  { key: 'taxInvoices', navKey: 'nav.taxInvoices' },
   { key: 'coupons', navKey: 'nav.coupons' },
   { key: 'ads', navKey: 'nav.ads' },
   { key: 'messages', navKey: 'nav.messages' },
@@ -43,7 +45,7 @@ type TabKey = (typeof TABS)[number]['key'];
 // المنتجات تحتاج فرعاً واحداً على الأقل، المخزون وبقية الأقسام تحتاج منتجاً
 // واحداً على الأقل، والخدمات تحتاج فرداً واحداً على الأقل بفريق الصيانة.
 // يطبَّق فقط على حسابات المحلات (الشركات) — الفني المستقل ليس له هذا التدرج أصلاً.
-const NEEDS_PRODUCT: TabKey[] = ['inventory', 'bookings', 'orders', 'coupons', 'ads', 'messages', 'stats', 'support', 'settings'];
+const NEEDS_PRODUCT: TabKey[] = ['inventory', 'bookings', 'orders', 'taxInvoices', 'coupons', 'ads', 'messages', 'stats', 'support', 'settings'];
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -157,7 +159,7 @@ export default function DashboardPage() {
   const isIndividual = store.providerType === 'individual';
   // الفني المستقل: بدون فروع متعددة أو منتجات/مخزون أو موظفين — خدمات شخصية فقط
   // (وبدون كوبونات — الكوبون يخصم من طلبات شراء المنتجات وهو ما عنده منتجات أصلاً)
-  const HIDDEN_FOR_INDIVIDUAL: TabKey[] = ['branches', 'products', 'inventory', 'technicians', 'orders', 'coupons'];
+  const HIDDEN_FOR_INDIVIDUAL: TabKey[] = ['branches', 'products', 'inventory', 'technicians', 'orders', 'taxInvoices', 'coupons'];
   const visibleTabs = isIndividual ? TABS.filter((tabDef) => !HIDDEN_FOR_INDIVIDUAL.includes(tabDef.key)) : TABS;
   const effectiveTab = visibleTabs.some((tabDef) => tabDef.key === tab) ? tab : visibleTabs[0].key;
 
@@ -247,6 +249,7 @@ export default function DashboardPage() {
       {effectiveTab === 'technicians' && <TechniciansTab onChanged={loadUnlockCounts} />}
       {effectiveTab === 'bookings' && <BookingsTab />}
       {effectiveTab === 'orders' && <OrdersTab />}
+      {effectiveTab === 'taxInvoices' && <TaxInvoicesTab />}
       {effectiveTab === 'coupons' && <CouponsTab />}
       {effectiveTab === 'ads' && <AdsTab />}
       {effectiveTab === 'messages' && <MessagesTab />}
