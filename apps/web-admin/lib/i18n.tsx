@@ -81,6 +81,8 @@ const dict = {
       licenseExpiryLabel: 'انتهاء رخصة العمل الحر',
       licenseExpiryMissing: 'لم يُدخل التاجر تاريخ انتهاء',
       licenseExpired: 'منتهية',
+      attachedDocs: 'المستندات المرفقة',
+      approveRequest: 'قبول الطلب',
     },
     orders: {
       tabUnpaid: 'غير مدفوعة',
@@ -301,6 +303,8 @@ const dict = {
       licenseExpiryLabel: 'Freelance license expiry',
       licenseExpiryMissing: 'Merchant did not enter an expiry date',
       licenseExpired: 'Expired',
+      attachedDocs: 'Attached documents',
+      approveRequest: 'Approve request',
     },
     orders: {
       tabUnpaid: 'Unpaid',

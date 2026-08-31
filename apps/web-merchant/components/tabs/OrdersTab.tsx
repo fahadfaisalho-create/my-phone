@@ -250,19 +250,19 @@ export default function OrdersTab() {
                 </a>
               )}
 
-              <div className="actions-row" style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
+              <div className="detail-actions">
                 {selected.status === 'pending' && selected.paymentStatus === 'paid' && (
-                  <button className="primary" disabled={busyId === selected.id} onClick={() => updateStatus(selected.id, 'processing')}>
+                  <button className="btn-lg primary" disabled={busyId === selected.id} onClick={() => updateStatus(selected.id, 'processing')}>
                     {t('ordersTab.startProcessing')}
                   </button>
                 )}
                 {selected.status === 'processing' && (
-                  <button className="primary" disabled={busyId === selected.id} onClick={() => updateStatus(selected.id, 'completed')}>
+                  <button className="btn-lg primary" disabled={busyId === selected.id} onClick={() => updateStatus(selected.id, 'completed')}>
                     {t('ordersTab.finish')}
                   </button>
                 )}
                 {selected.paymentStatus === 'paid' && (
-                  <button className="secondary" onClick={() => openInvoice(selected.id)}>
+                  <button className="btn-lg outline-red" onClick={() => openInvoice(selected.id)}>
                     {t('ordersTab.viewInvoice')}
                   </button>
                 )}

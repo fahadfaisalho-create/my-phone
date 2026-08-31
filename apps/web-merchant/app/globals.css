@@ -159,3 +159,13 @@ td{padding:10px 8px;border-bottom:1px solid var(--border)}
 .hero-stat .label{font-size:12.5px;opacity:.75;margin-bottom:6px}
 .hero-stat .value{font-family:var(--font-cairo),sans-serif;font-size:32px;font-weight:800}
 .chart-card{background:#fff;border:1px solid var(--border);border-radius:18px;padding:20px}
+
+/* أزرار الإجراء الكبيرة أسفل لوحة التفاصيل — نفس مقاسات تصميم "مساحة عمل مركّزة" بكل الشاشات */
+.detail-actions{display:flex;gap:10px;flex-wrap:wrap;padding-top:16px;border-top:1px solid var(--border)}
+.btn-lg{border-radius:999px;padding:11px 26px;font-size:14px;font-weight:600;cursor:pointer;transition:.15s}
+.btn-lg.primary{background:var(--indigo);color:#fff;border:none;box-shadow:0 6px 16px rgba(79,70,229,.25)}
+.btn-lg.primary:hover{background:var(--indigo-d)}
+.btn-lg.primary:disabled{opacity:.6;cursor:not-allowed;box-shadow:none}
+.btn-lg.outline-red{background:#fff;border:1px solid var(--red);color:var(--red)}
+.btn-lg.outline-red:hover{background:var(--red-bg)}
+.btn-lg.outline-red:disabled{opacity:.6;cursor:not-allowed}

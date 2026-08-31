@@ -131,28 +131,31 @@ export default function AdSettingsSection() {
         )}
       </div>
 
-      <div className="card">
-        <h3 style={{ marginBottom: 12 }}>{t('ads.revenueHeading')}</h3>
-        {statsError ? (
-          <div className="err">
+      {statsError ? (
+        <div className="card">
+          <div className="err" style={{ marginBottom: 0 }}>
             {statsError}{' '}
             <button className="link" onClick={loadStats}>
               {t('common.retry')}
             </button>
           </div>
-        ) : (
+        </div>
+      ) : (
+        <>
+          <div className="hero-stat">
+            <div>
+              <div className="label">{t('ads.totalRevenue')}</div>
+              <div className="value">{riyal(stats?.ads.paidRevenue ?? 0)}</div>
+            </div>
+          </div>
           <div className="grid3">
             <div className="metric">
               <div className="v">{stats?.ads.paidCount ?? 0}</div>
               <div className="l">{t('ads.paidCount')}</div>
             </div>
-            <div className="metric">
-              <div className="v">{riyal(stats?.ads.paidRevenue ?? 0)}</div>
-              <div className="l">{t('ads.totalRevenue')}</div>
-            </div>
           </div>
-        )}
-      </div>
+        </>
+      )}
     </div>
   );
 }

@@ -105,41 +105,39 @@ export default function StoreRequestCard({
 
   return (
     <div className="card">
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: 12,
-          flexWrap: 'wrap',
-          gap: 8,
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      {/* رأس البطاقة — شعار كبير + اسم + بريد التاجر، والحالة أعلى اليسار (يطابق تصميم "مساحة عمل مركّزة") */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, flexWrap: 'wrap', gap: 10 }}>
+        <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
           {logo ? (
-            <img src={logo} className="storelogo" alt={store.name} />
+            <img src={logo} alt={store.name} style={{ width: 56, height: 56, borderRadius: 16, objectFit: 'cover', border: '1px solid var(--border)', flexShrink: 0 }} />
           ) : (
             <div
-              className="storelogo"
               style={{
+                width: 56,
+                height: 56,
+                borderRadius: 16,
+                background: 'var(--indigo-bg)',
+                color: 'var(--indigo-d)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                background: 'var(--indigo-bg)',
-                color: 'var(--indigo-d)',
-                fontWeight: 700,
+                fontWeight: 800,
+                fontSize: 22,
                 fontFamily: 'var(--font-cairo)',
+                flexShrink: 0,
               }}
             >
               {store.name.trim()[0] || 'م'}
             </div>
           )}
           <div>
-            <b>{store.name}</b>{' '}
-            <span className="badge" style={{ background: store.providerType === 'individual' ? '#E8EDF1' : '#F0F0F0' }}>
-              {store.providerType === 'individual' ? t('stores.individual') : t('stores.company')}
-            </span>
-            <div style={{ fontSize: 12, color: 'var(--muted)' }}>
+            <div style={{ fontFamily: 'var(--font-cairo)', fontWeight: 800, fontSize: 18, color: 'var(--ink)' }}>
+              {store.name}{' '}
+              <span className="badge" style={{ background: store.providerType === 'individual' ? '#E8EDF1' : '#F0F0F0', fontWeight: 600 }}>
+                {store.providerType === 'individual' ? t('stores.individual') : t('stores.company')}
+              </span>
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 3 }}>
               {store.owner.name} · {store.owner.email}
             </div>
           </div>
@@ -147,7 +145,56 @@ export default function StoreRequestCard({
         <span className={`badge ${BADGE_CLASS[store.status]}`}>{t(BADGE_NAV_KEY[store.status])}</span>
       </div>
 
-      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
+      {/* شبكة بطاقات صغيرة للأرقام الأساسية — نفس أسلوب مؤشرات صفحة التقارير */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 14, marginBottom: 20 }}>
+        <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 14, padding: 14 }}>
+          <div style={{ fontSize: 11.5, color: 'var(--muted)', marginBottom: 4 }}>
+            {store.providerType === 'individual' ? t('stores.nationalIdLabel') : t('stores.crLabel')}
+          </div>
+          <div style={{ fontWeight: 600, color: 'var(--ink)' }}>
+            {(store.providerType === 'individual' ? store.nationalId : store.commercialRegisterNo) ?? '—'}
+          </div>
+        </div>
+        <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 14, padding: 14 }}>
+          <div style={{ fontSize: 11.5, color: 'var(--muted)', marginBottom: 4 }}>{t('stores.ibanLabel')}</div>
+          <div style={{ fontWeight: 600, color: 'var(--ink)' }}>{store.iban}</div>
+        </div>
+        {sub && (
+          <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 14, padding: 14 }}>
+            <div style={{ fontSize: 11.5, color: 'var(--muted)', marginBottom: 4 }}>{t('stores.planLabel')}</div>
+            <div style={{ fontWeight: 600, color: 'var(--ink)' }}>
+              {(locale === 'ar' ? PLAN_LABEL : PLAN_LABEL_EN)[sub.plan]} ({Number(sub.price).toLocaleString(dateLocale)} ﷼)
+            </div>
+          </div>
+        )}
+        {store.providerType === 'individual' && (
+          <>
+            <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 14, padding: 14 }}>
+              <div style={{ fontSize: 11.5, color: 'var(--muted)', marginBottom: 4 }}>{t('stores.verifiedAtLabel')}</div>
+              <div style={{ fontWeight: 600, color: 'var(--ink)' }}>
+                {store.verifiedAt ? new Date(store.verifiedAt).toLocaleDateString(dateLocale) : t('stores.notVerifiedYet')}
+              </div>
+            </div>
+            <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 14, padding: 14 }}>
+              <div style={{ fontSize: 11.5, color: 'var(--muted)', marginBottom: 4 }}>{t('stores.licenseExpiryLabel')}</div>
+              <div style={{ fontWeight: 600, color: store.freelanceLicenseExpiry && new Date(store.freelanceLicenseExpiry) < new Date() ? 'var(--red)' : 'var(--ink)' }}>
+                {store.freelanceLicenseExpiry ? (
+                  <>
+                    {new Date(store.freelanceLicenseExpiry).toLocaleDateString(dateLocale)}
+                    {new Date(store.freelanceLicenseExpiry) < new Date() ? ` (${t('stores.licenseExpired')})` : ''}
+                  </>
+                ) : (
+                  t('stores.licenseExpiryMissing')
+                )}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* المستندات المرفقة */}
+      <div style={{ fontSize: 12.5, color: 'var(--muted)', fontWeight: 600, marginBottom: 10 }}>{t('stores.attachedDocs')}</div>
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 20 }}>
         <DocLink
           url={fileUrl(store.crFileUrl)}
           label={store.providerType === 'individual' ? t('stores.idOrLicense') : t('stores.commercialRegister')}
@@ -156,39 +203,8 @@ export default function StoreRequestCard({
         <DocLink url={fileUrl(store.bankCertificateFileUrl)} label={t('stores.bankCertificate')} notAttached={t('stores.notAttached')} />
       </div>
 
-      <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 12 }}>
-        {store.providerType === 'individual'
-          ? `${t('stores.nationalIdLabel')}: ${store.nationalId ?? '—'}`
-          : `${t('stores.crLabel')}: ${store.commercialRegisterNo ?? '—'}`}{' '}
-        · {t('stores.ibanLabel')}: {store.iban}
-        {sub && (
-          <>
-            {' '}
-            · {t('stores.planLabel')}: {(locale === 'ar' ? PLAN_LABEL : PLAN_LABEL_EN)[sub.plan]} ({Number(sub.price).toLocaleString(dateLocale)} ﷼
-            {sub.vatAmount ? ` ${t('common.vatIncluded')} ${sub.vatAmount} ﷼` : ''})
-          </>
-        )}
-      </div>
-
-      {store.providerType === 'individual' && (
-        <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 12 }}>
-          {t('stores.verifiedAtLabel')}:{' '}
-          {store.verifiedAt ? new Date(store.verifiedAt).toLocaleDateString(dateLocale) : t('stores.notVerifiedYet')}
-          {' · '}
-          {t('stores.licenseExpiryLabel')}:{' '}
-          {store.freelanceLicenseExpiry ? (
-            <span style={{ color: new Date(store.freelanceLicenseExpiry) < new Date() ? 'var(--red)' : undefined }}>
-              {new Date(store.freelanceLicenseExpiry).toLocaleDateString(dateLocale)}
-              {new Date(store.freelanceLicenseExpiry) < new Date() ? ` (${t('stores.licenseExpired')})` : ''}
-            </span>
-          ) : (
-            t('stores.licenseExpiryMissing')
-          )}
-        </div>
-      )}
-
       {sub && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
           <span className={`badge ${sub.paidAt ? 'b-active' : 'b-pending'}`}>
             {sub.paidAt
               ? `${t('stores.invoicePaid')} (${new Date(sub.paidAt).toLocaleDateString(dateLocale)})`
@@ -201,37 +217,34 @@ export default function StoreRequestCard({
       )}
 
       {store.status === 'rejected' && store.rejectionReason && (
-        <p style={{ fontSize: 12, color: 'var(--red)', margin: '6px 0 12px' }}>
+        <p style={{ fontSize: 12, color: 'var(--red)', margin: '6px 0 16px' }}>
           {t('stores.rejectionReasonLabel')}: {store.rejectionReason}
         </p>
       )}
 
+      {/* أزرار الإجراءات — pill كبيرة بنفس مقاسات تصميم "مساحة عمل مركّزة" بكل شاشات التفاصيل */}
       {store.status === 'pending' && (
-        <div className="actions-row">
-          <button className="primary" onClick={handleApprove} disabled={busy}>
-            {t('common.approve')}
+        <div className="detail-actions">
+          <button className="btn-lg primary" onClick={handleApprove} disabled={busy}>
+            {t('stores.approveRequest')}
           </button>
-          <button
-            className="danger"
-            onClick={() => setShowReject((v) => !v)}
-            disabled={busy}
-          >
+          <button className="btn-lg outline-red" onClick={() => setShowReject((v) => !v)} disabled={busy}>
             {t('common.reject')}
           </button>
         </div>
       )}
 
       {store.status === 'active' && (
-        <div className="actions-row">
-          <button className="danger" onClick={handleSuspend} disabled={busy}>
+        <div className="detail-actions">
+          <button className="btn-lg outline-red" onClick={handleSuspend} disabled={busy}>
             {t('stores.suspendStore')}
           </button>
         </div>
       )}
 
       {store.status === 'suspended' && (
-        <div className="actions-row">
-          <button className="primary" onClick={handleReactivate} disabled={busy}>
+        <div className="detail-actions">
+          <button className="btn-lg primary" onClick={handleReactivate} disabled={busy}>
             {t('stores.reactivateStore')}
           </button>
         </div>

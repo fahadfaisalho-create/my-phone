@@ -34,18 +34,22 @@ export default function SupportTab() {
   const [error, setError] = useState('');
   const [subject, setSubject] = useState('');
   const [saving, setSaving] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   async function load() {
     setLoading(true);
     try {
       const data = await apiFetch<Ticket[]>('/support-tickets/me');
       setTickets(data);
+      setSelectedId((prev) => (prev && data.some((x) => x.id === prev) ? prev : data[0]?.id ?? null));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t('supportTab.loadError'));
     } finally {
       setLoading(false);
     }
   }
+
+  const selected = tickets.find((x) => x.id === selectedId) ?? null;
 
   useEffect(() => {
     load();
@@ -85,24 +89,58 @@ export default function SupportTab() {
         </button>
       </div>
 
-      <div className="card">
-        <h3>{t('supportTab.myTicketsHeading')}</h3>
-        {loading ? (
-          <p style={{ color: 'var(--muted)', fontSize: 13 }}>{t('common.loading')}</p>
-        ) : tickets.length === 0 ? (
-          <p style={{ color: 'var(--muted)', fontSize: 13 }}>{t('supportTab.empty')}</p>
-        ) : (
-          tickets.map((ticket) => (
-            <div className="rowline" key={ticket.id}>
-              <span>{ticket.subject}</span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={{ color: 'var(--muted)' }}>{new Date(ticket.createdAt).toLocaleDateString(dateLocale)}</span>
-                <span className={`badge ${BADGE_CLASS[ticket.status]}`}>{BADGE_LABEL[ticket.status]}</span>
-              </span>
+      <h3 style={{ margin: '4px 0 14px' }}>
+        {t('supportTab.myTicketsHeading')} {!loading && `(${tickets.length})`}
+      </h3>
+
+      {loading ? (
+        <div className="spinner-wrap">{t('common.loading')}</div>
+      ) : (
+        <div className="split-view">
+          <div className="split-list">
+            <div className="split-list-head">
+              <span>{t('supportTab.myTicketsHeading')}</span>
+              <span style={{ fontWeight: 500, color: 'var(--muted)', fontSize: 12 }}>{tickets.length}</span>
             </div>
-          ))
-        )}
-      </div>
+            <div className="split-list-body">
+              {tickets.length === 0 && (
+                <p style={{ color: 'var(--muted)', fontSize: 13, padding: '16px' }}>{t('supportTab.empty')}</p>
+              )}
+              {tickets.map((ticket) => (
+                <div
+                  key={ticket.id}
+                  className={`split-list-item ${ticket.id === selectedId ? 'on' : ''}`}
+                  onClick={() => setSelectedId(ticket.id)}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                    <b style={{ fontSize: 13.5, color: 'var(--ink)' }}>{ticket.subject}</b>
+                    <span className={`badge ${BADGE_CLASS[ticket.status]}`}>{BADGE_LABEL[ticket.status]}</span>
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>
+                    {new Date(ticket.createdAt).toLocaleDateString(dateLocale)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {selected ? (
+            <div className="split-detail card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, flexWrap: 'wrap' }}>
+                <div>
+                  <b style={{ fontSize: 16 }}>{selected.subject}</b>
+                  <div style={{ fontSize: 12.5, color: 'var(--muted)', marginTop: 4 }}>
+                    {new Date(selected.createdAt).toLocaleDateString(dateLocale)}
+                  </div>
+                </div>
+                <span className={`badge ${BADGE_CLASS[selected.status]}`}>{BADGE_LABEL[selected.status]}</span>
+              </div>
+            </div>
+          ) : (
+            <div className="split-empty">{t('supportTab.empty')}</div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

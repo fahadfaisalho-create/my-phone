@@ -45,6 +45,7 @@ export default function SupportTicketsSection() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const dateLocale = locale === 'ar' ? 'ar-SA' : 'en-US';
 
   const load = useCallback(async () => {
@@ -54,6 +55,7 @@ export default function SupportTicketsSection() {
       const query = tab === 'all' ? '' : `?status=${tab}`;
       const data = await apiFetch<Ticket[]>(`/support-tickets${query}`);
       setTickets(data);
+      setSelectedId((prev) => (prev && data.some((x) => x.id === prev) ? prev : data[0]?.id ?? null));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t('support.loadError'));
     } finally {
@@ -64,6 +66,8 @@ export default function SupportTicketsSection() {
   useEffect(() => {
     load();
   }, [load]);
+
+  const selected = tickets.find((x) => x.id === selectedId) ?? null;
 
   async function updateStatus(id: string, status: TicketStatus) {
     setBusyId(id);
@@ -97,42 +101,70 @@ export default function SupportTicketsSection() {
 
       {loading ? (
         <div className="spinner-wrap">{t('common.loading')}</div>
-      ) : tickets.length === 0 ? (
-        <div className="card">
-          <p style={{ color: 'var(--muted)', fontSize: 13 }}>{t('support.empty')}</p>
-        </div>
       ) : (
-        tickets.map((ticket) => (
-          <div className="card" key={ticket.id}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-              <div>
-                <b>{ticket.subject}</b>
-                <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
-                  {t('support.fromLabel')}: {t(RELATED_NAV_KEY[ticket.relatedType])} ·{' '}
-                  {new Date(ticket.createdAt).toLocaleDateString(dateLocale)}
-                </div>
-              </div>
-              <span className={`badge ${BADGE_CLASS[ticket.status]}`}>{t(BADGE_NAV_KEY[ticket.status])}</span>
+        <div className="split-view">
+          <div className="split-list">
+            <div className="split-list-head">
+              <span>{t('support.heading')}</span>
+              <span style={{ fontWeight: 500, color: 'var(--muted)', fontSize: 12 }}>{tickets.length}</span>
             </div>
-            <div className="actions-row" style={{ marginTop: 12 }}>
-              {ticket.status !== 'in_progress' && (
-                <button className="secondary" disabled={busyId === ticket.id} onClick={() => updateStatus(ticket.id, 'in_progress')}>
-                  {t('support.markInProgress')}
-                </button>
+            <div className="split-list-body">
+              {tickets.length === 0 && (
+                <p style={{ color: 'var(--muted)', fontSize: 13, padding: '16px' }}>{t('support.empty')}</p>
               )}
-              {ticket.status !== 'closed' && (
-                <button className="primary" disabled={busyId === ticket.id} onClick={() => updateStatus(ticket.id, 'closed')}>
-                  {t('support.close')}
-                </button>
-              )}
-              {ticket.status === 'closed' && (
-                <button className="secondary" disabled={busyId === ticket.id} onClick={() => updateStatus(ticket.id, 'open')}>
-                  {t('support.reopen')}
-                </button>
-              )}
+              {tickets.map((ticket) => (
+                <div
+                  key={ticket.id}
+                  className={`split-list-item ${ticket.id === selectedId ? 'on' : ''}`}
+                  onClick={() => setSelectedId(ticket.id)}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                    <b style={{ fontSize: 13.5, color: 'var(--ink)' }}>{ticket.subject}</b>
+                    <span className={`badge ${BADGE_CLASS[ticket.status]}`}>{t(BADGE_NAV_KEY[ticket.status])}</span>
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>
+                    {t(RELATED_NAV_KEY[ticket.relatedType])} · {new Date(ticket.createdAt).toLocaleDateString(dateLocale)}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
-        ))
+
+          {selected ? (
+            <div className="split-detail card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, flexWrap: 'wrap', marginBottom: 14 }}>
+                <div>
+                  <b style={{ fontSize: 16 }}>{selected.subject}</b>
+                  <div style={{ fontSize: 12.5, color: 'var(--muted)', marginTop: 4 }}>
+                    {t('support.fromLabel')}: {t(RELATED_NAV_KEY[selected.relatedType])} ·{' '}
+                    {new Date(selected.createdAt).toLocaleDateString(dateLocale)}
+                  </div>
+                </div>
+                <span className={`badge ${BADGE_CLASS[selected.status]}`}>{t(BADGE_NAV_KEY[selected.status])}</span>
+              </div>
+
+              <div className="detail-actions">
+                {selected.status !== 'in_progress' && (
+                  <button className="btn-lg outline-red" disabled={busyId === selected.id} onClick={() => updateStatus(selected.id, 'in_progress')}>
+                    {t('support.markInProgress')}
+                  </button>
+                )}
+                {selected.status !== 'closed' && (
+                  <button className="btn-lg primary" disabled={busyId === selected.id} onClick={() => updateStatus(selected.id, 'closed')}>
+                    {t('support.close')}
+                  </button>
+                )}
+                {selected.status === 'closed' && (
+                  <button className="btn-lg outline-red" disabled={busyId === selected.id} onClick={() => updateStatus(selected.id, 'open')}>
+                    {t('support.reopen')}
+                  </button>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="split-empty">{t('support.empty')}</div>
+          )}
+        </div>
       )}
     </div>
   );
