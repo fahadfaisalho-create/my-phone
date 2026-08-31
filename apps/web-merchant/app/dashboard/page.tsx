@@ -2,10 +2,10 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { apiFetch, ApiError, clearSession, getToken } from '@/lib/api';
+import { apiFetch, ApiError, clearSession, getToken, getUser } from '@/lib/api';
 import { routeForStatus } from '@/lib/routing';
 import { Store } from '@/lib/types';
-import Topbar from '@/components/Topbar';
+import Sidebar, { SidebarGroup } from '@/components/Sidebar';
 import BranchesTab from '@/components/tabs/BranchesTab';
 import ServicesTab from '@/components/tabs/ServicesTab';
 import ProductsTab from '@/components/tabs/ProductsTab';
@@ -23,23 +23,30 @@ import AdsTab from '@/components/tabs/AdsTab';
 import { useLocale } from '@/lib/i18n';
 
 const TABS = [
-  { key: 'branches', navKey: 'nav.branches' },
-  { key: 'services', navKey: 'nav.services' },
-  { key: 'products', navKey: 'nav.products' },
-  { key: 'inventory', navKey: 'nav.inventory' },
-  { key: 'technicians', navKey: 'nav.technicians' },
-  { key: 'bookings', navKey: 'nav.bookings' },
-  { key: 'orders', navKey: 'nav.orders' },
-  { key: 'taxInvoices', navKey: 'nav.taxInvoices' },
-  { key: 'coupons', navKey: 'nav.coupons' },
-  { key: 'ads', navKey: 'nav.ads' },
-  { key: 'messages', navKey: 'nav.messages' },
-  { key: 'stats', navKey: 'nav.stats' },
-  { key: 'support', navKey: 'nav.support' },
-  { key: 'settings', navKey: 'nav.settings' },
+  { key: 'branches', navKey: 'nav.branches', icon: 'branches' },
+  { key: 'technicians', navKey: 'nav.technicians', icon: 'technicians' },
+  { key: 'services', navKey: 'nav.services', icon: 'services' },
+  { key: 'products', navKey: 'nav.products', icon: 'products' },
+  { key: 'inventory', navKey: 'nav.inventory', icon: 'inventory' },
+  { key: 'bookings', navKey: 'nav.bookings', icon: 'bookings' },
+  { key: 'orders', navKey: 'nav.orders', icon: 'orders' },
+  { key: 'taxInvoices', navKey: 'nav.taxInvoices', icon: 'taxInvoices' },
+  { key: 'coupons', navKey: 'nav.coupons', icon: 'coupons' },
+  { key: 'ads', navKey: 'nav.ads', icon: 'ads' },
+  { key: 'messages', navKey: 'nav.messages', icon: 'messages' },
+  { key: 'stats', navKey: 'nav.stats', icon: 'stats' },
+  { key: 'support', navKey: 'nav.support', icon: 'support' },
+  { key: 'settings', navKey: 'nav.settings', icon: 'settings' },
 ] as const;
 
 type TabKey = (typeof TABS)[number]['key'];
+
+// نفس تجميع القوائم بالشريط الجانبي بتصميم "الاتجاه أ"
+const GROUP_KEYS: { label: string; keys: TabKey[] }[] = [
+  { label: 'nav.groupCore', keys: ['branches', 'technicians', 'services', 'products', 'inventory'] },
+  { label: 'nav.groupSales', keys: ['bookings', 'orders', 'taxInvoices', 'coupons', 'ads'] },
+  { label: 'nav.groupOther', keys: ['messages', 'stats', 'support', 'settings'] },
+];
 
 // خطوات فتح لوحة التاجر تدريجياً: الفروع وفريق الصيانة متاحين من البداية،
 // المنتجات تحتاج فرعاً واحداً على الأقل، المخزون وبقية الأقسام تحتاج منتجاً
@@ -52,6 +59,7 @@ export default function DashboardPage() {
   const { t, tf } = useLocale();
   const [store, setStore] = useState<Store | null>(null);
   const [tab, setTab] = useState<TabKey>('branches');
+  const [userName, setUserName] = useState('');
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState('');
   const [couponCode, setCouponCode] = useState('');
@@ -97,6 +105,7 @@ export default function DashboardPage() {
       router.replace('/entry');
       return;
     }
+    setUserName(getUser()?.name ?? '');
     loadStore();
     loadUnlockCounts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -173,89 +182,96 @@ export default function DashboardPage() {
     return null;
   }
 
-  function handleTabClick(key: TabKey) {
-    const reason = lockReason(key);
+  function handleTabClick(key: string) {
+    const reason = lockReason(key as TabKey);
     if (reason) {
       setLockHint(reason);
       return;
     }
     setLockHint('');
-    setTab(key);
+    setTab(key as TabKey);
   }
 
+  const groups: SidebarGroup[] = GROUP_KEYS.map((g) => ({
+    label: t(g.label),
+    items: g.keys
+      .filter((key) => visibleTabs.some((v) => v.key === key))
+      .map((key) => {
+        const tabDef = TABS.find((v) => v.key === key)!;
+        const reason = lockReason(key);
+        return { key, icon: tabDef.icon, label: t(tabDef.navKey), locked: !!reason, lockTitle: reason ?? undefined };
+      }),
+  })).filter((g) => g.items.length > 0);
+
   return (
-    <div className="app">
-      <Topbar
-        title={store.name}
-        roleLabel={isIndividual ? t('dashboard.roleIndividual') : t('dashboard.roleMerchant')}
+    <div className="shell">
+      <Sidebar
+        brandTitle="My Phone"
+        brandSubtitle={isIndividual ? t('dashboard.roleIndividual') : t('dashboard.roleMerchant')}
+        groups={groups}
+        activeKey={effectiveTab}
+        onSelect={handleTabClick}
+        userName={userName}
+        roleLabel={store.name}
         onExit={handleExit}
       />
 
-      {sub && !sub.paidAt && (
-        <div className="note" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
-          <span>
-            {tf('dashboard.invoiceLine', sub.price)}
-            {sub.discountAmount ? tf('dashboard.afterDiscount', sub.discountAmount) : ''}
-            {sub.vatAmount ? tf('dashboard.vatIncluded', sub.vatAmount) : ''}
-            {t('dashboard.invoiceUnpaidNote')}
-          </span>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-            {!sub.couponId && (
-              <>
-                <input
-                  placeholder={t('dashboard.couponPlaceholder')}
-                  value={couponCode}
-                  onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                  style={{ marginBottom: 0, width: 160 }}
-                />
-                <button className="secondary" onClick={handleApplyCoupon} disabled={applyingCoupon || !couponCode.trim()}>
-                  {applyingCoupon ? '...' : t('dashboard.apply')}
-                </button>
-              </>
-            )}
-            <button className="primary" onClick={handlePaySubscription} disabled={paying}>
-              {paying ? t('dashboard.paying') : t('dashboard.payNow')}
-            </button>
+      <div className="shell-main">
+        <div className="content-header">
+          <div>
+            <h1>{t(TABS.find((v) => v.key === effectiveTab)!.navKey)}</h1>
+            <div className="subtitle">{store.name}</div>
           </div>
         </div>
-      )}
-      {couponError && <div className="err">{couponError}</div>}
-      {couponSuccess && <div className="note" style={{ color: 'var(--ink)' }}>{t('dashboard.couponAppliedSuccess')}</div>}
-      {payError && <div className="err">{payError}</div>}
 
-      <div className="tabs">
-        {visibleTabs.map((tabItem) => {
-          const locked = !!lockReason(tabItem.key);
-          return (
-            <button
-              key={tabItem.key}
-              className={effectiveTab === tabItem.key ? 'on' : ''}
-              onClick={() => handleTabClick(tabItem.key)}
-              style={locked ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
-              title={lockReason(tabItem.key) || undefined}
-            >
-              {locked ? '🔒 ' : ''}
-              {t(tabItem.navKey)}
-            </button>
-          );
-        })}
+        {sub && !sub.paidAt && (
+          <div className="note" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+            <span>
+              {tf('dashboard.invoiceLine', sub.price)}
+              {sub.discountAmount ? tf('dashboard.afterDiscount', sub.discountAmount) : ''}
+              {sub.vatAmount ? tf('dashboard.vatIncluded', sub.vatAmount) : ''}
+              {t('dashboard.invoiceUnpaidNote')}
+            </span>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+              {!sub.couponId && (
+                <>
+                  <input
+                    placeholder={t('dashboard.couponPlaceholder')}
+                    value={couponCode}
+                    onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                    style={{ marginBottom: 0, width: 160 }}
+                  />
+                  <button className="secondary" onClick={handleApplyCoupon} disabled={applyingCoupon || !couponCode.trim()}>
+                    {applyingCoupon ? '...' : t('dashboard.apply')}
+                  </button>
+                </>
+              )}
+              <button className="primary" onClick={handlePaySubscription} disabled={paying}>
+                {paying ? t('dashboard.paying') : t('dashboard.payNow')}
+              </button>
+            </div>
+          </div>
+        )}
+        {couponError && <div className="err">{couponError}</div>}
+        {couponSuccess && <div className="note" style={{ color: 'var(--ink)' }}>{t('dashboard.couponAppliedSuccess')}</div>}
+        {payError && <div className="err">{payError}</div>}
+        {lockHint && <div className="note" style={{ color: 'var(--amber, #8A5A0B)' }}>{lockHint}</div>}
+
+        {effectiveTab === 'branches' && <BranchesTab onChanged={loadUnlockCounts} />}
+        {effectiveTab === 'services' && <ServicesTab />}
+        {effectiveTab === 'products' && <ProductsTab onChanged={loadUnlockCounts} />}
+        {effectiveTab === 'inventory' && <InventoryTab />}
+        {effectiveTab === 'technicians' && <TechniciansTab onChanged={loadUnlockCounts} />}
+        {effectiveTab === 'bookings' && <BookingsTab />}
+        {effectiveTab === 'orders' && <OrdersTab />}
+        {effectiveTab === 'taxInvoices' && <TaxInvoicesTab />}
+        {effectiveTab === 'coupons' && <CouponsTab />}
+        {effectiveTab === 'ads' && <AdsTab />}
+        {effectiveTab === 'messages' && <MessagesTab />}
+        {effectiveTab === 'stats' && <StatsTab />}
+        {effectiveTab === 'support' && <SupportTab />}
+        {effectiveTab === 'settings' && <SettingsTab />}
       </div>
-      {lockHint && <div className="note" style={{ color: 'var(--amber, #8A5A0B)' }}>{lockHint}</div>}
-
-      {effectiveTab === 'branches' && <BranchesTab onChanged={loadUnlockCounts} />}
-      {effectiveTab === 'services' && <ServicesTab />}
-      {effectiveTab === 'products' && <ProductsTab onChanged={loadUnlockCounts} />}
-      {effectiveTab === 'inventory' && <InventoryTab />}
-      {effectiveTab === 'technicians' && <TechniciansTab onChanged={loadUnlockCounts} />}
-      {effectiveTab === 'bookings' && <BookingsTab />}
-      {effectiveTab === 'orders' && <OrdersTab />}
-      {effectiveTab === 'taxInvoices' && <TaxInvoicesTab />}
-      {effectiveTab === 'coupons' && <CouponsTab />}
-      {effectiveTab === 'ads' && <AdsTab />}
-      {effectiveTab === 'messages' && <MessagesTab />}
-      {effectiveTab === 'stats' && <StatsTab />}
-      {effectiveTab === 'support' && <SupportTab />}
-      {effectiveTab === 'settings' && <SettingsTab />}
     </div>
   );
 }

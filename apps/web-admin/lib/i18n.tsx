@@ -43,9 +43,13 @@ const dict = {
       ads: 'الإعلانات المميزة',
       support: 'تذاكر الدعم',
       reports: 'التقارير',
+      groupContent: 'المحتوى',
+      groupManagement: 'الإدارة',
+      groupAnalytics: 'التحليلات',
     },
     dashboard: {
       title: 'لوحة تحكم الإدارة',
+      sidebarSubtitle: 'لوحة الإدارة',
       role: 'مدير',
     },
     stores: {
@@ -264,9 +268,13 @@ const dict = {
       ads: 'Featured Ads',
       support: 'Support Tickets',
       reports: 'Reports',
+      groupContent: 'Content',
+      groupManagement: 'Management',
+      groupAnalytics: 'Analytics',
     },
     dashboard: {
       title: 'Admin Dashboard',
+      sidebarSubtitle: 'Admin Panel',
       role: 'Admin',
     },
     stores: {

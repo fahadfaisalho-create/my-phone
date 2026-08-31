@@ -145,3 +145,34 @@ td{padding:10px 8px;border-bottom:1px solid var(--border)}
 .btn-lg.outline-red{background:#fff;border:1px solid var(--red);color:var(--red)}
 .btn-lg.outline-red:hover{background:var(--red-bg)}
 .btn-lg.outline-red:disabled{opacity:.6;cursor:not-allowed}
+
+/* هيكل الصفحة بشريط جانبي (الاتجاه أ) — يستبدل .topbar + .tabs بالكامل بلوحات الأدمن/التاجر */
+.shell{display:flex;min-height:100vh;background:var(--bg)}
+.shell-sidebar{width:248px;flex-shrink:0;background:var(--card);border-left:1px solid var(--border);padding:20px 16px;display:flex;flex-direction:column;gap:22px;position:sticky;top:0;height:100vh;overflow-y:auto}
+.shell-main{flex:1;min-width:0;padding:26px 32px;max-width:1180px}
+.sidebar-brand{display:flex;align-items:center;gap:10px;padding:0 4px}
+.sidebar-brand .mark{width:34px;height:34px;border-radius:10px;background:var(--indigo);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--font-cairo),sans-serif;font-weight:800;font-size:15px;flex-shrink:0}
+.sidebar-brand .name{font-family:var(--font-cairo),sans-serif;font-weight:700;font-size:14px;color:var(--ink)}
+.sidebar-brand .sub{font-size:11px;color:var(--muted)}
+.sidebar-nav{display:flex;flex-direction:column;gap:2px}
+.sidebar-section-label{font-size:11px;color:var(--muted);font-weight:600;padding:0 10px;margin:14px 0 4px}
+.sidebar-section-label:first-child{margin-top:0}
+.sidebar-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;color:var(--text);font-weight:500;font-size:13.5px;cursor:pointer;transition:.15s;border:none;background:none;width:100%;text-align:right;font-family:inherit}
+.sidebar-item:hover{background:var(--bg)}
+.sidebar-item.on{background:var(--indigo-bg);color:var(--indigo-d);font-weight:600}
+.sidebar-item.locked{opacity:.55;cursor:not-allowed}
+.sidebar-item .icn{width:18px;height:18px;flex-shrink:0}
+.sidebar-item .badge-count{margin-right:auto;background:var(--indigo);color:#fff;font-size:10.5px;font-weight:700;border-radius:999px;padding:1px 7px;font-family:var(--font-cairo),sans-serif}
+.sidebar-item.on .badge-count{background:var(--indigo-d)}
+.sidebar-profile{margin-top:auto;display:flex;align-items:center;gap:10px;padding:12px;border-radius:12px;background:var(--bg);border:1px solid var(--border)}
+.sidebar-profile .avatar{width:32px;height:32px;border-radius:999px;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;font-family:var(--font-cairo),sans-serif;flex-shrink:0}
+.sidebar-profile .info{flex:1;min-width:0}
+.sidebar-profile .info .n{font-size:12.5px;font-weight:600;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sidebar-profile .info .r{font-size:11px;color:var(--muted)}
+.sidebar-profile button{background:none;border:none;cursor:pointer;color:var(--muted);display:flex;align-items:center;padding:0;flex-shrink:0}
+.sidebar-profile button:hover{color:var(--ink)}
+.content-header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:20px;flex-wrap:wrap}
+.content-header h1{font-family:var(--font-cairo),sans-serif;font-size:21px;font-weight:800;color:var(--ink);margin:0;border:none;padding:0}
+.content-header .subtitle{font-size:13px;color:var(--muted);margin-top:3px}
+.content-header .lang-btn{width:38px;height:38px;border-radius:999px;background:#fff;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px}
+.content-header .lang-btn:hover{border-color:var(--ink)}
