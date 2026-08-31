@@ -95,10 +95,6 @@ export default function StoresSection() {
 
       {loading ? (
         <div className="spinner-wrap">{t('common.loading')}</div>
-      ) : stores.length === 0 ? (
-        <div className="card">
-          <p style={{ color: 'var(--muted)', fontSize: 13 }}>{t('stores.empty')}</p>
-        </div>
       ) : (
         <div className="split-view">
           <div className="split-list">
@@ -107,6 +103,9 @@ export default function StoresSection() {
               <span style={{ fontWeight: 500, color: 'var(--muted)', fontSize: 12 }}>{stores.length}</span>
             </div>
             <div className="split-list-body">
+              {stores.length === 0 && (
+                <p style={{ color: 'var(--muted)', fontSize: 13, padding: '16px' }}>{t('stores.empty')}</p>
+              )}
               {stores.map((s) => (
                 <div
                   key={s.id}

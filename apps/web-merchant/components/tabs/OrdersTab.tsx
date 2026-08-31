@@ -166,10 +166,6 @@ export default function OrdersTab() {
 
       {loading ? (
         <div className="spinner-wrap">{t('common.loading')}</div>
-      ) : orders.length === 0 ? (
-        <div className="card">
-          <p style={{ color: 'var(--muted)', fontSize: 13 }}>{t('ordersTab.empty')}</p>
-        </div>
       ) : (
         <div className="split-view">
           <div className="split-list">
@@ -178,6 +174,9 @@ export default function OrdersTab() {
               <span style={{ fontWeight: 500, color: 'var(--muted)', fontSize: 12 }}>{orders.length}</span>
             </div>
             <div className="split-list-body">
+              {orders.length === 0 && (
+                <p style={{ color: 'var(--muted)', fontSize: 13, padding: '16px' }}>{t('ordersTab.empty')}</p>
+              )}
               {orders.map((o) => (
                 <div
                   key={o.id}
