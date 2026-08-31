@@ -209,6 +209,9 @@ const dict = {
       invoiceLoadError: 'تعذّر تحميل الفاتورة',
       invoiceLoading: 'جارٍ تحميل الفاتورة...',
       close: 'إغلاق',
+      downloadPdf: 'تحميل PDF',
+      pdfDownloading: 'جارٍ التجهيز...',
+      pdfError: 'تعذّر تجهيز ملف PDF — جرّب "طباعة" واحفظه كـ PDF من نافذة الطباعة',
     },
     taxInvoicesTab: {
       heading: 'الفواتير',
@@ -671,6 +674,9 @@ const dict = {
       invoiceLoadError: 'Could not load the invoice',
       invoiceLoading: 'Loading invoice...',
       close: 'Close',
+      downloadPdf: 'Download PDF',
+      pdfDownloading: 'Preparing...',
+      pdfError: 'Could not prepare the PDF file — try "Print" and save as PDF from the print dialog instead',
     },
     taxInvoicesTab: {
       heading: 'Invoices',

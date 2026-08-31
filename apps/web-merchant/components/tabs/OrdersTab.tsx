@@ -99,6 +99,7 @@ export default function OrdersTab() {
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [invoiceLoading, setInvoiceLoading] = useState(false);
   const [invoiceError, setInvoiceError] = useState('');
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -139,6 +140,40 @@ export default function OrdersTab() {
       setError(err instanceof ApiError ? err.message : t('ordersTab.updateError'));
     } finally {
       setBusyId(null);
+    }
+  }
+
+  // تحميل الفاتورة كملف PDF فعلي (بدل الاعتماد فقط على "طباعة" المتصفح) — يلتقط
+  // نفس محتوى #invoice-print كصورة عالية الدقة ويحوّلها لصفحة PDF بحجم A4
+  async function handleDownloadPdf() {
+    const el = document.getElementById('invoice-print');
+    if (!el) return;
+    setDownloadingPdf(true);
+    try {
+      const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
+        import('html2canvas'),
+        import('jspdf'),
+      ]);
+      const hiddenEls = Array.from(el.querySelectorAll<HTMLElement>('.no-print'));
+      hiddenEls.forEach((e) => (e.style.display = 'none'));
+      let canvas;
+      try {
+        canvas = await html2canvas(el, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
+      } finally {
+        hiddenEls.forEach((e) => (e.style.display = ''));
+      }
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({ unit: 'pt', format: 'a4' });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const margin = 24;
+      const imgWidth = pageWidth - margin * 2;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      pdf.addImage(imgData, 'PNG', margin, margin, imgWidth, imgHeight);
+      pdf.save(`${invoice?.invoiceNo || 'invoice'}.pdf`);
+    } catch (err) {
+      setInvoiceError(t('ordersTab.pdfError'));
+    } finally {
+      setDownloadingPdf(false);
     }
   }
 
@@ -363,13 +398,14 @@ export default function OrdersTab() {
                         </div>
                       </div>
 
-                      <button
-                        className="primary no-print"
-                        style={{ width: '100%', marginTop: 16 }}
-                        onClick={() => window.print()}
-                      >
-                        🖨️ طباعة / حفظ PDF
-                      </button>
+                      <div className="no-print" style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+                        <button className="secondary" style={{ flex: 1 }} onClick={() => window.print()}>
+                          🖨️ طباعة
+                        </button>
+                        <button className="primary" style={{ flex: 1 }} onClick={handleDownloadPdf} disabled={downloadingPdf}>
+                          {downloadingPdf ? t('ordersTab.pdfDownloading') : `⬇️ ${t('ordersTab.downloadPdf')}`}
+                        </button>
+                      </div>
                     </div>
                   ) : null}
                 </div>
