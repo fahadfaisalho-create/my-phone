@@ -87,9 +87,9 @@ export class AdminService {
     ] = await Promise.all([
       this.prisma.store.groupBy({ by: ['status'], _count: { _all: true } }),
       this.prisma.order.count(),
-      this.prisma.order.findMany({ where: { paymentStatus: 'paid' }, select: { total: true } }),
+      this.prisma.order.findMany({ where: { paymentStatus: 'paid' }, select: { total: true, paidAt: true } }),
       this.prisma.booking.groupBy({ by: ['status'], _count: { _all: true } }),
-      this.prisma.subscription.findMany({ where: { paidAt: { not: null } }, select: { price: true } }),
+      this.prisma.subscription.findMany({ where: { paidAt: { not: null } }, select: { price: true, paidAt: true } }),
       this.prisma.subscription.count({ where: { paidAt: null } }),
       this.prisma.supportTicket.groupBy({ by: ['status'], _count: { _all: true } }),
       this.prisma.storeAd.findMany({ where: { paidAt: { not: null } }, select: { totalPrice: true } }),
@@ -101,6 +101,32 @@ export class AdminService {
     const sum = (rows: { total?: unknown; price?: unknown }[], key: 'total' | 'price') =>
       rows.reduce((acc, r) => acc + Number(r[key] ?? 0), 0);
 
+    // آخر 6 أشهر (شامل الشهر الحالي) — إيراد فعلي محسوب من تواريخ الدفع
+    // الحقيقية (paidAt)، بدون أي تقدير أو رقم وهمي
+    const monthKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const months: { key: string; label: string }[] = [];
+    const now = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.push({ key: monthKey(d), label: d.toLocaleDateString('ar-SA', { month: 'long' }) });
+    }
+    const revenueByMonth = new Map(months.map((m) => [m.key, { subscriptions: 0, orders: 0 }]));
+    for (const s of paidSubscriptions) {
+      if (!s.paidAt) continue;
+      const bucket = revenueByMonth.get(monthKey(s.paidAt));
+      if (bucket) bucket.subscriptions += Number(s.price);
+    }
+    for (const o of paidOrders) {
+      if (!o.paidAt) continue;
+      const bucket = revenueByMonth.get(monthKey(o.paidAt));
+      if (bucket) bucket.orders += Number(o.total);
+    }
+    const monthlyRevenue = months.map((m) => ({
+      month: m.label,
+      subscriptions: revenueByMonth.get(m.key)!.subscriptions,
+      orders: revenueByMonth.get(m.key)!.orders,
+    }));
+
     return {
       stores: countByKey(storesByStatus as any),
       orders: { total: ordersCount, paidCount: paidOrders.length, paidRevenue: sum(paidOrders, 'total') },
@@ -110,6 +136,7 @@ export class AdminService {
         paidRevenue: sum(paidSubscriptions, 'price'),
         unpaidCount: unpaidSubscriptions,
       },
+      monthlyRevenue,
       supportTickets: countByKey(ticketsByStatus as any),
       ads: {
         paidCount: paidAds.length,

@@ -93,8 +93,9 @@ export default function OrdersTab() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const [invoiceOrderId, setInvoiceOrderId] = useState<string | null>(null);
+  const [showInvoice, setShowInvoice] = useState(false);
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [invoiceLoading, setInvoiceLoading] = useState(false);
   const [invoiceError, setInvoiceError] = useState('');
@@ -104,6 +105,7 @@ export default function OrdersTab() {
     try {
       const data = await apiFetch<Order[]>('/stores/me/orders');
       setOrders(data);
+      setSelectedId((prev) => (prev && data.some((o) => o.id === prev) ? prev : data[0]?.id ?? null));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t('ordersTab.loadError'));
     } finally {
@@ -115,6 +117,15 @@ export default function OrdersTab() {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const selected = orders.find((o) => o.id === selectedId) ?? null;
+
+  function selectOrder(id: string) {
+    setSelectedId(id);
+    setShowInvoice(false);
+    setInvoice(null);
+    setInvoiceError('');
+  }
 
   async function updateStatus(id: string, status: OrderStatus) {
     setBusyId(id);
@@ -132,7 +143,7 @@ export default function OrdersTab() {
   }
 
   async function openInvoice(id: string) {
-    setInvoiceOrderId(id);
+    setShowInvoice(true);
     setInvoice(null);
     setInvoiceError('');
     setInvoiceLoading(true);
@@ -146,221 +157,228 @@ export default function OrdersTab() {
     }
   }
 
-  function closeInvoice() {
-    setInvoiceOrderId(null);
-    setInvoice(null);
-    setInvoiceError('');
-  }
-
   return (
-    <div className="card">
-      <h3>{t('ordersTab.heading')}</h3>
+    <div>
+      <h3 style={{ margin: '4px 0 14px' }}>
+        {t('ordersTab.heading')} {!loading && `(${orders.length})`}
+      </h3>
       {error && <div className="err">{error}</div>}
+
       {loading ? (
-        <p style={{ color: 'var(--muted)', fontSize: 13 }}>{t('common.loading')}</p>
+        <div className="spinner-wrap">{t('common.loading')}</div>
       ) : orders.length === 0 ? (
-        <p style={{ color: 'var(--muted)', fontSize: 13 }}>{t('ordersTab.empty')}</p>
+        <div className="card">
+          <p style={{ color: 'var(--muted)', fontSize: 13 }}>{t('ordersTab.empty')}</p>
+        </div>
       ) : (
-        orders.map((o) => (
-          <div className="rowline" key={o.id} style={{ alignItems: 'flex-start' }}>
-            <div>
-              <b style={{ fontSize: 13 }}>{o.consumer.name}</b>
-              <div style={{ fontSize: 12, color: 'var(--muted)' }}>
-                {o.items.map((i) => `${i.product.name} ×${i.qty}`).join('، ')}
+        <div className="split-view">
+          <div className="split-list">
+            <div className="split-list-head">
+              <span>{t('ordersTab.heading')}</span>
+              <span style={{ fontWeight: 500, color: 'var(--muted)', fontSize: 12 }}>{orders.length}</span>
+            </div>
+            <div className="split-list-body">
+              {orders.map((o) => (
+                <div
+                  key={o.id}
+                  className={`split-list-item ${o.id === selectedId ? 'on' : ''}`}
+                  onClick={() => selectOrder(o.id)}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                    <b style={{ fontSize: 13.5, color: 'var(--ink)' }}>{o.consumer.name}</b>
+                    <span className={`badge ${STATUS_BADGE[o.status]}`}>{STATUS_LABEL[o.status]}</span>
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>
+                    {o.items.map((i) => `${i.product.name} ×${i.qty}`).join('، ')}
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
+                    {o.total} ﷼ · {PAY_LABEL[o.paymentStatus]}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {selected ? (
+            <div className="split-detail card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, flexWrap: 'wrap', marginBottom: 14 }}>
+                <div>
+                  <b style={{ fontSize: 15 }}>{selected.consumer.name}</b>
+                  {selected.consumer.phone && (
+                    <div style={{ fontSize: 12.5, color: 'var(--muted)', marginTop: 2 }}>{selected.consumer.phone}</div>
+                  )}
+                </div>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                  <span className="badge" style={{ background: selected.deliveryType === 'delivery' ? '#FCEBEB' : '#F0F0F0' }}>
+                    {DELIVERY_LABEL[selected.deliveryType]}
+                  </span>
+                  {selected.deliveryType === 'delivery' && selected.deliveryMethod && (
+                    <span className="badge" style={{ background: '#F0F0F0' }}>{DELIVERY_METHOD_LABEL[selected.deliveryMethod]}</span>
+                  )}
+                  {selected.deliveryType === 'delivery' && selected.courierProvider && (
+                    <span className="badge" style={{ background: '#F0F0F0' }}>{COURIER_LABEL[selected.courierProvider]}</span>
+                  )}
+                  <span className={`badge ${STATUS_BADGE[selected.status]}`}>{STATUS_LABEL[selected.status]}</span>
+                </div>
               </div>
-              <div style={{ fontSize: 12, color: 'var(--muted)' }}>
-                {o.total} ﷼ · {PAY_LABEL[o.paymentStatus]}
-                {o.branch && <> · 🏬 {o.branch.name}</>}
-                {o.coupon && <> · 🏷️ {o.coupon.code}</>}
+
+              <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 14, padding: 14, marginBottom: 14 }}>
+                {selected.items.map((i, idx) => (
+                  <div key={idx} className="rowline" style={{ borderBottom: idx === selected.items.length - 1 ? 'none' : undefined }}>
+                    <span>{i.product.name}</span>
+                    <span style={{ color: 'var(--muted)' }}>× {i.qty}</span>
+                  </div>
+                ))}
               </div>
-              {o.deliveryType === 'delivery' && o.deliveryAddress && (
-                <div style={{ fontSize: 12, color: 'var(--ink)', marginTop: 4 }}>📍 {o.deliveryAddress}</div>
+
+              <div style={{ fontSize: 13, color: 'var(--text)', marginBottom: 4 }}>
+                {t('ordersTab.viewInvoice').replace('🧾 ', '')}: <b style={{ fontFamily: 'var(--font-cairo)' }}>{selected.total} ﷼</b>
+                {selected.branch && <> · 🏬 {selected.branch.name}</>}
+                {selected.coupon && <> · 🏷️ {selected.coupon.code}</>}
+              </div>
+
+              {selected.deliveryType === 'delivery' && selected.deliveryAddress && (
+                <div style={{ fontSize: 12.5, color: 'var(--ink)', marginTop: 6 }}>📍 {selected.deliveryAddress}</div>
               )}
-              {o.deliveryType === 'delivery' && o.deliveryLat && o.deliveryLng && (
+              {selected.deliveryType === 'delivery' && selected.deliveryLat && selected.deliveryLng && (
                 <a
-                  href={`https://www.google.com/maps/search/?api=1&query=${o.deliveryLat},${o.deliveryLng}`}
+                  href={`https://www.google.com/maps/search/?api=1&query=${selected.deliveryLat},${selected.deliveryLng}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  style={{ fontSize: 12, color: 'var(--ink)', marginTop: 2, display: 'inline-block' }}
+                  style={{ fontSize: 12.5, color: 'var(--ink)', marginTop: 4, display: 'inline-block' }}
                 >
                   {t('ordersTab.openMap')}
                 </a>
               )}
-              {o.paymentStatus === 'paid' && (
-                <div>
-                  <button
-                    className="secondary"
-                    style={{ marginTop: 6, fontSize: 12 }}
-                    onClick={() => openInvoice(o.id)}
-                  >
+
+              <div className="actions-row" style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
+                {selected.status === 'pending' && selected.paymentStatus === 'paid' && (
+                  <button className="primary" disabled={busyId === selected.id} onClick={() => updateStatus(selected.id, 'processing')}>
+                    {t('ordersTab.startProcessing')}
+                  </button>
+                )}
+                {selected.status === 'processing' && (
+                  <button className="primary" disabled={busyId === selected.id} onClick={() => updateStatus(selected.id, 'completed')}>
+                    {t('ordersTab.finish')}
+                  </button>
+                )}
+                {selected.paymentStatus === 'paid' && (
+                  <button className="secondary" onClick={() => openInvoice(selected.id)}>
                     {t('ordersTab.viewInvoice')}
                   </button>
-                </div>
-              )}
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
-              <span className="badge" style={{ background: o.deliveryType === 'delivery' ? '#FCEBEB' : '#F0F0F0' }}>
-                {DELIVERY_LABEL[o.deliveryType]}
-              </span>
-              {o.deliveryType === 'delivery' && o.deliveryMethod && (
-                <span className="badge" style={{ background: '#F0F0F0' }}>
-                  {DELIVERY_METHOD_LABEL[o.deliveryMethod]}
-                </span>
-              )}
-              {o.deliveryType === 'delivery' && o.courierProvider && (
-                <span className="badge" style={{ background: '#F0F0F0' }}>
-                  {COURIER_LABEL[o.courierProvider]}
-                </span>
-              )}
-              <span className={`badge ${STATUS_BADGE[o.status]}`}>{STATUS_LABEL[o.status]}</span>
-              {o.status === 'pending' && o.paymentStatus === 'paid' && (
-                <button className="secondary" disabled={busyId === o.id} onClick={() => updateStatus(o.id, 'processing')}>
-                  {t('ordersTab.startProcessing')}
-                </button>
-              )}
-              {o.status === 'processing' && (
-                <button className="secondary" disabled={busyId === o.id} onClick={() => updateStatus(o.id, 'completed')}>
-                  {t('ordersTab.finish')}
-                </button>
-              )}
-            </div>
-          </div>
-        ))
-      )}
-
-      {invoiceOrderId && (
-        <div className="modal-overlay" onClick={closeInvoice}>
-          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close no-print" onClick={closeInvoice} aria-label={t('ordersTab.close')}>
-              ✕
-            </button>
-            {invoiceLoading ? (
-              <p style={{ color: 'var(--muted)', fontSize: 13, clear: 'both' }}>{t('ordersTab.invoiceLoading')}</p>
-            ) : invoiceError ? (
-              <div className="err" style={{ clear: 'both' }}>
-                {invoiceError}
-              </div>
-            ) : invoice ? (
-              <div id="invoice-print" style={{ clear: 'both' }}>
-                <div className="invoice-head">
-                  <h3 style={{ marginBottom: 2 }}>{invoice.store.name}</h3>
-                  <p className="note" style={{ marginBottom: 0 }}>
-                    {invoice.vatRate ? 'فاتورة ضريبية مبسطة' : 'فاتورة مبسطة'}
-                  </p>
-                  <p className="note" style={{ fontSize: 11 }}>
-                    {invoice.vatRate ? 'Simplified Tax Invoice' : 'Simplified Invoice'}
-                  </p>
-                </div>
-
-                <p className="note" style={{ margin: '10px 0 4px', fontWeight: 600 }}>
-                  تفاصيل الفاتورة
-                </p>
-                <div className="invoice-meta">
-                  <div>رقم الفاتورة: {invoice.invoiceNo}</div>
-                  <div>تاريخ الإصدار: {formatDate(invoice.issuedAt, dateLocale)}</div>
-                  {invoice.store.taxNo && <div>الرقم الضريبي للمتجر: {invoice.store.taxNo}</div>}
-                  <div>السجل التجاري للمتجر: {invoice.store.commercialRegisterNo}</div>
-                </div>
-
-                <p className="note" style={{ margin: '10px 0 4px', fontWeight: 600 }}>
-                  بيانات العميل
-                </p>
-                <div className="invoice-meta">
-                  <div>اسم العميل: {invoice.consumer.name}</div>
-                </div>
-
-                <div style={{ marginTop: 14 }}>
-                  {invoice.items.map((it, idx) => (
-                    <div className="invoice-item" key={idx}>
-                      <span>
-                        {it.name} × {it.qty}
-                      </span>
-                      <b>{it.lineTotal} ﷼</b>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="invoice-sum">
-                  <span>المنتجات</span>
-                  <span>{invoice.subtotal} ﷼</span>
-                </div>
-                {invoice.deliveryType === 'delivery' && (
-                  <>
-                    <div className="invoice-sum">
-                      <span>
-                        رسوم التوصيل{invoice.courierProvider ? ` (${COURIER_LABEL[invoice.courierProvider]})` : ''}
-                      </span>
-                      <span>{invoice.deliveryFee ?? 0} ﷼</span>
-                    </div>
-                    {invoice.deliveryAddress && (
-                      <p className="note" style={{ marginTop: 6 }}>
-                        📍 {invoice.deliveryAddress}
-                      </p>
-                    )}
-                  </>
                 )}
-
-                <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px dashed var(--border)' }}>
-                  <div className="invoice-sum">
-                    <span>الإجمالي (قبل الخصم)</span>
-                    <span>{(invoice.subtotal + (invoice.deliveryFee ?? 0)).toFixed(2)} ﷼</span>
-                  </div>
-                  {invoice.discountAmount && (
-                    <div className="invoice-sum">
-                      <span>إجمالي الخصم</span>
-                      <span>{invoice.discountAmount.toFixed(2)} ﷼</span>
-                    </div>
-                  )}
-                  {invoice.vatRate !== null && (
-                    <>
-                      <div className="invoice-sum">
-                        <span>المبلغ الخاضع للضريبة</span>
-                        <span>{invoice.taxableAmount?.toFixed(2)} ﷼</span>
-                      </div>
-                      <div className="invoice-sum">
-                        <span>ضريبة القيمة المضافة ({invoice.vatRate}%)</span>
-                        <span>{invoice.vatAmount?.toFixed(2)} ﷼</span>
-                      </div>
-                    </>
-                  )}
-                  <div className="invoice-total">
-                    <span>المبلغ الإجمالي</span>
-                    <span>{invoice.total} ﷼</span>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 18 }}>
-                  <div
-                    style={{
-                      width: 100,
-                      height: 100,
-                      border: '1.5px dashed var(--border)',
-                      borderRadius: 8,
-                      background: '#FAFAFA',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: 30,
-                      color: 'var(--border)',
-                    }}
-                  >
-                    ▦
-                  </div>
-                  <p className="note" style={{ textAlign: 'center', maxWidth: 260, marginTop: 8 }}>
-                    سيُفعَّل رمز الفاتورة الإلكترونية عند الربط مع منظومة الفوترة الإلكترونية (زاتكا)
-                  </p>
-                </div>
-
-                <button
-                  className="primary no-print"
-                  style={{ width: '100%', marginTop: 16 }}
-                  onClick={() => window.print()}
-                >
-                  🖨️ طباعة / حفظ PDF
-                </button>
               </div>
-            ) : null}
-          </div>
+
+              {showInvoice && (
+                <div style={{ marginTop: 18, paddingTop: 18, borderTop: '1px dashed var(--border)' }}>
+                  {invoiceLoading ? (
+                    <p style={{ color: 'var(--muted)', fontSize: 13 }}>{t('ordersTab.invoiceLoading')}</p>
+                  ) : invoiceError ? (
+                    <div className="err">{invoiceError}</div>
+                  ) : invoice ? (
+                    <div id="invoice-print">
+                      <div className="invoice-head">
+                        <h3 style={{ marginBottom: 2 }}>{invoice.store.name}</h3>
+                        <p className="note" style={{ marginBottom: 0 }}>
+                          {invoice.vatRate ? 'فاتورة ضريبية مبسطة' : 'فاتورة مبسطة'}
+                        </p>
+                        <p className="note" style={{ fontSize: 11 }}>
+                          {invoice.vatRate ? 'Simplified Tax Invoice' : 'Simplified Invoice'}
+                        </p>
+                      </div>
+
+                      <p className="note" style={{ margin: '10px 0 4px', fontWeight: 600 }}>
+                        تفاصيل الفاتورة
+                      </p>
+                      <div className="invoice-meta">
+                        <div>رقم الفاتورة: {invoice.invoiceNo}</div>
+                        <div>تاريخ الإصدار: {formatDate(invoice.issuedAt, dateLocale)}</div>
+                        {invoice.store.taxNo && <div>الرقم الضريبي للمتجر: {invoice.store.taxNo}</div>}
+                        <div>السجل التجاري للمتجر: {invoice.store.commercialRegisterNo}</div>
+                      </div>
+
+                      <p className="note" style={{ margin: '10px 0 4px', fontWeight: 600 }}>
+                        بيانات العميل
+                      </p>
+                      <div className="invoice-meta">
+                        <div>اسم العميل: {invoice.consumer.name}</div>
+                      </div>
+
+                      <div style={{ marginTop: 14 }}>
+                        {invoice.items.map((it, idx) => (
+                          <div className="invoice-item" key={idx}>
+                            <span>
+                              {it.name} × {it.qty}
+                            </span>
+                            <b>{it.lineTotal} ﷼</b>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="invoice-sum">
+                        <span>المنتجات</span>
+                        <span>{invoice.subtotal} ﷼</span>
+                      </div>
+                      {invoice.deliveryType === 'delivery' && (
+                        <>
+                          <div className="invoice-sum">
+                            <span>
+                              رسوم التوصيل{invoice.courierProvider ? ` (${COURIER_LABEL[invoice.courierProvider]})` : ''}
+                            </span>
+                            <span>{invoice.deliveryFee ?? 0} ﷼</span>
+                          </div>
+                          {invoice.deliveryAddress && (
+                            <p className="note" style={{ marginTop: 6 }}>
+                              📍 {invoice.deliveryAddress}
+                            </p>
+                          )}
+                        </>
+                      )}
+
+                      <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px dashed var(--border)' }}>
+                        <div className="invoice-sum">
+                          <span>الإجمالي (قبل الخصم)</span>
+                          <span>{(invoice.subtotal + (invoice.deliveryFee ?? 0)).toFixed(2)} ﷼</span>
+                        </div>
+                        {invoice.discountAmount && (
+                          <div className="invoice-sum">
+                            <span>إجمالي الخصم</span>
+                            <span>{invoice.discountAmount.toFixed(2)} ﷼</span>
+                          </div>
+                        )}
+                        {invoice.vatRate !== null && (
+                          <>
+                            <div className="invoice-sum">
+                              <span>المبلغ الخاضع للضريبة</span>
+                              <span>{invoice.taxableAmount?.toFixed(2)} ﷼</span>
+                            </div>
+                            <div className="invoice-sum">
+                              <span>ضريبة القيمة المضافة ({invoice.vatRate}%)</span>
+                              <span>{invoice.vatAmount?.toFixed(2)} ﷼</span>
+                            </div>
+                          </>
+                        )}
+                        <div className="invoice-total">
+                          <span>المبلغ الإجمالي</span>
+                          <span>{invoice.total} ﷼</span>
+                        </div>
+                      </div>
+
+                      <button
+                        className="primary no-print"
+                        style={{ width: '100%', marginTop: 16 }}
+                        onClick={() => window.print()}
+                      >
+                        🖨️ طباعة / حفظ PDF
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="split-empty">{t('ordersTab.empty')}</div>
+          )}
         </div>
       )}
     </div>

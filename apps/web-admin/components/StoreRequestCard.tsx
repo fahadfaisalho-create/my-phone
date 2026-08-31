@@ -5,13 +5,13 @@ import { fileUrl } from '@/lib/api';
 import { PLAN_LABEL, PLAN_LABEL_EN, StoreRequest } from '@/lib/types';
 import { useLocale } from '@/lib/i18n';
 
-const BADGE_CLASS: Record<string, string> = {
+export const BADGE_CLASS: Record<string, string> = {
   pending: 'b-pending',
   active: 'b-active',
   rejected: 'b-rejected',
   suspended: 'b-suspended',
 };
-const BADGE_NAV_KEY: Record<string, string> = {
+export const BADGE_NAV_KEY: Record<string, string> = {
   pending: 'stores.tabPending',
   active: 'stores.tabActive',
   rejected: 'stores.tabRejected',

@@ -51,6 +51,12 @@ export default function StatsTab() {
 
   return (
     <div>
+      <div className="hero-stat">
+        <div>
+          <div className="label">{t('stats.ordersCount')}</div>
+          <div className="value">{counts.orders}</div>
+        </div>
+      </div>
       <div className="grid3">
         {items.map((it) => (
           <div className="metric" key={it.l}>
