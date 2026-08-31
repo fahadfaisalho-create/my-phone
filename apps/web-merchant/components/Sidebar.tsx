@@ -157,7 +157,7 @@ export default function Sidebar({
                 title={item.lockTitle}
               >
                 {ICONS[item.icon]}
-                {item.locked ? `🔒 ${item.label}` : item.label}
+                {item.label}
               </button>
             ))}
           </div>
