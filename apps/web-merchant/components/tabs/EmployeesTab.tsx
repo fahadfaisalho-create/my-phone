@@ -96,7 +96,8 @@ export default function EmployeesTab() {
   }
 
   async function handleCreate() {
-    if (!firstName.trim() || !lastName.trim() || !phone.trim() || !nationalId.trim() || !birthDate) return;
+    if (!firstName.trim() || !lastName.trim() || !phone.trim() || !nationalId.trim() || !birthDate || !email.trim())
+      return;
     setCreating(true);
     setCreateError('');
     setJustCreated(null);
@@ -107,9 +108,9 @@ export default function EmployeesTab() {
         phone: phone.trim(),
         nationalId: nationalId.trim(),
         birthDate,
+        email: email.trim(),
         permissions: Array.from(permissions),
       };
-      if (email.trim()) body.email = email.trim();
       if (zoneLat !== null && zoneLng !== null && zoneRadiusM) {
         body.attendanceLat = zoneLat;
         body.attendanceLng = zoneLng;
@@ -199,8 +200,8 @@ export default function EmployeesTab() {
             <input id="empBirthDate" type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} />
           </div>
           <div>
-            <label htmlFor="empEmail">{t('employeesTab.emailOptional')}</label>
-            <input id="empEmail" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <label htmlFor="empEmail">{t('employeesTab.email')}</label>
+            <input id="empEmail" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
           </div>
         </div>
 
@@ -246,7 +247,15 @@ export default function EmployeesTab() {
         <button
           className="primary"
           onClick={handleCreate}
-          disabled={creating || !firstName.trim() || !lastName.trim() || !phone.trim() || !nationalId.trim() || !birthDate}
+          disabled={
+            creating ||
+            !firstName.trim() ||
+            !lastName.trim() ||
+            !phone.trim() ||
+            !nationalId.trim() ||
+            !birthDate ||
+            !email.trim()
+          }
         >
           {creating ? t('common.saving') : t('employeesTab.createAccount')}
         </button>
@@ -255,7 +264,7 @@ export default function EmployeesTab() {
           <div className="note" style={{ marginTop: 14, background: 'var(--indigo-bg)' }}>
             <b>{t('employeesTab.createdHeading')}</b>
             <div style={{ marginTop: 6, fontSize: 13 }}>
-              {t('employeesTab.phoneLabel')}: <b style={{ fontFamily: 'var(--font-cairo)' }}>{justCreated.user.phone}</b>
+              {t('employeesTab.emailLabel')}: <b style={{ fontFamily: 'var(--font-cairo)' }}>{justCreated.user.email}</b>
               <br />
               {t('employeesTab.passwordLabel')}:{' '}
               <b style={{ fontFamily: 'var(--font-cairo)' }}>{justCreated.temporaryPassword}</b>

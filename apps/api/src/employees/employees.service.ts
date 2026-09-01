@@ -29,10 +29,8 @@ export class EmployeesService {
 
     const existingPhone = await this.prisma.user.findUnique({ where: { phone: dto.phone } });
     if (existingPhone) throw new BadRequestException('رقم الجوال مستخدم مسبقاً');
-    if (dto.email) {
-      const existingEmail = await this.prisma.user.findUnique({ where: { email: dto.email } });
-      if (existingEmail) throw new BadRequestException('البريد الإلكتروني مستخدم مسبقاً');
-    }
+    const existingEmail = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    if (existingEmail) throw new BadRequestException('البريد الإلكتروني مستخدم مسبقاً');
 
     const password = generatePassword();
     const passwordHash = await bcrypt.hash(password, 10);

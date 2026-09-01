@@ -22,9 +22,11 @@ export class CreateEmployeeDto {
   @IsDateString({}, { message: 'تاريخ الميلاد غير صحيح' })
   birthDate: string;
 
-  @IsOptional()
+  // البريد الإلكتروني هو معرّف دخول الموظف (يدخل من نفس صفحة تسجيل الدخول
+  // ببريده وكلمة سره) — إجباري، بعكس رقم الجوال اللي هو بيانات تعريف فقط
   @IsEmail({}, { message: 'صيغة البريد الإلكتروني غير صحيحة' })
-  email?: string;
+  @IsNotEmpty({ message: 'البريد الإلكتروني مطلوب' })
+  email: string;
 
   // الأقسام (تبويبات لوحة التاجر) المسموح للموظف الوصول لها
   @IsOptional()

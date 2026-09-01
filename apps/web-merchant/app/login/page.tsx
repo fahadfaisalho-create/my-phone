@@ -8,27 +8,25 @@ import { StoreSection } from '@/lib/types';
 import { useLocale } from '@/lib/i18n';
 
 const PERMISSIONS_KEY = 'employee_permissions';
+const ADMIN_TOKEN_KEY = 'admin_token';
+const ADMIN_USER_KEY = 'admin_user';
 
-interface MerchantLoginResponse {
+interface UnifiedLoginResponse {
   accessToken: string;
   user: { id: string; name: string; email: string; role: string };
   store: { id: string; status: string } | null;
+  permissions?: StoreSection[];
+  storeId?: string | null;
 }
 
-interface EmployeeLoginResponse {
-  accessToken: string;
-  user: { id: string; name: string; email: string; role: string };
-  permissions: StoreSection[];
-  storeId: string;
-}
-
-// صفحة دخول موحّدة للتاجر (صاحب المحل) وللحساب الفرعي (الموظف) معاً — نميّز
-// بينهما من شكل الحقل: بريد إلكتروني (فيه @) يذهب لتسجيل دخول التاجر،
-// وأي شيء غيره (رقم جوال) يذهب لتسجيل دخول الحساب الفرعي
+// صفحة دخول واحدة للجميع: التاجر (صاحب المحل)، الحساب الفرعي (الموظف)،
+// والإدمن — نفس الرابط ونفس النموذج بالضبط بلا أي إشارة لوجود أكثر من نوع
+// حساب. النقطة الخلفية /auth/login واحدة، والدور اللي يرجع بالرد هو اللي
+// يحدد وجهة التوجيه — بلا أي تمييز ظاهر بالواجهة
 export default function LoginPage() {
   const router = useRouter();
   const { t, toggleLocale } = useLocale();
-  const [identifier, setIdentifier] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -38,33 +36,34 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
     try {
-      const value = identifier.trim();
-      const isEmail = value.includes('@');
+      const res = await apiFetch<UnifiedLoginResponse>('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      });
 
-      if (isEmail) {
-        const res = await apiFetch<MerchantLoginResponse>('/auth/login', {
-          method: 'POST',
-          body: JSON.stringify({ email: value, password }),
-        });
-        if (res.user.role !== 'merchant_rep') {
-          setError(t('login.notMerchant'));
-          return;
-        }
-        setSession(res.accessToken, res.user);
-        if (!res.store) {
-          setError(t('login.noStore'));
-          return;
-        }
-        router.replace(routeForStatus(res.store.status as any));
-      } else {
-        const res = await apiFetch<EmployeeLoginResponse>('/auth/employee-login', {
-          method: 'POST',
-          body: JSON.stringify({ phone: value, password }),
-        });
-        setSession(res.accessToken, res.user);
-        localStorage.setItem(PERMISSIONS_KEY, JSON.stringify(res.permissions));
-        router.replace('/employee/dashboard');
+      if (res.user.role === 'admin') {
+        // تطبيق الإدمن نشر منفصل يُخدَّم عبر /admin على نفس الدومين (rewrite)
+        // — نفس الأصل (origin) فعلياً، فنكتب بيانات جلسته بنفس مفاتيحه
+        localStorage.setItem(ADMIN_TOKEN_KEY, res.accessToken);
+        localStorage.setItem(ADMIN_USER_KEY, JSON.stringify(res.user));
+        window.location.href = '/admin/dashboard';
+        return;
       }
+
+      if (res.user.role === 'employee') {
+        setSession(res.accessToken, res.user);
+        localStorage.setItem(PERMISSIONS_KEY, JSON.stringify(res.permissions ?? []));
+        router.replace('/employee/dashboard');
+        return;
+      }
+
+      // merchant_rep
+      setSession(res.accessToken, res.user);
+      if (!res.store) {
+        setError(t('login.noStore'));
+        return;
+      }
+      router.replace(routeForStatus(res.store.status as any));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t('login.connectionError'));
     } finally {
@@ -82,17 +81,8 @@ export default function LoginPage() {
       <form className="card card-narrow" onSubmit={handleSubmit} style={{ marginTop: 12 }}>
         <h2>{t('login.title')}</h2>
         {error && <div className="err">{error}</div>}
-        <label htmlFor="identifier">{t('login.identifier')}</label>
-        <input
-          id="identifier"
-          value={identifier}
-          onChange={(e) => setIdentifier(e.target.value)}
-          required
-          autoFocus
-        />
-        <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: -8, marginBottom: 12 }}>
-          {t('login.identifierHint')}
-        </div>
+        <label htmlFor="email">{t('login.email')}</label>
+        <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus />
         <label htmlFor="password">{t('login.password')}</label>
         <input
           id="password"

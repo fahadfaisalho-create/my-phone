@@ -10,7 +10,6 @@ import {
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { AuthService, UploadedFiles as UploadedFilesType } from './auth.service';
 import { LoginDto } from './dto/login.dto';
-import { EmployeeLoginDto } from './dto/employee-login.dto';
 import { RegisterMerchantDto } from './dto/register-merchant.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
@@ -20,18 +19,12 @@ import { registrationFilesStorage, fileFilter, MAX_FILE_SIZE_BYTES } from '../co
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  // تسجيل دخول موحّد للتاجر (merchant_rep) والإدارة (admin) بالبريد وكلمة السر
+  // تسجيل دخول موحّد للجميع (تاجر / إدمن / حساب فرعي) بالبريد وكلمة السر —
+  // نفس النقطة بالضبط للثلاثة، الدور يتحدد داخلياً بالخدمة
   @Post('login')
   @HttpCode(HttpStatus.OK)
   login(@Body() dto: LoginDto) {
     return this.authService.login(dto);
-  }
-
-  // تسجيل دخول الحساب الفرعي (موظف) — بالجوال بدل البريد
-  @Post('employee-login')
-  @HttpCode(HttpStatus.OK)
-  employeeLogin(@Body() dto: EmployeeLoginDto) {
-    return this.authService.employeeLogin(dto);
   }
 
   // تسجيل محل جديد: بيانات الممثل + بيانات المحل + الملفات الإجبارية + الباقة

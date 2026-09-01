@@ -11,7 +11,6 @@ import { SubscriptionPlan, UserRole } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { RegisterMerchantDto } from './dto/register-merchant.dto';
 import { LoginDto } from './dto/login.dto';
-import { EmployeeLoginDto } from './dto/employee-login.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { JwtPayload } from './types';
@@ -64,16 +63,35 @@ export class AuthService {
     return this.jwt.sign(payload);
   }
 
-  // تسجيل دخول موحّد للتاجر والإدارة (بريد + كلمة سر) — الحسابات الفرعية
-  // (employee) لها مسار دخول منفصل بالجوال (employeeLogin) عمداً
+  // تسجيل دخول موحّد للجميع (بريد + كلمة سر) — نفس النقطة والرابط بالضبط
+  // للتاجر (merchant_rep) والإدمن (admin) والحساب الفرعي (employee)؛ الدور
+  // يتحدد داخلياً من صف المستخدم نفسه ولا يظهر للمستخدم أي تمييز بينهم في
+  // الواجهة. المستهلك (consumer) وحده مستثنى — يدخل بـ OTP من تطبيق منفصل
   async login(dto: LoginDto) {
-    const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
-    if (!user || !user.passwordHash || user.role === 'consumer' || user.role === 'employee') {
+    const user = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+      include: { employeeProfile: true },
+    });
+    if (!user || !user.passwordHash || user.role === 'consumer') {
       throw new UnauthorizedException('البريد الإلكتروني أو كلمة السر غير صحيحة');
     }
     const ok = await bcrypt.compare(dto.password, user.passwordHash);
     if (!ok) {
       throw new UnauthorizedException('البريد الإلكتروني أو كلمة السر غير صحيحة');
+    }
+
+    if (user.role === 'employee') {
+      if (!user.employeeProfile || !user.employeeProfile.active) {
+        throw new UnauthorizedException('حسابك موقوف — تواصل مع صاحب المحل');
+      }
+      const token = await this.issueToken(user, user.employeeProfile.storeId);
+      return {
+        accessToken: token,
+        user: { id: user.id, name: user.name, email: user.email, role: user.role },
+        store: null,
+        permissions: user.employeeProfile.permissions,
+        storeId: user.employeeProfile.storeId,
+      };
     }
 
     let store: { id: string; status: string } | null = null;
@@ -90,33 +108,6 @@ export class AuthService {
       accessToken: token,
       user: { id: user.id, name: user.name, email: user.email, role: user.role },
       store,
-    };
-  }
-
-  // تسجيل دخول الحساب الفرعي (موظف) — بالجوال بدل البريد، ويرجع صلاحياته
-  // وحالة نطاق الحضور معه مباشرة حتى تبني الواجهة عليها بدون طلب إضافي
-  async employeeLogin(dto: EmployeeLoginDto) {
-    const user = await this.prisma.user.findUnique({
-      where: { phone: dto.phone },
-      include: { employeeProfile: true },
-    });
-    if (!user || !user.passwordHash || user.role !== 'employee' || !user.employeeProfile) {
-      throw new UnauthorizedException('رقم الجوال أو كلمة السر غير صحيحة');
-    }
-    if (!user.employeeProfile.active) {
-      throw new UnauthorizedException('حسابك موقوف — تواصل مع صاحب المحل');
-    }
-    const ok = await bcrypt.compare(dto.password, user.passwordHash);
-    if (!ok) {
-      throw new UnauthorizedException('رقم الجوال أو كلمة السر غير صحيحة');
-    }
-
-    const token = await this.issueToken(user, user.employeeProfile.storeId);
-    return {
-      accessToken: token,
-      user: { id: user.id, name: user.name, email: user.email, role: user.role },
-      permissions: user.employeeProfile.permissions,
-      storeId: user.employeeProfile.storeId,
     };
   }
 
