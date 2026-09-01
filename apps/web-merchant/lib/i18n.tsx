@@ -28,8 +28,10 @@ const dict = {
       register: 'تسجيل جديد',
     },
     login: {
-      title: 'تسجيل دخول التاجر',
+      title: 'تسجيل الدخول',
       email: 'البريد الإلكتروني',
+      identifier: 'البريد الإلكتروني أو رقم الجوال',
+      identifierHint: 'التاجر يدخل ببريده الإلكتروني، والحساب الفرعي (الموظف) يدخل برقم جواله',
       password: 'كلمة السر',
       submit: 'دخول',
       submitting: 'جارٍ الدخول...',
@@ -571,8 +573,10 @@ const dict = {
       register: 'New Registration',
     },
     login: {
-      title: 'Merchant Sign In',
+      title: 'Sign In',
       email: 'Email',
+      identifier: 'Email or phone number',
+      identifierHint: 'Merchants sign in with their email, sub-accounts (employees) sign in with their phone number',
       password: 'Password',
       submit: 'Sign in',
       submitting: 'Signing in…',

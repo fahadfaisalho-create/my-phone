@@ -4,18 +4,31 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiFetch, ApiError, setSession } from '@/lib/api';
 import { routeForStatus } from '@/lib/routing';
+import { StoreSection } from '@/lib/types';
 import { useLocale } from '@/lib/i18n';
 
-interface LoginResponse {
+const PERMISSIONS_KEY = 'employee_permissions';
+
+interface MerchantLoginResponse {
   accessToken: string;
   user: { id: string; name: string; email: string; role: string };
   store: { id: string; status: string } | null;
 }
 
+interface EmployeeLoginResponse {
+  accessToken: string;
+  user: { id: string; name: string; email: string; role: string };
+  permissions: StoreSection[];
+  storeId: string;
+}
+
+// صفحة دخول موحّدة للتاجر (صاحب المحل) وللحساب الفرعي (الموظف) معاً — نميّز
+// بينهما من شكل الحقل: بريد إلكتروني (فيه @) يذهب لتسجيل دخول التاجر،
+// وأي شيء غيره (رقم جوال) يذهب لتسجيل دخول الحساب الفرعي
 export default function LoginPage() {
   const router = useRouter();
   const { t, toggleLocale } = useLocale();
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -25,20 +38,33 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
     try {
-      const res = await apiFetch<LoginResponse>('/auth/login', {
-        method: 'POST',
-        body: JSON.stringify({ email, password }),
-      });
-      if (res.user.role !== 'merchant_rep') {
-        setError(t('login.notMerchant'));
-        return;
+      const value = identifier.trim();
+      const isEmail = value.includes('@');
+
+      if (isEmail) {
+        const res = await apiFetch<MerchantLoginResponse>('/auth/login', {
+          method: 'POST',
+          body: JSON.stringify({ email: value, password }),
+        });
+        if (res.user.role !== 'merchant_rep') {
+          setError(t('login.notMerchant'));
+          return;
+        }
+        setSession(res.accessToken, res.user);
+        if (!res.store) {
+          setError(t('login.noStore'));
+          return;
+        }
+        router.replace(routeForStatus(res.store.status as any));
+      } else {
+        const res = await apiFetch<EmployeeLoginResponse>('/auth/employee-login', {
+          method: 'POST',
+          body: JSON.stringify({ phone: value, password }),
+        });
+        setSession(res.accessToken, res.user);
+        localStorage.setItem(PERMISSIONS_KEY, JSON.stringify(res.permissions));
+        router.replace('/employee/dashboard');
       }
-      setSession(res.accessToken, res.user);
-      if (!res.store) {
-        setError(t('login.noStore'));
-        return;
-      }
-      router.replace(routeForStatus(res.store.status as any));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t('login.connectionError'));
     } finally {
@@ -56,8 +82,17 @@ export default function LoginPage() {
       <form className="card card-narrow" onSubmit={handleSubmit} style={{ marginTop: 12 }}>
         <h2>{t('login.title')}</h2>
         {error && <div className="err">{error}</div>}
-        <label htmlFor="email">{t('login.email')}</label>
-        <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus />
+        <label htmlFor="identifier">{t('login.identifier')}</label>
+        <input
+          id="identifier"
+          value={identifier}
+          onChange={(e) => setIdentifier(e.target.value)}
+          required
+          autoFocus
+        />
+        <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: -8, marginBottom: 12 }}>
+          {t('login.identifierHint')}
+        </div>
         <label htmlFor="password">{t('login.password')}</label>
         <input
           id="password"

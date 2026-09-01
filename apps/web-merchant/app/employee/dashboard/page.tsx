@@ -56,7 +56,7 @@ export default function EmployeeDashboardPage() {
     const token = getToken();
     const user = getUser();
     if (!token || user?.role !== 'employee') {
-      router.replace('/employee/login');
+      router.replace('/login');
       return;
     }
     let perms: StoreSection[] = [];
@@ -74,7 +74,7 @@ export default function EmployeeDashboardPage() {
         const s = await apiFetch<Store>('/stores/me');
         setStore(s);
       } catch {
-        router.replace('/employee/login');
+        router.replace('/login');
         return;
       }
       setReady(true);
@@ -84,7 +84,7 @@ export default function EmployeeDashboardPage() {
   function handleExit() {
     clearSession();
     localStorage.removeItem(PERMISSIONS_KEY);
-    router.replace('/employee/login');
+    router.replace('/login');
   }
 
   if (!ready || !store) return <div className="app spinner-wrap">{t('dashboard.loading')}</div>;
