@@ -61,7 +61,11 @@ export class ChatService {
       return chat;
     }
     if (opts.merchantOwnerUserId) {
-      if (chat.store.ownerUserId !== opts.merchantOwnerUserId) {
+      // opts.merchantOwnerUserId قد يكون صاحب المحل نفسه أو حساباً فرعياً تابعاً
+      // له (getOwnedStoreOrThrow تحلّ محل الاثنين) — المقارنة على المحل نفسه
+      // وليس على ownerUserId مباشرة، حتى يقدر الموظف صاحب صلاحية "الرسائل" يشارك
+      const store = await getOwnedStoreOrThrow(this.prisma, opts.merchantOwnerUserId);
+      if (chat.storeId !== store.id) {
         throw new ForbiddenException('لا تملك صلاحية الوصول لهذه المحادثة');
       }
       return chat;

@@ -1,7 +1,9 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
+import { SectionGuard } from '../auth/guards/section.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { RequireSection } from '../auth/decorators/require-section.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../auth/types';
 import { ServicesService } from './services.service';
@@ -9,8 +11,9 @@ import { CreateServiceDto } from './dto/create-service.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
 
 @Controller('stores/me/services')
-@UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('merchant_rep')
+@UseGuards(JwtAuthGuard, RolesGuard, SectionGuard)
+@Roles('merchant_rep', 'employee')
+@RequireSection('services')
 export class ServicesController {
   constructor(private readonly servicesService: ServicesService) {}
 

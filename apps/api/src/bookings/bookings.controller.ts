@@ -1,7 +1,9 @@
 import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
+import { SectionGuard } from '../auth/guards/section.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { RequireSection } from '../auth/decorators/require-section.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../auth/types';
 import { BookingsService } from './bookings.service';
@@ -9,7 +11,7 @@ import { CreateBookingDto } from './dto/create-booking.dto';
 import { UpdateBookingStatusDto } from './dto/update-booking-status.dto';
 
 @Controller()
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, SectionGuard)
 export class BookingsController {
   constructor(private readonly bookingsService: BookingsService) {}
 
@@ -34,13 +36,15 @@ export class BookingsController {
 
   // --- التاجر ---
   @Get('stores/me/bookings')
-  @Roles('merchant_rep')
+  @Roles('merchant_rep', 'employee')
+  @RequireSection('bookings')
   listForMyStore(@CurrentUser() user: AuthenticatedUser) {
     return this.bookingsService.listForMyStore(user.id);
   }
 
   @Patch('stores/me/bookings/:id/status')
-  @Roles('merchant_rep')
+  @Roles('merchant_rep', 'employee')
+  @RequireSection('bookings')
   updateStatus(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,

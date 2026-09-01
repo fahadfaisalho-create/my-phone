@@ -12,7 +12,9 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
+import { SectionGuard } from '../auth/guards/section.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { RequireSection } from '../auth/decorators/require-section.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../auth/types';
 import { ChatService } from './chat.service';
@@ -27,7 +29,7 @@ const chatImageInterceptor = FileInterceptor('chatImage', {
 });
 
 @Controller()
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, SectionGuard)
 export class ChatController {
   constructor(private readonly chatService: ChatService) {}
 
@@ -44,19 +46,22 @@ export class ChatController {
   }
 
   @Get('stores/me/chats')
-  @Roles('merchant_rep')
+  @Roles('merchant_rep', 'employee')
+  @RequireSection('messages')
   listForMyStore(@CurrentUser() user: AuthenticatedUser) {
     return this.chatService.listMineAsMerchant(user.id);
   }
 
   @Get('chats/:id/messages')
-  @Roles('consumer', 'merchant_rep')
+  @Roles('consumer', 'merchant_rep', 'employee')
+  @RequireSection('messages')
   listMessages(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
     return this.chatService.listMessages(id, this.participantOpts(user));
   }
 
   @Post('chats/:id/messages')
-  @Roles('consumer', 'merchant_rep')
+  @Roles('consumer', 'merchant_rep', 'employee')
+  @RequireSection('messages')
   sendMessage(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,

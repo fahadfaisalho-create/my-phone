@@ -197,3 +197,47 @@ export const SERVICE_CATALOG = [
   'صيانة شحن',
   'صيانة كاميرا',
 ];
+
+// أقسام لوحة التاجر — نفس تبويبات الشريط الجانبي بالضبط، تُستخدم كصلاحيات
+// دقيقة للحسابات الفرعية
+export type StoreSection =
+  | 'branches'
+  | 'services'
+  | 'products'
+  | 'inventory'
+  | 'technicians'
+  | 'bookings'
+  | 'orders'
+  | 'taxInvoices'
+  | 'coupons'
+  | 'ads'
+  | 'messages'
+  | 'stats'
+  | 'support'
+  | 'settings';
+
+export interface Employee {
+  id: string;
+  firstName: string;
+  lastName: string;
+  nationalId: string;
+  birthDate: string;
+  permissions: StoreSection[];
+  active: boolean;
+  attendanceLat: number | null;
+  attendanceLng: number | null;
+  attendanceRadiusM: number | null;
+  createdAt: string;
+  user: { phone: string | null; email: string | null };
+}
+
+export interface AttendanceRecord {
+  id: string;
+  checkInAt: string;
+  checkInLat: number;
+  checkInLng: number;
+  checkOutAt: string | null;
+  checkOutLat: number | null;
+  checkOutLng: number | null;
+  employee: { firstName: string; lastName: string };
+}

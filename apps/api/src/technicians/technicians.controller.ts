@@ -14,7 +14,9 @@ import {
 import { FileFieldsInterceptor, FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
+import { SectionGuard } from '../auth/guards/section.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { RequireSection } from '../auth/decorators/require-section.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../auth/types';
 import { TechniciansService } from './technicians.service';
@@ -43,8 +45,9 @@ interface TechnicianFiles {
 }
 
 @Controller('stores/me/technicians')
-@UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('merchant_rep')
+@UseGuards(JwtAuthGuard, RolesGuard, SectionGuard)
+@Roles('merchant_rep', 'employee')
+@RequireSection('technicians')
 export class TechniciansController {
   constructor(private readonly techniciansService: TechniciansService) {}
 

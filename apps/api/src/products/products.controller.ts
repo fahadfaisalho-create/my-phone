@@ -13,7 +13,9 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
+import { SectionGuard } from '../auth/guards/section.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { RequireSection } from '../auth/decorators/require-section.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../auth/types';
 import { ProductsService } from './products.service';
@@ -29,17 +31,21 @@ const imageInterceptor = FileInterceptor('image', {
 });
 
 @Controller('stores/me/products')
-@UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('merchant_rep')
+@UseGuards(JwtAuthGuard, RolesGuard, SectionGuard)
+@Roles('merchant_rep', 'employee')
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
+  // القائمة يحتاجها كل من عنده صلاحية "المنتجات" أو "المخزون" (تبويب المخزون
+  // يعرض نفس القائمة قبل تعديل الكميات)
   @Get()
+  @RequireSection('products', 'inventory')
   list(@CurrentUser() user: AuthenticatedUser) {
     return this.productsService.listMine(user.id);
   }
 
   @Post()
+  @RequireSection('products')
   @UseInterceptors(imageInterceptor)
   create(
     @CurrentUser() user: AuthenticatedUser,
@@ -50,6 +56,7 @@ export class ProductsController {
   }
 
   @Patch(':id')
+  @RequireSection('products')
   @UseInterceptors(imageInterceptor)
   update(
     @CurrentUser() user: AuthenticatedUser,
@@ -61,12 +68,15 @@ export class ProductsController {
   }
 
   @Delete(':id')
+  @RequireSection('products')
   remove(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
     return this.productsService.remove(user.id, id);
   }
 
-  // صفحة المخزون: تعديل الكمية فقط
+  // صفحة المخزون: تعديل الكمية فقط — صلاحية "المخزون" وحدها تكفي، بدون حاجة
+  // لصلاحية "المنتجات" الكاملة (إضافة/حذف منتجات)
   @Patch(':id/inventory')
+  @RequireSection('inventory')
   updateInventory(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,

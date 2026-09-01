@@ -10,6 +10,7 @@ import {
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { AuthService, UploadedFiles as UploadedFilesType } from './auth.service';
 import { LoginDto } from './dto/login.dto';
+import { EmployeeLoginDto } from './dto/employee-login.dto';
 import { RegisterMerchantDto } from './dto/register-merchant.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
@@ -24,6 +25,13 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   login(@Body() dto: LoginDto) {
     return this.authService.login(dto);
+  }
+
+  // تسجيل دخول الحساب الفرعي (موظف) — بالجوال بدل البريد
+  @Post('employee-login')
+  @HttpCode(HttpStatus.OK)
+  employeeLogin(@Body() dto: EmployeeLoginDto) {
+    return this.authService.employeeLogin(dto);
   }
 
   // تسجيل محل جديد: بيانات الممثل + بيانات المحل + الملفات الإجبارية + الباقة

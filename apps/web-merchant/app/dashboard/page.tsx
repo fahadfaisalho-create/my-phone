@@ -20,6 +20,8 @@ import SettingsTab from '@/components/tabs/SettingsTab';
 import TechniciansTab from '@/components/tabs/TechniciansTab';
 import CouponsTab from '@/components/tabs/CouponsTab';
 import AdsTab from '@/components/tabs/AdsTab';
+import EmployeesTab from '@/components/tabs/EmployeesTab';
+import AttendanceTab from '@/components/tabs/AttendanceTab';
 import { useLocale } from '@/lib/i18n';
 
 const TABS = [
@@ -33,6 +35,8 @@ const TABS = [
   { key: 'taxInvoices', navKey: 'nav.taxInvoices', icon: 'taxInvoices' },
   { key: 'coupons', navKey: 'nav.coupons', icon: 'coupons' },
   { key: 'ads', navKey: 'nav.ads', icon: 'ads' },
+  { key: 'employees', navKey: 'nav.employees', icon: 'employees' },
+  { key: 'attendance', navKey: 'nav.attendance', icon: 'attendance' },
   { key: 'messages', navKey: 'nav.messages', icon: 'messages' },
   { key: 'stats', navKey: 'nav.stats', icon: 'stats' },
   { key: 'support', navKey: 'nav.support', icon: 'support' },
@@ -45,6 +49,7 @@ type TabKey = (typeof TABS)[number]['key'];
 const GROUP_KEYS: { label: string; keys: TabKey[] }[] = [
   { label: 'nav.groupCore', keys: ['branches', 'technicians', 'services', 'products', 'inventory'] },
   { label: 'nav.groupSales', keys: ['bookings', 'orders', 'taxInvoices', 'coupons', 'ads'] },
+  { label: 'nav.groupTeam', keys: ['employees', 'attendance'] },
   { label: 'nav.groupOther', keys: ['messages', 'stats', 'support', 'settings'] },
 ];
 
@@ -52,6 +57,8 @@ const GROUP_KEYS: { label: string; keys: TabKey[] }[] = [
 // المنتجات تحتاج فرعاً واحداً على الأقل، المخزون وبقية الأقسام تحتاج منتجاً
 // واحداً على الأقل، والخدمات تحتاج فرداً واحداً على الأقل بفريق الصيانة.
 // يطبَّق فقط على حسابات المحلات (الشركات) — الفني المستقل ليس له هذا التدرج أصلاً.
+// الحسابات الفرعية والحضور/الانصراف أدوات إدارية لصاحب المحل — متاحة دائماً
+// بدون أي قفل تدريجي (بنفس منطق الفروع وفريق الصيانة)
 const NEEDS_PRODUCT: TabKey[] = ['inventory', 'bookings', 'orders', 'taxInvoices', 'coupons', 'ads', 'messages', 'stats', 'support', 'settings'];
 
 export default function DashboardPage() {
@@ -168,7 +175,7 @@ export default function DashboardPage() {
   const isIndividual = store.providerType === 'individual';
   // الفني المستقل: بدون فروع متعددة أو منتجات/مخزون أو موظفين — خدمات شخصية فقط
   // (وبدون كوبونات — الكوبون يخصم من طلبات شراء المنتجات وهو ما عنده منتجات أصلاً)
-  const HIDDEN_FOR_INDIVIDUAL: TabKey[] = ['branches', 'products', 'inventory', 'technicians', 'orders', 'taxInvoices', 'coupons'];
+  const HIDDEN_FOR_INDIVIDUAL: TabKey[] = ['branches', 'products', 'inventory', 'technicians', 'orders', 'taxInvoices', 'coupons', 'employees', 'attendance'];
   const visibleTabs = isIndividual ? TABS.filter((tabDef) => !HIDDEN_FOR_INDIVIDUAL.includes(tabDef.key)) : TABS;
   const effectiveTab = visibleTabs.some((tabDef) => tabDef.key === tab) ? tab : visibleTabs[0].key;
 
@@ -267,6 +274,8 @@ export default function DashboardPage() {
         {effectiveTab === 'taxInvoices' && <TaxInvoicesTab />}
         {effectiveTab === 'coupons' && <CouponsTab />}
         {effectiveTab === 'ads' && <AdsTab />}
+        {effectiveTab === 'employees' && <EmployeesTab />}
+        {effectiveTab === 'attendance' && <AttendanceTab />}
         {effectiveTab === 'messages' && <MessagesTab />}
         {effectiveTab === 'stats' && <StatsTab />}
         {effectiveTab === 'support' && <SupportTab />}

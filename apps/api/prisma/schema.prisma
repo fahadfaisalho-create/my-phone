@@ -16,6 +16,26 @@ enum UserRole {
   admin
   merchant_rep
   consumer
+  employee
+}
+
+// أقسام لوحة التاجر — نفس تبويبات الشريط الجانبي بالضبط، تُستخدم كصلاحيات
+// دقيقة للحسابات الفرعية (كل قسم = صلاحية مستقلة يمنحها صاحب المحل للموظف)
+enum StoreSection {
+  branches
+  services
+  products
+  inventory
+  technicians
+  bookings
+  orders
+  taxInvoices
+  coupons
+  ads
+  messages
+  stats
+  support
+  settings
 }
 
 enum StoreStatus {
@@ -154,11 +174,13 @@ model User {
   resetToken       String?   @unique @map("reset_token")
   resetTokenExpiry DateTime? @map("reset_token_expiry")
 
-  stores       Store[]         @relation("StoreOwner")
-  bookings     Booking[]       @relation("ConsumerBookings")
-  orders       Order[]         @relation("ConsumerOrders")
-  chats        Chat[]          @relation("ConsumerChats")
-  reviews      Review[]        @relation("ConsumerReviews")
+  stores          Store[]          @relation("StoreOwner")
+  bookings        Booking[]        @relation("ConsumerBookings")
+  orders          Order[]          @relation("ConsumerOrders")
+  chats           Chat[]           @relation("ConsumerChats")
+  reviews         Review[]         @relation("ConsumerReviews")
+  // فقط لمستخدم role=employee — بيانات الموظف/صلاحياته الخاصة بحساب فرعي
+  employeeProfile EmployeeProfile?
 
   @@map("users")
 }
@@ -214,8 +236,60 @@ model Store {
   coupons        Coupon[]
   ads            StoreAd[]
   taxInvoices    TaxInvoice[]
+  employees      EmployeeProfile[]
 
   @@map("stores")
+}
+
+// حساب فرعي (موظف) تابع لمحل — تسجيل دخوله عبر نفس جدول users (role=employee)،
+// وهذا الجدول يحمل بياناته الإضافية وصلاحياته ونطاق حضوره الجغرافي. صاحب
+// المحل (merchant_rep) هو من ينشئه ويدير صلاحياته، لا يسجّل نفسه بنفسه.
+model EmployeeProfile {
+  id     String @id @default(cuid())
+  userId String @unique @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  storeId String @map("store_id")
+  store   Store  @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  firstName  String   @map("first_name")
+  lastName   String   @map("last_name")
+  nationalId String   @map("national_id")
+  birthDate  DateTime @map("birth_date")
+
+  // الأقسام (تبويبات لوحة التاجر) المسموح للموظف الوصول لها فقط
+  permissions StoreSection[]
+  active      Boolean        @default(true)
+
+  // نطاق الحضور الجغرافي (نقطة + نصف قطر بالمتر) — فارغ يعني ميزة الحضور
+  // والانصراف معطّلة لهذا الموظف تحديداً
+  attendanceLat     Float? @map("attendance_lat")
+  attendanceLng     Float? @map("attendance_lng")
+  attendanceRadiusM Int?   @map("attendance_radius_m")
+
+  // = "تاريخ مباشرة" بواجهة الحسابات الفرعية
+  createdAt DateTime @default(now()) @map("created_at")
+
+  attendanceRecords AttendanceRecord[]
+
+  @@map("employee_profiles")
+}
+
+// سجل حضور/انصراف واحد لموظف — يُنشأ عند تسجيل الحضور، ويُكمَّل عند الانصراف
+model AttendanceRecord {
+  id         String          @id @default(cuid())
+  employeeId String          @map("employee_id")
+  employee   EmployeeProfile @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  checkInAt  DateTime @map("check_in_at")
+  checkInLat Float    @map("check_in_lat")
+  checkInLng Float    @map("check_in_lng")
+
+  checkOutAt  DateTime? @map("check_out_at")
+  checkOutLat Float?    @map("check_out_lat")
+  checkOutLng Float?    @map("check_out_lng")
+
+  @@map("attendance_records")
 }
 
 // إعلان مميز مدفوع — يشتري التاجر ظهور محله بشريط "إعلانات مميزة" أعلى الرئيسية

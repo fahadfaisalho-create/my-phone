@@ -2,7 +2,9 @@ import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@ne
 import { TicketRelatedType, TicketStatus } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
+import { SectionGuard } from '../auth/guards/section.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { RequireSection } from '../auth/decorators/require-section.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../auth/types';
 import { SupportTicketsService } from './support-tickets.service';
@@ -10,12 +12,13 @@ import { CreateTicketDto } from './dto/create-ticket.dto';
 import { UpdateTicketStatusDto } from './dto/update-ticket-status.dto';
 
 @Controller('support-tickets')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, SectionGuard)
 export class SupportTicketsController {
   constructor(private readonly ticketsService: SupportTicketsService) {}
 
   @Post()
-  @Roles('consumer', 'merchant_rep')
+  @Roles('consumer', 'merchant_rep', 'employee')
+  @RequireSection('support')
   create(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreateTicketDto) {
     return user.role === 'consumer'
       ? this.ticketsService.createAsConsumer(user.id, dto)
@@ -23,7 +26,8 @@ export class SupportTicketsController {
   }
 
   @Get('me')
-  @Roles('consumer', 'merchant_rep')
+  @Roles('consumer', 'merchant_rep', 'employee')
+  @RequireSection('support')
   listMine(@CurrentUser() user: AuthenticatedUser) {
     return user.role === 'consumer'
       ? this.ticketsService.listMineAsConsumer(user.id)

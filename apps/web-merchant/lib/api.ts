@@ -82,3 +82,31 @@ export function fileUrl(path: string | null | undefined): string | null {
   if (!path) return null;
   return `${API_ORIGIN}${path}`;
 }
+
+// لتنزيل ملف ثنائي (إكسل مثلاً) بدل apiFetch العادية اللي تفترض استجابة JSON —
+// يجلب الملف بنفس رأس التوثيق ثم يشغّل تنزيله مباشرة بالمتصفح
+export async function downloadFile(path: string, filename: string): Promise<void> {
+  const token = getToken();
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) {
+    let message = 'تعذّر تنزيل الملف';
+    try {
+      const data = await res.json();
+      message = Array.isArray(data.message) ? data.message.join('، ') : data.message || message;
+    } catch {
+      // ignore
+    }
+    throw new ApiError(message, res.status);
+  }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}

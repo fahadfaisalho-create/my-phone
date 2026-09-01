@@ -1,7 +1,9 @@
 import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
+import { SectionGuard } from '../auth/guards/section.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { RequireSection } from '../auth/decorators/require-section.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../auth/types';
 import { OrdersService } from './orders.service';
@@ -9,7 +11,7 @@ import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 
 @Controller()
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, SectionGuard)
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
@@ -49,13 +51,15 @@ export class OrdersController {
 
   // --- التاجر ---
   @Get('stores/me/orders')
-  @Roles('merchant_rep')
+  @Roles('merchant_rep', 'employee')
+  @RequireSection('orders')
   listForMyStore(@CurrentUser() user: AuthenticatedUser) {
     return this.ordersService.listForMyStore(user.id);
   }
 
   @Patch('stores/me/orders/:id/status')
-  @Roles('merchant_rep')
+  @Roles('merchant_rep', 'employee')
+  @RequireSection('orders')
   updateStatus(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
@@ -65,7 +69,8 @@ export class OrdersController {
   }
 
   @Get('stores/me/orders/:id/invoice')
-  @Roles('merchant_rep')
+  @Roles('merchant_rep', 'employee')
+  @RequireSection('orders')
   getInvoiceForMerchant(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
     return this.ordersService.getInvoiceForMerchant(user.id, id);
   }
