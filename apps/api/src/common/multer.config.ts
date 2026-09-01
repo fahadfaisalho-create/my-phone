@@ -2,6 +2,7 @@ import { BadRequestException } from '@nestjs/common';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { randomUUID } from 'crypto';
+import { mkdirSync } from 'fs';
 
 // تخزين محلي مؤقت للملفات (السجل التجاري، تصديق الحساب البنكي، الشعار، صور المنتجات).
 // TODO: عند التوسع، استبدل diskStorage بتحميل مباشر إلى Cloudflare R2 / AWS S3 حسب المواصفات
@@ -26,7 +27,11 @@ const FIELD_SUBFOLDER: Record<string, string> = {
 export const registrationFilesStorage = diskStorage({
   destination: (_req, file, cb) => {
     const subfolder = FIELD_SUBFOLDER[file.fieldname] ?? 'misc';
-    cb(null, `./${UPLOADS_ROOT}/${subfolder}`);
+    const dir = `./${UPLOADS_ROOT}/${subfolder}`;
+    // multer ما ينشئ المجلد تلقائياً — لو أول رفع لهذا الحقل (مثل رخصة
+    // العمل الحر لفني) يفشل بخطأ ENOENT بدون هذا؛ إنشاء idempotent وآمن
+    mkdirSync(dir, { recursive: true });
+    cb(null, dir);
   },
   filename: (_req, file, cb) => {
     const unique = randomUUID();
