@@ -1,0 +1,21 @@
+{
+  "buildCommand": "npx expo export -p web",
+  "outputDirectory": "dist",
+  "rewrites": [
+    { "source": "/admin", "destination": "https://my-phone-admin.vercel.app/admin" },
+    { "source": "/admin/:path*", "destination": "https://my-phone-admin.vercel.app/admin/:path*" },
+    { "source": "/_next/:path*", "destination": "https://my-phone-merchant.vercel.app/_next/:path*" },
+    { "source": "/dashboard", "destination": "https://my-phone-merchant.vercel.app/dashboard" },
+    { "source": "/dashboard/:path*", "destination": "https://my-phone-merchant.vercel.app/dashboard/:path*" },
+    { "source": "/login", "destination": "https://my-phone-merchant.vercel.app/login" },
+    { "source": "/register", "destination": "https://my-phone-merchant.vercel.app/register" },
+    { "source": "/entry", "destination": "https://my-phone-merchant.vercel.app/entry" },
+    { "source": "/forgot-password", "destination": "https://my-phone-merchant.vercel.app/forgot-password" },
+    { "source": "/edit-store", "destination": "https://my-phone-merchant.vercel.app/edit-store" },
+    { "source": "/pending", "destination": "https://my-phone-merchant.vercel.app/pending" },
+    { "source": "/rejected", "destination": "https://my-phone-merchant.vercel.app/rejected" },
+    { "source": "/suspended", "destination": "https://my-phone-merchant.vercel.app/suspended" },
+    { "source": "/employee", "destination": "https://my-phone-merchant.vercel.app/employee" },
+    { "source": "/employee/:path*", "destination": "https://my-phone-merchant.vercel.app/employee/:path*" }
+  ]
+}
