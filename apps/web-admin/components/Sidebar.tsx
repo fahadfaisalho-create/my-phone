@@ -80,7 +80,8 @@ export default function Sidebar({
   return (
     <div className="shell-sidebar">
       <div className="sidebar-brand">
-        <div className="mark">M</div>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo-icon.svg" alt={brandTitle} className="mark" />
         <div>
           <div className="name">{brandTitle}</div>
           <div className="sub">{brandSubtitle}</div>

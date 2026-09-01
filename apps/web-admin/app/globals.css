@@ -151,7 +151,7 @@ td{padding:10px 8px;border-bottom:1px solid var(--border)}
 .shell-sidebar{width:248px;flex-shrink:0;background:var(--card);border-left:1px solid var(--border);padding:20px 16px;display:flex;flex-direction:column;gap:22px;position:sticky;top:0;height:100vh;overflow-y:auto}
 .shell-main{flex:1;min-width:0;padding:26px 32px;max-width:1180px}
 .sidebar-brand{display:flex;align-items:center;gap:10px;padding:0 4px}
-.sidebar-brand .mark{width:34px;height:34px;border-radius:10px;background:var(--indigo);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--font-cairo),sans-serif;font-weight:800;font-size:15px;flex-shrink:0}
+.sidebar-brand .mark{width:34px;height:34px;flex-shrink:0;display:block}
 .sidebar-brand .name{font-family:var(--font-cairo),sans-serif;font-weight:700;font-size:14px;color:var(--ink)}
 .sidebar-brand .sub{font-size:11px;color:var(--muted)}
 .sidebar-nav{display:flex;flex-direction:column;gap:2px}
