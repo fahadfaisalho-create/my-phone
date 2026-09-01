@@ -6,6 +6,12 @@ import { Technician } from '@/lib/types';
 import FileField from '@/components/FileField';
 import { useLocale } from '@/lib/i18n';
 
+const STATUS_BADGE_CLASS: Record<string, string> = {
+  pending: 'b-pending',
+  approved: 'b-active',
+  rejected: 'b-rejected',
+};
+
 export default function TechniciansTab({ onChanged }: { onChanged?: () => void }) {
   const { t, tf } = useLocale();
   const [technicians, setTechnicians] = useState<Technician[]>([]);
@@ -43,7 +49,7 @@ export default function TechniciansTab({ onChanged }: { onChanged?: () => void }
   }, []);
 
   async function handleAdd() {
-    if (!name.trim() || !nationality.trim()) return;
+    if (!name.trim() || !nationality.trim() || !licenseNo.trim() || !licenseFile) return;
     setSaving(true);
     setError('');
     try {
@@ -51,9 +57,9 @@ export default function TechniciansTab({ onChanged }: { onChanged?: () => void }
       form.append('name', name.trim());
       form.append('nationality', nationality.trim());
       if (experienceYears) form.append('experienceYears', experienceYears);
-      if (licenseNo.trim()) form.append('freelanceLicenseNo', licenseNo.trim());
+      form.append('freelanceLicenseNo', licenseNo.trim());
       if (photo) form.append('photo', photo);
-      if (licenseFile) form.append('freelanceLicenseFile', licenseFile);
+      form.append('freelanceLicenseFile', licenseFile);
 
       await apiFetch('/stores/me/technicians', { method: 'POST', body: form });
       setName('');
@@ -135,6 +141,7 @@ export default function TechniciansTab({ onChanged }: { onChanged?: () => void }
             placeholder={t('technicians.licenseNoPlaceholder')}
             value={licenseNo}
             onChange={(e) => setLicenseNo(e.target.value)}
+            required
           />
         </div>
         <FileField label={t('technicians.photoLabel')} accept="image/*" file={photo} onChange={setPhoto} previewAsImage />
@@ -143,12 +150,14 @@ export default function TechniciansTab({ onChanged }: { onChanged?: () => void }
           accept="image/*,application/pdf"
           file={licenseFile}
           onChange={setLicenseFile}
+          required
         />
+        <p className="note" style={{ marginTop: 6 }}>{t('technicians.reviewNote')}</p>
         {error && <div className="err">{error}</div>}
         <button
           className="primary"
           onClick={handleAdd}
-          disabled={saving || !name.trim() || !nationality.trim()}
+          disabled={saving || !name.trim() || !nationality.trim() || !licenseNo.trim() || !licenseFile}
         >
           {saving ? t('common.saving') : t('technicians.saveAndPublish')}
         </button>
@@ -167,11 +176,19 @@ export default function TechniciansTab({ onChanged }: { onChanged?: () => void }
                 <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   {tech.photoUrl && <img src={fileUrl(tech.photoUrl)!} className="thumb" alt={tech.name} />}
                   <span>
-                    <b>{tech.name}</b>
+                    <b>{tech.name}</b>{' '}
+                    <span className={`badge ${STATUS_BADGE_CLASS[tech.status]}`}>
+                      {t(`technicians.status.${tech.status}`)}
+                    </span>
                     <div style={{ fontSize: 12, color: 'var(--muted)' }}>
                       {tech.nationality}
                       {tech.experienceYears != null ? tf('technicians.experienceYears', String(tech.experienceYears)) : ''}
                     </div>
+                    {tech.status === 'rejected' && tech.rejectionReason && (
+                      <div style={{ fontSize: 12, color: 'var(--danger, #C0392B)', marginTop: 2 }}>
+                        {t('technicians.rejectionReasonLabel')}: {tech.rejectionReason}
+                      </div>
+                    )}
                     {tech.freelanceLicenseNo && (
                       <div style={{ fontSize: 12, color: 'var(--muted)' }}>
                         {t('technicians.freelanceLicense')}: {tech.freelanceLicenseNo}

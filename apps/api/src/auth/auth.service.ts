@@ -159,6 +159,7 @@ export class AuthService {
           logoUrl: logo ? `/uploads/logos/${logo.filename}` : null,
           crFileUrl: `/uploads/cr/${crFile.filename}`,
           bankCertificateFileUrl: `/uploads/bank/${bankFile.filename}`,
+          freelanceLicenseNo: isIndividual ? dto.freelanceLicenseNo : null,
           freelanceLicenseExpiry:
             isIndividual && dto.freelanceLicenseExpiry ? new Date(dto.freelanceLicenseExpiry) : null,
           status: 'pending',

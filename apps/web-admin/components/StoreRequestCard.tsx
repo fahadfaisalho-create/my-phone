@@ -18,7 +18,7 @@ export const BADGE_NAV_KEY: Record<string, string> = {
   suspended: 'stores.tabSuspended',
 };
 
-function DocLink({ url, label, notAttached }: { url: string | null; label: string; notAttached: string }) {
+export function DocLink({ url, label, notAttached }: { url: string | null; label: string; notAttached: string }) {
   if (!url) return <span className="docmissing">{label}: {notAttached}</span>;
   const isImage = /\.(png|jpe?g|webp)$/i.test(url);
   return (
@@ -174,6 +174,10 @@ export default function StoreRequestCard({
               <div style={{ fontWeight: 600, color: 'var(--ink)' }}>
                 {store.verifiedAt ? new Date(store.verifiedAt).toLocaleDateString(dateLocale) : t('stores.notVerifiedYet')}
               </div>
+            </div>
+            <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 14, padding: 14 }}>
+              <div style={{ fontSize: 11.5, color: 'var(--muted)', marginBottom: 4 }}>{t('stores.licenseNoLabel')}</div>
+              <div style={{ fontWeight: 600, color: 'var(--ink)' }}>{store.freelanceLicenseNo ?? '—'}</div>
             </div>
             <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 14, padding: 14 }}>
               <div style={{ fontSize: 11.5, color: 'var(--muted)', marginBottom: 4 }}>{t('stores.licenseExpiryLabel')}</div>

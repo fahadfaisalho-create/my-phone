@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { StoreStatus } from '@prisma/client';
+import { StoreStatus, TechnicianStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
 
@@ -153,6 +153,42 @@ export class AdminService {
     return this.prisma.subscription.update({
       where: { id: subscriptionId },
       data: { paidAt: paid ? new Date() : null },
+    });
+  }
+
+  // مراجعة رخصة العمل الحر للفنيين اللي تضيفهم المحلات — تحقق يدوي مؤقت
+  // (بديل لحد ربط فعلي مستقبلي مع منصة العمل الحر)
+  listTechnicians(status?: TechnicianStatus) {
+    return this.prisma.technician.findMany({
+      where: status ? { status } : undefined,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        store: { select: { id: true, name: true, providerType: true } },
+      },
+    });
+  }
+
+  async approveTechnician(id: string) {
+    const technician = await this.prisma.technician.findUnique({ where: { id } });
+    if (!technician) throw new NotFoundException('الفني غير موجود');
+    if (technician.status !== 'pending') {
+      throw new BadRequestException('لا يمكن قبول طلب ليس قيد المراجعة');
+    }
+    return this.prisma.technician.update({
+      where: { id },
+      data: { status: 'approved', rejectionReason: null, verifiedAt: new Date() },
+    });
+  }
+
+  async rejectTechnician(id: string, reason: string) {
+    const technician = await this.prisma.technician.findUnique({ where: { id } });
+    if (!technician) throw new NotFoundException('الفني غير موجود');
+    if (technician.status !== 'pending') {
+      throw new BadRequestException('لا يمكن رفض طلب ليس قيد المراجعة');
+    }
+    return this.prisma.technician.update({
+      where: { id },
+      data: { status: 'rejected', rejectionReason: reason },
     });
   }
 }

@@ -45,6 +45,14 @@ enum StoreStatus {
   suspended
 }
 
+// حالة مراجعة الإدمن لبيانات رخصة العمل الحر لفني أضافه محل — بديل مؤقت
+// يدوي لحين ربط فعلي مع منصة العمل الحر مستقبلاً
+enum TechnicianStatus {
+  pending
+  approved
+  rejected
+}
+
 // نوع مزوّد الخدمة: محل/شركة له سجل تجاري، أو فرد مستقل يقدّم الصيانة بنفسه
 // (بدون سجل تجاري — يسجل برقم الهوية الوطنية بدلاً منه، بنفس تدفق مراجعة الإدمن)
 enum StoreProviderType {
@@ -206,8 +214,9 @@ model Store {
   // لحظة موافقة الإدمن الفعلية (approve) — تُعرض كـ"تاريخ التحقق" عند الفرد
   // المستقل، وتبقى فارغة لطلب لم يُوافَق عليه بعد
   verifiedAt             DateTime?   @map("verified_at")
-  // فقط لمزوّد فرد مستقل (providerType=individual) — تاريخ انتهاء رخصة العمل
-  // الحر التي رفعها عند التسجيل
+  // فقط لمزوّد فرد مستقل (providerType=individual) — رقم وتاريخ انتهاء رخصة
+  // العمل الحر التي رفعها عند التسجيل (الملف نفسه بحقل crFileUrl أعلاه)
+  freelanceLicenseNo     String?     @map("freelance_license_no")
   freelanceLicenseExpiry DateTime?   @map("freelance_license_expiry")
 
   // خدمة التوصيل للطلبات (منتجات) — يفعّلها التاجر ويحدد رسومها، بيانات فقط حالياً
@@ -387,6 +396,12 @@ model Technician {
   freelanceLicenseNo      String?  @map("freelance_license_no")
   freelanceLicenseFileUrl String?  @map("freelance_license_file_url")
   createdAt               DateTime @default(now()) @map("created_at")
+
+  // مراجعة الإدمن اليدوية لرخصة العمل الحر — إجبارية عند الإضافة من محل؛
+  // الفني لا يظهر على صفحة المحل العامة للمستهلكين إلا بعد الموافقة
+  status         TechnicianStatus @default(pending)
+  rejectionReason String?         @map("rejection_reason")
+  verifiedAt     DateTime?        @map("verified_at")
 
   certificates TechnicianCertificate[]
 

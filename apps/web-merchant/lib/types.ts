@@ -125,6 +125,8 @@ export interface TechnicianCertificate {
   createdAt: string;
 }
 
+export type TechnicianStatus = 'pending' | 'approved' | 'rejected';
+
 export interface Technician {
   id: string;
   storeId: string;
@@ -134,6 +136,9 @@ export interface Technician {
   photoUrl: string | null;
   freelanceLicenseNo: string | null;
   freelanceLicenseFileUrl: string | null;
+  status: TechnicianStatus;
+  rejectionReason: string | null;
+  verifiedAt: string | null;
   createdAt: string;
   certificates: TechnicianCertificate[];
 }

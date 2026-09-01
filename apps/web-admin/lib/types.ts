@@ -1,6 +1,23 @@
 export type StoreStatus = 'pending' | 'active' | 'rejected' | 'suspended';
 export type SubscriptionPlan = 'monthly' | 'six_months' | 'yearly';
 export type StoreProviderType = 'company' | 'individual';
+export type TechnicianStatus = 'pending' | 'approved' | 'rejected';
+
+export interface TechnicianRequest {
+  id: string;
+  storeId: string;
+  name: string;
+  nationality: string;
+  experienceYears: number | null;
+  photoUrl: string | null;
+  freelanceLicenseNo: string | null;
+  freelanceLicenseFileUrl: string | null;
+  status: TechnicianStatus;
+  rejectionReason: string | null;
+  verifiedAt: string | null;
+  createdAt: string;
+  store: { id: string; name: string; providerType: StoreProviderType };
+}
 
 export interface Subscription {
   id: string;
@@ -31,6 +48,7 @@ export interface StoreRequest {
   // تُعبّى فقط بعد موافقة الإدمن (approve)
   verifiedAt: string | null;
   // فقط لمزوّد فرد مستقل (providerType=individual)
+  freelanceLicenseNo: string | null;
   freelanceLicenseExpiry: string | null;
   owner: { name: string; email: string | null; phone: string | null };
   subscriptions: Subscription[];

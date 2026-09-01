@@ -16,8 +16,10 @@ export class CreateTechnicianDto {
   @Min(0)
   experienceYears?: number;
 
-  // رخصة العمل الحر اختيارية — رقم الرخصة فقط (الملف يُرفع كملف منفصل)
-  @IsOptional()
+  // رخصة العمل الحر إجبارية — رقم الرخصة (الملف يُرفع كملف منفصل ويُتحقق من
+  // وجوده بالخدمة) — الفني لا يظهر للمستهلكين على صفحة المحل العامة إلا بعد
+  // مراجعة الإدمن ليدوياً والتأكد من مطابقتها
   @IsString()
-  freelanceLicenseNo?: string;
+  @IsNotEmpty({ message: 'رقم رخصة العمل الحر مطلوب' })
+  freelanceLicenseNo: string;
 }

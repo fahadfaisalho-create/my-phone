@@ -45,6 +45,7 @@ export default function RegisterPage() {
   // خطوة 2 إضافية (فني مستقل)
   const [nationalId, setNationalId] = useState('');
   const [serviceArea, setServiceArea] = useState('');
+  const [freelanceLicenseNo, setFreelanceLicenseNo] = useState('');
   const [freelanceLicenseExpiry, setFreelanceLicenseExpiry] = useState('');
 
   // خطوة 3
@@ -75,7 +76,7 @@ export default function RegisterPage() {
   function goStep2Next(e: React.FormEvent) {
     e.preventDefault();
     if (isIndividual) {
-      if (!storeName.trim() || !nationalId.trim() || !iban.trim() || !freelanceLicenseExpiry) {
+      if (!storeName.trim() || !nationalId.trim() || !iban.trim() || !freelanceLicenseNo.trim() || !freelanceLicenseExpiry) {
         setError(t('register.fillRequiredIndividual'));
         return;
       }
@@ -114,6 +115,7 @@ export default function RegisterPage() {
       form.append('storeName', storeName);
       if (isIndividual) {
         form.append('nationalId', nationalId);
+        form.append('freelanceLicenseNo', freelanceLicenseNo);
         form.append('freelanceLicenseExpiry', freelanceLicenseExpiry);
         if (serviceArea) form.append('serviceArea', serviceArea);
       } else {
@@ -262,6 +264,12 @@ export default function RegisterPage() {
             <input id="storeName" value={storeName} onChange={(e) => setStoreName(e.target.value)} autoFocus />
             <label htmlFor="nationalId">{t('register.nationalId')}</label>
             <input id="nationalId" value={nationalId} onChange={(e) => setNationalId(e.target.value)} />
+            <label htmlFor="freelanceLicenseNo">{t('register.freelanceLicenseNo')}</label>
+            <input
+              id="freelanceLicenseNo"
+              value={freelanceLicenseNo}
+              onChange={(e) => setFreelanceLicenseNo(e.target.value)}
+            />
             <label htmlFor="freelanceLicenseExpiry">{t('register.freelanceLicenseExpiry')}</label>
             <input
               id="freelanceLicenseExpiry"

@@ -1,6 +1,6 @@
 'use client';
 
-type IconName = 'stores' | 'orders' | 'invoices' | 'coupons' | 'ads' | 'support' | 'reports';
+type IconName = 'stores' | 'technicians' | 'orders' | 'invoices' | 'coupons' | 'ads' | 'support' | 'reports';
 
 const ICONS: Record<IconName, JSX.Element> = {
   stores: (
@@ -8,6 +8,13 @@ const ICONS: Record<IconName, JSX.Element> = {
       <path d="M7 3h7l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" />
       <path d="M14 3v5h5" />
       <path d="M9 13h6M9 17h6" />
+    </svg>
+  ),
+  technicians: (
+    <svg className="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="9" cy="8" r="3.2" />
+      <path d="M2.5 20a6.5 6.5 0 0 1 13 0" />
+      <path d="M16 8.5a3 3 0 1 1 3.5 3M21.5 20a5.5 5.5 0 0 0-4.5-5.4" />
     </svg>
   ),
   orders: (

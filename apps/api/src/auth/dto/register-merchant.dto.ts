@@ -46,8 +46,14 @@ export class RegisterMerchantDto {
   @IsString()
   serviceArea?: string;
 
-  // تاريخ انتهاء رخصة العمل الحر — إلزامي للأفراد المستقلين فقط، يظهر لاحقاً
-  // للإدمن ضمن بيانات الطلب/الحساب
+  // رقم وتاريخ انتهاء رخصة العمل الحر — إلزاميان للأفراد المستقلين فقط،
+  // يظهران لاحقاً للإدمن ضمن بيانات الطلب/الحساب عند المراجعة (ملف الرخصة
+  // نفسه يُرفع كـ crFile — نفس حقل السجل التجاري بمعنى مختلف للفرد المستقل)
+  @ValidateIf((o) => o.providerType === 'individual')
+  @IsString()
+  @IsNotEmpty({ message: 'رقم رخصة العمل الحر مطلوب' })
+  freelanceLicenseNo?: string;
+
   @ValidateIf((o) => o.providerType === 'individual')
   @IsDateString({}, { message: 'تاريخ انتهاء رخصة العمل الحر غير صحيح' })
   freelanceLicenseExpiry?: string;

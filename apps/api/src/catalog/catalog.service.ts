@@ -88,7 +88,13 @@ export class CatalogService {
         products: true,
         reviews: { orderBy: { createdAt: 'desc' }, take: 50 },
         subscriptions: { orderBy: { startDate: 'desc' }, take: 1 },
-        technicians: { orderBy: { createdAt: 'asc' }, include: { certificates: { orderBy: { createdAt: 'asc' } } } },
+        // فني قيد المراجعة أو مرفوض ما يظهر للمستهلك — فقط اللي وافق عليه
+        // الإدمن بعد التحقق من رخصة عمله الحر
+        technicians: {
+          where: { status: 'approved' },
+          orderBy: { createdAt: 'asc' },
+          include: { certificates: { orderBy: { createdAt: 'asc' } } },
+        },
       },
     });
     if (!store || store.status !== 'active') {

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { clearSession, getToken, getUser } from '@/lib/api';
 import Sidebar, { SidebarGroup } from '@/components/Sidebar';
 import StoresSection from '@/components/StoresSection';
+import TechniciansSection from '@/components/TechniciansSection';
 import OrdersPaymentTab from '@/components/OrdersPaymentTab';
 import TaxInvoicesSection from '@/components/TaxInvoicesSection';
 import SupportTicketsSection from '@/components/SupportTicketsSection';
@@ -13,10 +14,11 @@ import CouponsSection from '@/components/CouponsSection';
 import AdSettingsSection from '@/components/AdSettingsSection';
 import { useLocale } from '@/lib/i18n';
 
-type Section = 'stores' | 'orders' | 'invoices' | 'support' | 'reports' | 'coupons' | 'ads';
+type Section = 'stores' | 'technicians' | 'orders' | 'invoices' | 'support' | 'reports' | 'coupons' | 'ads';
 
 const SECTION_TITLES: Record<Section, string> = {
   stores: 'nav.stores',
+  technicians: 'nav.technicians',
   orders: 'nav.orders',
   invoices: 'nav.invoices',
   coupons: 'nav.coupons',
@@ -55,6 +57,7 @@ export default function DashboardPage() {
       label: t('nav.groupContent'),
       items: [
         { key: 'stores', icon: 'stores', label: t('nav.stores') },
+        { key: 'technicians', icon: 'technicians', label: t('nav.technicians') },
         { key: 'orders', icon: 'orders', label: t('nav.orders') },
         { key: 'invoices', icon: 'invoices', label: t('nav.invoices') },
       ],
@@ -97,6 +100,7 @@ export default function DashboardPage() {
         </div>
 
         {section === 'stores' && <StoresSection />}
+        {section === 'technicians' && <TechniciansSection />}
         {section === 'orders' && <OrdersPaymentTab />}
         {section === 'invoices' && <TaxInvoicesSection />}
         {section === 'coupons' && <CouponsSection />}

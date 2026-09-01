@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { getOwnedStoreOrThrow } from '../common/get-owned-store.util';
 import { CreateTechnicianDto } from './dto/create-technician.dto';
@@ -30,6 +30,9 @@ export class TechniciansService {
     const store = await getOwnedStoreOrThrow(this.prisma, ownerUserId);
     const photo = files.photo?.[0];
     const licenseFile = files.freelanceLicenseFile?.[0];
+    if (!licenseFile) {
+      throw new BadRequestException('ملف رخصة العمل الحر مطلوب');
+    }
     return this.prisma.technician.create({
       data: {
         storeId: store.id,
@@ -38,7 +41,10 @@ export class TechniciansService {
         experienceYears: dto.experienceYears,
         freelanceLicenseNo: dto.freelanceLicenseNo,
         photoUrl: photo ? `/uploads/technicians/${photo.filename}` : null,
-        freelanceLicenseFileUrl: licenseFile ? `/uploads/licenses/${licenseFile.filename}` : null,
+        freelanceLicenseFileUrl: `/uploads/licenses/${licenseFile.filename}`,
+        // إجباري "قيد المراجعة" عند الإنشاء بغض النظر عن أي شيء — لا يظهر
+        // للمستهلكين على صفحة المحل العامة حتى يوافق الإدمن يدوياً
+        status: 'pending',
       },
       include: { certificates: true },
     });
@@ -62,6 +68,14 @@ export class TechniciansService {
     const technician = await this.findOwned(ownerUserId, technicianId);
     const photo = files.photo?.[0];
     const licenseFile = files.freelanceLicenseFile?.[0];
+
+    // تعديل رقم الرخصة أو رفع ملف جديد يعني بيانات مختلفة عن اللي وافق
+    // عليها الإدمن سابقاً (إن وافق) — ترجع "قيد المراجعة" تلقائياً حتى
+    // يعيد الإدمن التأكد منها
+    const licenseChanged =
+      (dto.freelanceLicenseNo !== undefined && dto.freelanceLicenseNo !== technician.freelanceLicenseNo) ||
+      !!licenseFile;
+
     return this.prisma.technician.update({
       where: { id: technicianId },
       data: {
@@ -73,6 +87,7 @@ export class TechniciansService {
         freelanceLicenseFileUrl: licenseFile
           ? `/uploads/licenses/${licenseFile.filename}`
           : technician.freelanceLicenseFileUrl,
+        ...(licenseChanged ? { status: 'pending', rejectionReason: null, verifiedAt: null } : {}),
       },
       include: { certificates: true },
     });
