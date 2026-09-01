@@ -18,14 +18,27 @@ export class StoresService {
     private readonly couponsService: CouponsService,
   ) {}
 
-  async findMine(ownerUserId: string) {
-    const store = await this.prisma.store.findFirst({
-      where: { ownerUserId },
+  // userId قد يكون صاحب المحل نفسه أو حساباً فرعياً (employee) تابعاً له —
+  // نفس منطق getOwnedStoreOrThrow بالضبط، لكن بإرجاع الاشتراك أيضاً (تحتاجه
+  // كل الواجهة: بانر الفاتورة غير المدفوعة يظهر حتى للموظف عند فتح اللوحة)
+  async findMine(userId: string) {
+    const ownedStore = await this.prisma.store.findFirst({
+      where: { ownerUserId: userId },
       orderBy: { createdAt: 'desc' },
       include: { subscriptions: { orderBy: { startDate: 'desc' }, take: 1 } },
     });
-    if (!store) throw new NotFoundException('لا يوجد محل مرتبط بهذا الحساب');
-    return store;
+    if (ownedStore) return ownedStore;
+
+    const employeeProfile = await this.prisma.employeeProfile.findUnique({ where: { userId } });
+    if (employeeProfile && employeeProfile.active) {
+      const store = await this.prisma.store.findUnique({
+        where: { id: employeeProfile.storeId },
+        include: { subscriptions: { orderBy: { startDate: 'desc' }, take: 1 } },
+      });
+      if (store) return store;
+    }
+
+    throw new NotFoundException('لا يوجد محل مرتبط بهذا الحساب');
   }
 
   // تعديل بيانات المحل. إذا كان مرفوضاً سابقاً، تُعاد الحالة إلى "قيد المراجعة" تلقائياً
