@@ -16,6 +16,7 @@
     { "source": "/rejected", "destination": "https://my-phone-merchant.vercel.app/rejected" },
     { "source": "/suspended", "destination": "https://my-phone-merchant.vercel.app/suspended" },
     { "source": "/employee", "destination": "https://my-phone-merchant.vercel.app/employee" },
-    { "source": "/employee/:path*", "destination": "https://my-phone-merchant.vercel.app/employee/:path*" }
+    { "source": "/employee/:path*", "destination": "https://my-phone-merchant.vercel.app/employee/:path*" },
+    { "source": "/((?!_expo|assets).*)", "destination": "/index.html" }
   ]
 }
