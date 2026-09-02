@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "mobile-consumer-web",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "apps/mobile-consumer", "run", "web"],
+      "port": 8081
+    }
+  ]
+}

@@ -9,6 +9,7 @@ import { colors, fonts, radius } from '@/theme/colors';
 import StoreCard from '@/components/StoreCard';
 import { EmptyState, ErrorText, Skeleton } from '@/components/ui';
 import { useLocale } from '@/lib/i18n';
+import { useIsWideWeb } from '@/lib/webShell';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
@@ -29,6 +30,9 @@ const PROVIDER_FILTERS: { key: ProviderFilter; labelKey: string }[] = [
 
 export default function HomeScreen({ navigation }: Props) {
   const { t, tf, row, textAlign, toggleLocale } = useLocale();
+  // بعرض الويب الواسع الشريط الجانبي (WebSidebar) يغطي البراند/تسجيل
+  // الدخول/الاختصارات، فنخفي نسخة الصفحة منها حتى ما تتكرر
+  const isWideWeb = useIsWideWeb();
   const [stores, setStores] = useState<StoreListItem[]>([]);
   const [featuredStores, setFeaturedStores] = useState<StoreListItem[]>([]);
   const [search, setSearch] = useState('');
@@ -89,25 +93,27 @@ export default function HomeScreen({ navigation }: Props) {
 
   return (
     <View style={styles.flex}>
-      <View style={[styles.topbar, { flexDirection: row }]}>
-        <View>
-          <Text style={[styles.brand, { textAlign }]}>{t('home.brand')}</Text>
-          <Text style={[styles.hello, { textAlign }]}>
-            {loggedIn && userName ? tf('home.helloName', userName) : t('home.hello')}
-          </Text>
+      {!isWideWeb && (
+        <View style={[styles.topbar, { flexDirection: row }]}>
+          <View>
+            <Text style={[styles.brand, { textAlign }]}>{t('home.brand')}</Text>
+            <Text style={[styles.hello, { textAlign }]}>
+              {loggedIn && userName ? tf('home.helloName', userName) : t('home.hello')}
+            </Text>
+          </View>
+          <View style={{ flexDirection: row, gap: 8 }}>
+            <Pressable style={({ pressed }) => [styles.langBtn, pressed && { opacity: 0.85 }]} onPress={toggleLocale}>
+              <Text style={styles.profileBtnText}>🌐</Text>
+            </Pressable>
+            <Pressable
+              style={({ pressed }) => [styles.profileBtn, pressed && { opacity: 0.85 }]}
+              onPress={handleProfilePress}
+            >
+              <Text style={styles.profileBtnText}>👤 {loggedIn ? t('home.account') : t('home.login')}</Text>
+            </Pressable>
+          </View>
         </View>
-        <View style={{ flexDirection: row, gap: 8 }}>
-          <Pressable style={({ pressed }) => [styles.langBtn, pressed && { opacity: 0.85 }]} onPress={toggleLocale}>
-            <Text style={styles.profileBtnText}>🌐</Text>
-          </Pressable>
-          <Pressable
-            style={({ pressed }) => [styles.profileBtn, pressed && { opacity: 0.85 }]}
-            onPress={handleProfilePress}
-          >
-            <Text style={styles.profileBtnText}>👤 {loggedIn ? t('home.account') : t('home.login')}</Text>
-          </Pressable>
-        </View>
-      </View>
+      )}
 
       <View style={[styles.searchWrap, { flexDirection: row }]}>
         <Text style={styles.searchIcon}>🔍</Text>
@@ -122,20 +128,22 @@ export default function HomeScreen({ navigation }: Props) {
         />
       </View>
 
-      <View style={[styles.quickLinks, { flexDirection: row }]}>
-        {QUICK_LINKS.map((q) => (
-          <Pressable
-            key={q.screen}
-            style={({ pressed }) => [styles.quickLink, pressed && styles.quickLinkPressed]}
-            onPress={() => handleQuickLink(q.screen)}
-          >
-            <View style={styles.quickLinkIconWrap}>
-              <Text style={styles.quickLinkIcon}>{q.icon}</Text>
-            </View>
-            <Text style={styles.quickLinkText}>{t(q.labelKey)}</Text>
-          </Pressable>
-        ))}
-      </View>
+      {!isWideWeb && (
+        <View style={[styles.quickLinks, { flexDirection: row }]}>
+          {QUICK_LINKS.map((q) => (
+            <Pressable
+              key={q.screen}
+              style={({ pressed }) => [styles.quickLink, pressed && styles.quickLinkPressed]}
+              onPress={() => handleQuickLink(q.screen)}
+            >
+              <View style={styles.quickLinkIconWrap}>
+                <Text style={styles.quickLinkIcon}>{q.icon}</Text>
+              </View>
+              <Text style={styles.quickLinkText}>{t(q.labelKey)}</Text>
+            </Pressable>
+          ))}
+        </View>
+      )}
 
       {error ? <ErrorText>{error}</ErrorText> : null}
 

@@ -1,6 +1,6 @@
 import { LinkingOptions, NavigationContainer } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
-import { I18nManager } from 'react-native';
+import { I18nManager, StyleSheet, View } from 'react-native';
 import {
   useFonts as useCairoFonts,
   Cairo_600SemiBold,
@@ -16,7 +16,10 @@ import {
 import RootNavigator from '@/navigation/RootNavigator';
 import { ScreenLoading } from '@/components/ui';
 import { CartProvider } from '@/lib/CartContext';
-import { LocaleProvider } from '@/lib/i18n';
+import { LocaleProvider, useLocale } from '@/lib/i18n';
+import { navigationRef, useIsWideWeb } from '@/lib/webShell';
+import WebSidebar from '@/components/WebSidebar';
+import { colors } from '@/theme/colors';
 import type { RootStackParamList } from '@/navigation/types';
 
 // رابط مباشر لصفحة محل معيّن — يقدر التاجر يشاركه (يفتح مباشرة على صفحة محله
@@ -36,6 +39,25 @@ const linking: LinkingOptions<RootStackParamList> = {
 // في وضع التطوير/الويب نعتمد على تنسيقات row-reverse/textAlign يدوياً لضمان ثبات المعاينة.
 I18nManager.allowRTL(true);
 
+// قشرة الشريط الجانبي (نفس هوية لوحتي التاجر والإدمن بالضبط) — تظهر فقط
+// بعرض الويب الواسع؛ داخل LocaleProvider لأنها تحتاج useLocale/useIsWideWeb
+function ShellRoot() {
+  const isWideWeb = useIsWideWeb();
+  const { row } = useLocale();
+
+  return (
+    <View style={[styles.flex, isWideWeb && { flexDirection: row }]}>
+      {isWideWeb && <WebSidebar />}
+      <View style={styles.flex}>
+        <NavigationContainer ref={navigationRef} linking={linking} fallback={<ScreenLoading />}>
+          <StatusBar style="light" />
+          <RootNavigator initialRoute="Home" />
+        </NavigationContainer>
+      </View>
+    </View>
+  );
+}
+
 export default function App() {
   const [cairoLoaded] = useCairoFonts({ Cairo_600SemiBold, Cairo_700Bold, Cairo_800ExtraBold });
   const [ibmLoaded] = useIbmFonts({
@@ -52,11 +74,12 @@ export default function App() {
   return (
     <LocaleProvider>
       <CartProvider>
-        <NavigationContainer linking={linking} fallback={<ScreenLoading />}>
-          <StatusBar style="light" />
-          <RootNavigator initialRoute="Home" />
-        </NavigationContainer>
+        <ShellRoot />
       </CartProvider>
     </LocaleProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  flex: { flex: 1, backgroundColor: colors.bg },
+});
