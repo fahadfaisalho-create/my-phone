@@ -5,7 +5,9 @@ export type RootStackParamList = {
   OtpRequest: { returnTo?: ReturnTo } | undefined;
   OtpVerify: { phone: string; devOtp?: string; returnTo?: ReturnTo };
   Home: undefined;
-  StoreDetail: { storeId: string };
+  // product/technician: معرّف اختياري يصل عبر رابط مشاركة مباشر (من لوحة
+  // التاجر) — يمرّر الشاشة تلقائياً لعنصر المنتج/الفني المقصود ويميّزه
+  StoreDetail: { storeId: string; product?: string; technician?: string };
   ChatList: undefined;
   ChatThread: { chatId: string; storeName: string };
   MyBookings: undefined;

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { apiFetch, ApiError, fileUrl } from '@/lib/api';
+import { apiFetch, ApiError, fileUrl, CONSUMER_APP_ORIGIN } from '@/lib/api';
 import { Branch, Product } from '@/lib/types';
 import FileField from '@/components/FileField';
 import { useLocale } from '@/lib/i18n';
@@ -10,10 +10,12 @@ export default function ProductsTab({ onChanged }: { onChanged?: () => void }) {
   const { t, tf } = useLocale();
   const [products, setProducts] = useState<Product[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
+  const [storeId, setStoreId] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [processingImage, setProcessingImage] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const [name, setName] = useState('');
   const [category, setCategory] = useState('');
@@ -27,16 +29,28 @@ export default function ProductsTab({ onChanged }: { onChanged?: () => void }) {
   async function load() {
     setLoading(true);
     try {
-      const [productsData, branchesData] = await Promise.all([
+      const [productsData, branchesData, store] = await Promise.all([
         apiFetch<Product[]>('/stores/me/products'),
         apiFetch<Branch[]>('/stores/me/branches'),
+        apiFetch<{ id: string }>('/stores/me'),
       ]);
       setProducts(productsData);
       setBranches(branchesData);
+      setStoreId(store.id);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t('products.loadError'));
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleCopyLink(productId: string) {
+    try {
+      await navigator.clipboard.writeText(`${CONSUMER_APP_ORIGIN}/store/${storeId}?product=${productId}`);
+      setCopiedId(productId);
+      setTimeout(() => setCopiedId((v) => (v === productId ? null : v)), 2000);
+    } catch {
+      // بعض المتصفحات تمنع الوصول للحافظة بدون HTTPS — نتجاهل بصمت
     }
   }
 
@@ -175,6 +189,9 @@ export default function ProductsTab({ onChanged }: { onChanged?: () => void }) {
                     <> · {p.branch ? `📍 ${p.branch.name}` : t('products.shared')}</>
                   )}
                 </span>
+                <button className="link" onClick={() => handleCopyLink(p.id)} disabled={!storeId}>
+                  {copiedId === p.id ? t('products.copied') : t('products.copyLink')}
+                </button>
                 <button className="link" onClick={() => handleDelete(p.id)}>
                   {t('common.delete')}
                 </button>

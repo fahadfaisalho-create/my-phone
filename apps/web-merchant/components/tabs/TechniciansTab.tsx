@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { apiFetch, ApiError, fileUrl } from '@/lib/api';
+import { apiFetch, ApiError, fileUrl, CONSUMER_APP_ORIGIN } from '@/lib/api';
 import { Technician } from '@/lib/types';
 import FileField from '@/components/FileField';
 import { useLocale } from '@/lib/i18n';
@@ -15,9 +15,11 @@ const STATUS_BADGE_CLASS: Record<string, string> = {
 export default function TechniciansTab({ onChanged }: { onChanged?: () => void }) {
   const { t, tf } = useLocale();
   const [technicians, setTechnicians] = useState<Technician[]>([]);
+  const [storeId, setStoreId] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const [name, setName] = useState('');
   const [nationality, setNationality] = useState('');
@@ -34,12 +36,26 @@ export default function TechniciansTab({ onChanged }: { onChanged?: () => void }
   async function load() {
     setLoading(true);
     try {
-      const data = await apiFetch<Technician[]>('/stores/me/technicians');
+      const [data, store] = await Promise.all([
+        apiFetch<Technician[]>('/stores/me/technicians'),
+        apiFetch<{ id: string }>('/stores/me'),
+      ]);
       setTechnicians(data);
+      setStoreId(store.id);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t('technicians.loadError'));
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleCopyLink(technicianId: string) {
+    try {
+      await navigator.clipboard.writeText(`${CONSUMER_APP_ORIGIN}/store/${storeId}?technician=${technicianId}`);
+      setCopiedId(technicianId);
+      setTimeout(() => setCopiedId((v) => (v === technicianId ? null : v)), 2000);
+    } catch {
+      // بعض المتصفحات تمنع الوصول للحافظة بدون HTTPS — نتجاهل بصمت
     }
   }
 
@@ -205,9 +221,14 @@ export default function TechniciansTab({ onChanged }: { onChanged?: () => void }
                     )}
                   </span>
                 </span>
-                <button className="link" onClick={() => handleDelete(tech.id)}>
-                  {t('common.delete')}
-                </button>
+                <span style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
+                  <button className="link" onClick={() => handleCopyLink(tech.id)} disabled={!storeId}>
+                    {copiedId === tech.id ? t('technicians.copied') : t('technicians.copyLink')}
+                  </button>
+                  <button className="link" onClick={() => handleDelete(tech.id)}>
+                    {t('common.delete')}
+                  </button>
+                </span>
               </div>
 
               <div style={{ marginTop: 10 }}>

@@ -137,6 +137,8 @@ const dict = {
       empty: 'لا يوجد منتجات بعد',
       available: 'متوفر',
       shared: '🔗 مشترك',
+      copyLink: '🔗 نسخ رابط المنتج',
+      copied: '✅ تم النسخ',
     },
     inventory: {
       heading: 'إدارة كمية المخزون',
@@ -177,6 +179,8 @@ const dict = {
       addCert: '+ إضافة شهادة',
       addCertError: 'تعذّر إضافة الشهادة',
       deleteCertError: 'تعذّر حذف الشهادة',
+      copyLink: '🔗 نسخ رابط الفني',
+      copied: '✅ تم النسخ',
     },
     bookings: {
       heading: 'الحجوزات',
@@ -688,6 +692,8 @@ const dict = {
       empty: 'No products yet',
       available: 'available',
       shared: '🔗 Shared',
+      copyLink: '🔗 Copy product link',
+      copied: '✅ Copied',
     },
     inventory: {
       heading: 'Manage Stock Quantities',
@@ -728,6 +734,8 @@ const dict = {
       addCert: '+ Add Certificate',
       addCertError: 'Could not add the certificate',
       deleteCertError: 'Could not delete the certificate',
+      copyLink: '🔗 Copy technician link',
+      copied: '✅ Copied',
     },
     bookings: {
       heading: 'Bookings',

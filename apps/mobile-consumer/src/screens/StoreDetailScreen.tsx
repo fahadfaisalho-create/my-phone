@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Image, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@/navigation/types';
@@ -15,8 +15,13 @@ type Props = NativeStackScreenProps<RootStackParamList, 'StoreDetail'>;
 export default function StoreDetailScreen({ route, navigation }: Props) {
   const { t, tf, locale, row, textAlign } = useLocale();
   const deviceLabel = locale === 'ar' ? DEVICE_LABEL : DEVICE_LABEL_EN;
-  const { storeId } = route.params;
+  const { storeId, product: highlightProductId, technician: highlightTechnicianId } = route.params;
   const [store, setStore] = useState<StoreDetail | null>(null);
+  // منتج/فني وصل عبره رابط مشاركة مباشر من التاجر — نمرّر الشاشة له
+  // ونميّزه بصرياً بعد ما يحمّل المحل (مرة واحدة فقط، مو مع كل تحديث)
+  const productRefs = useRef<Record<string, View | null>>({});
+  const techRefs = useRef<Record<string, View | null>>({});
+  const [scrolledToTarget, setScrolledToTarget] = useState(false);
   const [error, setError] = useState('');
   const [chosenRating, setChosenRating] = useState(0);
   const [comment, setComment] = useState('');
@@ -48,6 +53,25 @@ export default function StoreDetailScreen({ route, navigation }: Props) {
   useEffect(() => {
     navigation.setOptions({ title: store?.name || '' });
   }, [store, navigation]);
+
+  useEffect(() => {
+    if (!store || scrolledToTarget || (!highlightProductId && !highlightTechnicianId)) return;
+    const targetRef = highlightProductId
+      ? productRefs.current[highlightProductId]
+      : highlightTechnicianId
+        ? techRefs.current[highlightTechnicianId]
+        : null;
+    if (!targetRef) return;
+    // نستنى تكة إضافية حتى تخلص التخطيطات (layout) من كل العناصر فوقه —
+    // react-native-web يمرّر عقدة DOM الحقيقية كمرجع الـ View، فنستخدم
+    // scrollIntoView مباشرة (أوثق من measureLayout غير المستقر على الويب)
+    const timer = setTimeout(() => {
+      const node = targetRef as unknown as { scrollIntoView?: (opts?: ScrollIntoViewOptions) => void };
+      node.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+      setScrolledToTarget(true);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [store, highlightProductId, highlightTechnicianId, scrolledToTarget]);
 
   async function submitReview() {
     if (!(await requireAuth(navigation, { screen: 'StoreDetail', params: { storeId } }))) return;
@@ -226,7 +250,17 @@ export default function StoreDetailScreen({ route, navigation }: Props) {
               {store.technicians.map((tech) => {
                 const photo = fileUrl(tech.photoUrl);
                 return (
-                  <View style={[styles.techRow, { flexDirection: row }]} key={tech.id}>
+                  <View
+                    ref={(el) => {
+                      techRefs.current[tech.id] = el;
+                    }}
+                    style={[
+                      styles.techRow,
+                      { flexDirection: row },
+                      highlightTechnicianId === tech.id && styles.highlighted,
+                    ]}
+                    key={tech.id}
+                  >
                     <View style={styles.techPhotoWrap}>
                       {photo ? (
                         <Image source={{ uri: photo }} style={styles.techPhoto} />
@@ -339,7 +373,13 @@ export default function StoreDetailScreen({ route, navigation }: Props) {
                     const img = fileUrl(p.imageUrl);
                     const inCart = cart.storeId === storeId && cart.items.some((i) => i.productId === p.id);
                     return (
-                      <View style={styles.productCard} key={p.id}>
+                      <View
+                        ref={(el) => {
+                          productRefs.current[p.id] = el;
+                        }}
+                        style={[styles.productCard, highlightProductId === p.id && styles.highlighted]}
+                        key={p.id}
+                      >
                         <View style={styles.productImgWrap}>
                           {img ? (
                             <Image source={{ uri: img }} style={styles.productImg} />
@@ -632,4 +672,13 @@ const styles = StyleSheet.create({
   },
   reviewRow: { borderBottomWidth: 1, borderBottomColor: colors.border, paddingVertical: 8 },
   reviewComment: { fontFamily: fonts.body, fontSize: 12.5, color: colors.text, marginTop: 4 },
+  // العنصر المقصود من رابط مشاركة مباشر (منتج أو فني) — يتميّز بصرياً بعد
+  // ما تنتقل الصفحة له تلقائياً
+  highlighted: {
+    borderWidth: 2,
+    borderColor: colors.indigo,
+    borderRadius: radius.sm,
+    backgroundColor: colors.indigoTint,
+    paddingHorizontal: 8,
+  },
 });
