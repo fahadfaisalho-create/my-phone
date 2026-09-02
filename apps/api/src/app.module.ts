@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from './prisma/prisma.module';
+import { FileStorageModule } from './common/file-storage.module';
 import { AuthModule } from './auth/auth.module';
 import { StoresModule } from './stores/stores.module';
 import { AdminModule } from './admin/admin.module';
@@ -28,6 +29,7 @@ import { AttendanceModule } from './attendance/attendance.module';
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
+    FileStorageModule,
     AuthModule,
     StoresModule,
     AdminModule,

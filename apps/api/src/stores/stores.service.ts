@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { FileStorageService } from '../common/file-storage.service';
 import { UpdateStoreDto } from './dto/update-store.dto';
 import { ApplySubscriptionCouponDto } from './dto/apply-subscription-coupon.dto';
 import { getOwnedStoreOrThrow } from '../common/get-owned-store.util';
@@ -16,6 +17,7 @@ export class StoresService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly couponsService: CouponsService,
+    private readonly fileStorage: FileStorageService,
   ) {}
 
   // userId قد يكون صاحب المحل نفسه أو حساباً فرعياً (employee) تابعاً له —
@@ -68,6 +70,12 @@ export class StoresService {
       );
     }
 
+    const logoUrl = logo ? await this.fileStorage.upload(logo, 'logos') : store.logoUrl;
+    const crFileUrl = crFile ? await this.fileStorage.upload(crFile, 'cr') : store.crFileUrl;
+    const bankCertificateFileUrl = bankFile
+      ? await this.fileStorage.upload(bankFile, 'bank')
+      : store.bankCertificateFileUrl;
+
     return this.prisma.store.update({
       where: { id: store.id },
       data: {
@@ -76,11 +84,9 @@ export class StoresService {
         nationalId: dto.nationalId ?? store.nationalId,
         taxNo: dto.taxNo ?? store.taxNo,
         iban: dto.iban ?? store.iban,
-        logoUrl: logo ? `/uploads/logos/${logo.filename}` : store.logoUrl,
-        crFileUrl: crFile ? `/uploads/cr/${crFile.filename}` : store.crFileUrl,
-        bankCertificateFileUrl: bankFile
-          ? `/uploads/bank/${bankFile.filename}`
-          : store.bankCertificateFileUrl,
+        logoUrl,
+        crFileUrl,
+        bankCertificateFileUrl,
         supportsDelivery: dto.supportsDelivery ?? store.supportsDelivery,
         deliveryFee:
           dto.supportsDelivery === false ? null : dto.deliveryFee ?? store.deliveryFee,

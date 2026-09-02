@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { FileStorageService } from '../common/file-storage.service';
 import { getOwnedStoreOrThrow } from '../common/get-owned-store.util';
 import { CreateTechnicianDto } from './dto/create-technician.dto';
 import { UpdateTechnicianDto } from './dto/update-technician.dto';
@@ -7,7 +8,10 @@ import { CreateCertificateDto } from './dto/create-certificate.dto';
 
 @Injectable()
 export class TechniciansService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly fileStorage: FileStorageService,
+  ) {}
 
   list(storeId: string) {
     return this.prisma.technician.findMany({
@@ -33,6 +37,8 @@ export class TechniciansService {
     if (!licenseFile) {
       throw new BadRequestException('ملف رخصة العمل الحر مطلوب');
     }
+    const photoUrl = photo ? await this.fileStorage.upload(photo, 'technicians') : null;
+    const freelanceLicenseFileUrl = await this.fileStorage.upload(licenseFile, 'licenses');
     return this.prisma.technician.create({
       data: {
         storeId: store.id,
@@ -40,8 +46,8 @@ export class TechniciansService {
         nationality: dto.nationality,
         experienceYears: dto.experienceYears,
         freelanceLicenseNo: dto.freelanceLicenseNo,
-        photoUrl: photo ? `/uploads/technicians/${photo.filename}` : null,
-        freelanceLicenseFileUrl: `/uploads/licenses/${licenseFile.filename}`,
+        photoUrl,
+        freelanceLicenseFileUrl,
         // إجباري "قيد المراجعة" عند الإنشاء بغض النظر عن أي شيء — لا يظهر
         // للمستهلكين على صفحة المحل العامة حتى يوافق الإدمن يدوياً
         status: 'pending',
@@ -76,6 +82,11 @@ export class TechniciansService {
       (dto.freelanceLicenseNo !== undefined && dto.freelanceLicenseNo !== technician.freelanceLicenseNo) ||
       !!licenseFile;
 
+    const photoUrl = photo ? await this.fileStorage.upload(photo, 'technicians') : technician.photoUrl;
+    const freelanceLicenseFileUrl = licenseFile
+      ? await this.fileStorage.upload(licenseFile, 'licenses')
+      : technician.freelanceLicenseFileUrl;
+
     return this.prisma.technician.update({
       where: { id: technicianId },
       data: {
@@ -83,10 +94,8 @@ export class TechniciansService {
         nationality: dto.nationality ?? technician.nationality,
         experienceYears: dto.experienceYears ?? technician.experienceYears,
         freelanceLicenseNo: dto.freelanceLicenseNo ?? technician.freelanceLicenseNo,
-        photoUrl: photo ? `/uploads/technicians/${photo.filename}` : technician.photoUrl,
-        freelanceLicenseFileUrl: licenseFile
-          ? `/uploads/licenses/${licenseFile.filename}`
-          : technician.freelanceLicenseFileUrl,
+        photoUrl,
+        freelanceLicenseFileUrl,
         ...(licenseChanged ? { status: 'pending', rejectionReason: null, verifiedAt: null } : {}),
       },
       include: { certificates: true },
@@ -106,11 +115,12 @@ export class TechniciansService {
     file?: Express.Multer.File,
   ) {
     await this.findOwned(ownerUserId, technicianId);
+    const fileUrl = file ? await this.fileStorage.upload(file, 'certificates') : null;
     return this.prisma.technicianCertificate.create({
       data: {
         technicianId,
         title: dto.title,
-        fileUrl: file ? `/uploads/certificates/${file.filename}` : null,
+        fileUrl,
       },
     });
   }

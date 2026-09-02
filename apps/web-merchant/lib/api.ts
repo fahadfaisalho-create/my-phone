@@ -77,9 +77,12 @@ export async function apiFetch<T = unknown>(
   return res.json();
 }
 
-// يحوّل مسار ملف نسبي (مثل /uploads/products/x.jpg) لرابط كامل على الـ API
+// يحوّل مسار ملف لرابط كامل — الملفات الجديدة تُخزَّن على R2 وتُرجَع كرابط
+// مطلق جاهز (يبقى كما هو)، وفقط مسار نسبي قديم/محلي (وضع التطوير بدون R2
+// مضبوط) يحتاج بادئة عنوان الـ API
 export function fileUrl(path: string | null | undefined): string | null {
   if (!path) return null;
+  if (/^https?:\/\//.test(path)) return path;
   return `${API_ORIGIN}${path}`;
 }
 

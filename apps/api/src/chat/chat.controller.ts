@@ -21,6 +21,7 @@ import { ChatService } from './chat.service';
 import { CreateChatDto } from './dto/create-chat.dto';
 import { SendMessageDto } from './dto/send-message.dto';
 import { registrationFilesStorage, fileFilter, MAX_FILE_SIZE_BYTES } from '../common/multer.config';
+import { FileStorageService } from '../common/file-storage.service';
 
 const chatImageInterceptor = FileInterceptor('chatImage', {
   storage: registrationFilesStorage,
@@ -31,7 +32,10 @@ const chatImageInterceptor = FileInterceptor('chatImage', {
 @Controller()
 @UseGuards(JwtAuthGuard, RolesGuard, SectionGuard)
 export class ChatController {
-  constructor(private readonly chatService: ChatService) {}
+  constructor(
+    private readonly chatService: ChatService,
+    private readonly fileStorage: FileStorageService,
+  ) {}
 
   @Post('chats')
   @Roles('consumer')
@@ -82,7 +86,8 @@ export class ChatController {
   ) {
     if (!image) throw new BadRequestException('لم يتم إرفاق صورة');
     await this.chatService.assertParticipant(id, this.participantOpts(user));
-    return { imageUrl: `/uploads/chat/${image.filename}` };
+    const imageUrl = await this.fileStorage.upload(image, 'chat');
+    return { imageUrl };
   }
 
   private participantOpts(user: AuthenticatedUser) {

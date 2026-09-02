@@ -9,6 +9,7 @@ import * as bcrypt from 'bcryptjs';
 import { randomBytes } from 'crypto';
 import { SubscriptionPlan, UserRole } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { FileStorageService } from '../common/file-storage.service';
 import { RegisterMerchantDto } from './dto/register-merchant.dto';
 import { LoginDto } from './dto/login.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
@@ -47,6 +48,7 @@ export class AuthService {
     private readonly jwt: JwtService,
     private readonly mail: MailService,
     private readonly couponsService: CouponsService,
+    private readonly fileStorage: FileStorageService,
   ) {}
 
   private async issueToken(user: {
@@ -132,6 +134,12 @@ export class AuthService {
     }
     const logo = files.logo?.[0];
 
+    // الرفع الفعلي يصير قبل بداية المعاملة (transaction) — عملية شبكة
+    // (R2) ما لها داعي تُبقي معاملة قاعدة البيانات مفتوحة طول وقتها
+    const crFileUrl = await this.fileStorage.upload(crFile, 'cr');
+    const bankCertificateFileUrl = await this.fileStorage.upload(bankFile, 'bank');
+    const logoUrl = logo ? await this.fileStorage.upload(logo, 'logos') : null;
+
     const passwordHash = await bcrypt.hash(dto.password, 10);
     const now = new Date();
 
@@ -156,9 +164,9 @@ export class AuthService {
           nationalId: isIndividual ? dto.nationalId : null,
           taxNo: dto.taxNo,
           iban: dto.iban,
-          logoUrl: logo ? `/uploads/logos/${logo.filename}` : null,
-          crFileUrl: `/uploads/cr/${crFile.filename}`,
-          bankCertificateFileUrl: `/uploads/bank/${bankFile.filename}`,
+          logoUrl,
+          crFileUrl,
+          bankCertificateFileUrl,
           freelanceLicenseNo: isIndividual ? dto.freelanceLicenseNo : null,
           freelanceLicenseExpiry:
             isIndividual && dto.freelanceLicenseExpiry ? new Date(dto.freelanceLicenseExpiry) : null,

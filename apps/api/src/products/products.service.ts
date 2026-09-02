@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { FileStorageService } from '../common/file-storage.service';
 import { getOwnedStoreOrThrow } from '../common/get-owned-store.util';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -7,7 +8,10 @@ import { UpdateInventoryDto } from './dto/update-inventory.dto';
 
 @Injectable()
 export class ProductsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly fileStorage: FileStorageService,
+  ) {}
 
   list(storeId: string) {
     return this.prisma.product.findMany({
@@ -41,6 +45,7 @@ export class ProductsService {
       throw new BadRequestException('صورة المنتج مطلوبة');
     }
     const branchId = await this.resolveBranchId(store.id, dto.branchId);
+    const imageUrl = image ? await this.fileStorage.upload(image, 'products') : null;
     return this.prisma.product.create({
       data: {
         storeId: store.id,
@@ -49,7 +54,7 @@ export class ProductsService {
         description: dto.description,
         price: dto.price,
         quantity: dto.quantity ?? 0,
-        imageUrl: image ? `/uploads/products/${image.filename}` : null,
+        imageUrl,
         branchId,
       },
     });
@@ -76,6 +81,7 @@ export class ProductsService {
       dto.branchId === undefined
         ? product.branchId
         : await this.resolveBranchId(product.storeId, dto.branchId);
+    const imageUrl = image ? await this.fileStorage.upload(image, 'products') : product.imageUrl;
     return this.prisma.product.update({
       where: { id: productId },
       data: {
@@ -83,7 +89,7 @@ export class ProductsService {
         category: dto.category ?? product.category,
         description: dto.description ?? product.description,
         price: dto.price ?? product.price,
-        imageUrl: image ? `/uploads/products/${image.filename}` : product.imageUrl,
+        imageUrl,
         branchId,
       },
     });
