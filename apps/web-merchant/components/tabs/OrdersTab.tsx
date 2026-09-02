@@ -266,13 +266,13 @@ export default function OrdersTab() {
               </div>
 
               <div style={{ fontSize: 13, color: 'var(--text)', marginBottom: 4 }}>
-                {t('ordersTab.viewInvoice').replace('🧾 ', '')}: <b style={{ fontFamily: 'var(--font-cairo)' }}>{selected.total} ﷼</b>
-                {selected.branch && <> · 🏬 {selected.branch.name}</>}
-                {selected.coupon && <> · 🏷️ {selected.coupon.code}</>}
+                {t('ordersTab.viewInvoice')}: <b style={{ fontFamily: 'var(--font-cairo)' }}>{selected.total} ﷼</b>
+                {selected.branch && <> · {selected.branch.name}</>}
+                {selected.coupon && <> · {selected.coupon.code}</>}
               </div>
 
               {selected.deliveryType === 'delivery' && selected.deliveryAddress && (
-                <div style={{ fontSize: 12.5, color: 'var(--ink)', marginTop: 6 }}>📍 {selected.deliveryAddress}</div>
+                <div style={{ fontSize: 12.5, color: 'var(--ink)', marginTop: 6 }}>{selected.deliveryAddress}</div>
               )}
               {selected.deliveryType === 'delivery' && selected.deliveryLat && selected.deliveryLng && (
                 <a
@@ -363,7 +363,7 @@ export default function OrdersTab() {
                           </div>
                           {invoice.deliveryAddress && (
                             <p className="note" style={{ marginTop: 6 }}>
-                              📍 {invoice.deliveryAddress}
+                              {invoice.deliveryAddress}
                             </p>
                           )}
                         </>
@@ -400,10 +400,10 @@ export default function OrdersTab() {
 
                       <div className="no-print" style={{ display: 'flex', gap: 8, marginTop: 16 }}>
                         <button className="secondary" style={{ flex: 1 }} onClick={() => window.print()}>
-                          🖨️ طباعة
+                          طباعة
                         </button>
                         <button className="primary" style={{ flex: 1 }} onClick={handleDownloadPdf} disabled={downloadingPdf}>
-                          {downloadingPdf ? t('ordersTab.pdfDownloading') : `⬇️ ${t('ordersTab.downloadPdf')}`}
+                          {downloadingPdf ? t('ordersTab.pdfDownloading') : t('ordersTab.downloadPdf')}
                         </button>
                       </div>
                     </div>

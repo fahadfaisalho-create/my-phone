@@ -71,7 +71,7 @@ export default function AttendanceTab() {
             {t('attendanceTab.filter')}
           </button>
           <button className="primary" onClick={handleExport} disabled={records.length === 0}>
-            ⬇️ {t('attendanceTab.exportExcel')}
+            {t('attendanceTab.exportExcel')}
           </button>
         </div>
       </div>

@@ -116,7 +116,7 @@ export default function MyBookingsScreen({}: Props) {
             </Text>
             <Text style={[styles.visitType, { textAlign }]}>{VISIT_LABEL[item.visitType]}</Text>
             {item.visitType === 'home_visit' && item.customerAddress && (
-              <Text style={[styles.address, { textAlign }]}>📍 {item.customerAddress}</Text>
+              <Text style={[styles.address, { textAlign }]}>{item.customerAddress}</Text>
             )}
             {item.visitType === 'home_visit' && item.customerLat != null && item.customerLng != null && (
               <Pressable

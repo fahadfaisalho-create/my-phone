@@ -109,7 +109,7 @@ export default function HomeScreen({ navigation }: Props) {
               style={({ pressed }) => [styles.profileBtn, pressed && { opacity: 0.85 }]}
               onPress={handleProfilePress}
             >
-              <Text style={styles.profileBtnText}>👤 {loggedIn ? t('home.account') : t('home.login')}</Text>
+              <Text style={styles.profileBtnText}>{loggedIn ? t('home.account') : t('home.login')}</Text>
             </Pressable>
           </View>
         </View>

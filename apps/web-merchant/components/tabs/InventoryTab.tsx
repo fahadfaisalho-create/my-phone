@@ -59,7 +59,7 @@ export default function InventoryTab() {
             <span>
               {p.name}
               {p.branch && (
-                <span style={{ color: 'var(--muted)', fontSize: 12 }}> · 📍 {p.branch.name}</span>
+                <span style={{ color: 'var(--muted)', fontSize: 12 }}> · {p.branch.name}</span>
               )}
             </span>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

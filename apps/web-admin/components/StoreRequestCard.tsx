@@ -23,7 +23,7 @@ export function DocLink({ url, label, notAttached }: { url: string | null; label
   const isImage = /\.(png|jpe?g|webp)$/i.test(url);
   return (
     <a href={url} target="_blank" rel="noreferrer" className="doclink">
-      {isImage ? <img src={url} className="docthumb" alt={label} /> : <span>📄</span>}
+      {isImage && <img src={url} className="docthumb" alt={label} />}
       <span>{label}</span>
     </a>
   );

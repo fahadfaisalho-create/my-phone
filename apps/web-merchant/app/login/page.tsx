@@ -75,7 +75,7 @@ export default function LoginPage() {
     <div className="app">
       <div style={{ display: 'flex', justifyContent: 'flex-end', maxWidth: 420, margin: '20px auto 0' }}>
         <button type="button" className="link" onClick={toggleLocale}>
-          🌐 {t('topbar.lang')}
+          {t('topbar.lang')}
         </button>
       </div>
       <form className="card card-narrow" onSubmit={handleSubmit} style={{ marginTop: 12 }}>

@@ -43,7 +43,7 @@ export default function OtpRequestScreen({ navigation, route }: Props) {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView contentContainerStyle={styles.container}>
-        <LinkButton title={`🌐 ${t('common.langToggle')}`} onPress={toggleLocale} />
+        <LinkButton title={t('common.langToggle')} onPress={toggleLocale} />
         <View style={styles.iconBadge}>
           <Text style={styles.iconBadgeText}>📱</Text>
         </View>

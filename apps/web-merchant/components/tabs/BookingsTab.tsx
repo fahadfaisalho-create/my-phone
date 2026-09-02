@@ -150,7 +150,7 @@ export default function BookingsTab() {
               </div>
 
               {selected.visitType === 'home_visit' && selected.customerAddress && (
-                <div style={{ fontSize: 12.5, color: 'var(--ink)', marginBottom: 4 }}>📍 {selected.customerAddress}</div>
+                <div style={{ fontSize: 12.5, color: 'var(--ink)', marginBottom: 4 }}>{selected.customerAddress}</div>
               )}
               {selected.visitType === 'home_visit' && selected.customerLat && selected.customerLng && (
                 <a

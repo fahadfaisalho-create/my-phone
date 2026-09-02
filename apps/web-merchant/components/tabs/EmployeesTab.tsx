@@ -279,7 +279,7 @@ export default function EmployeesTab() {
           {t('employeesTab.listHeading')} {!loading && `(${employees.length})`}
         </h3>
         <button className="secondary" onClick={handleExport} disabled={employees.length === 0}>
-          ⬇️ {t('employeesTab.exportExcel')}
+          {t('employeesTab.exportExcel')}
         </button>
       </div>
       {error && <div className="err">{error}</div>}

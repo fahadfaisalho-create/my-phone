@@ -160,7 +160,7 @@ export default function InvoiceScreen({ route }: Props) {
               <Text style={styles.sumValue}>{invoice.deliveryFee ?? 0} ﷼</Text>
             </View>
             {invoice.deliveryAddress ? (
-              <Text style={styles.address}>📍 {invoice.deliveryAddress}</Text>
+              <Text style={styles.address}>{invoice.deliveryAddress}</Text>
             ) : null}
           </>
         )}

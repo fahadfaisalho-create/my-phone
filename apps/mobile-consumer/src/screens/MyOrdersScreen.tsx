@@ -131,7 +131,7 @@ export default function MyOrdersScreen({ navigation }: Props) {
               <Text style={[styles.deliveryType, { textAlign }]}>{COURIER_LABEL[item.courierProvider]}</Text>
             )}
             {item.deliveryType === 'delivery' && item.deliveryAddress && (
-              <Text style={[styles.address, { textAlign }]}>📍 {item.deliveryAddress}</Text>
+              <Text style={[styles.address, { textAlign }]}>{item.deliveryAddress}</Text>
             )}
             {item.deliveryType === 'delivery' && item.deliveryLat != null && item.deliveryLng != null && (
               <Pressable

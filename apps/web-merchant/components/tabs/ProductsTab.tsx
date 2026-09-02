@@ -186,7 +186,7 @@ export default function ProductsTab({ onChanged }: { onChanged?: () => void }) {
                 <span style={{ color: 'var(--muted)' }}>
                   {p.price} ﷼ · {t('products.available')} {p.quantity}
                   {branches.length > 1 && (
-                    <> · {p.branch ? `📍 ${p.branch.name}` : t('products.shared')}</>
+                    <> · {p.branch ? p.branch.name : t('products.shared')}</>
                   )}
                 </span>
                 <button className="link" onClick={() => handleCopyLink(p.id)} disabled={!storeId}>

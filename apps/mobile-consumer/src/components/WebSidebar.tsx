@@ -17,7 +17,6 @@ type NavKey = keyof RootStackParamList;
 
 interface NavItem {
   key: NavKey;
-  icon: string;
   labelKey: string;
   requiresAuth: boolean;
 }
@@ -25,15 +24,15 @@ interface NavItem {
 const GROUPS: { labelKey: string; items: NavItem[] }[] = [
   {
     labelKey: 'sidebar.groupBrowse',
-    items: [{ key: 'Home', icon: '🏠', labelKey: 'sidebar.home', requiresAuth: false }],
+    items: [{ key: 'Home', labelKey: 'sidebar.home', requiresAuth: false }],
   },
   {
     labelKey: 'sidebar.groupAccount',
     items: [
-      { key: 'ChatList', icon: '💬', labelKey: 'sidebar.chats', requiresAuth: true },
-      { key: 'MyBookings', icon: '📅', labelKey: 'sidebar.bookings', requiresAuth: true },
-      { key: 'MyOrders', icon: '🧾', labelKey: 'sidebar.orders', requiresAuth: true },
-      { key: 'Support', icon: '🆘', labelKey: 'sidebar.support', requiresAuth: true },
+      { key: 'ChatList', labelKey: 'sidebar.chats', requiresAuth: true },
+      { key: 'MyBookings', labelKey: 'sidebar.bookings', requiresAuth: true },
+      { key: 'MyOrders', labelKey: 'sidebar.orders', requiresAuth: true },
+      { key: 'Support', labelKey: 'sidebar.support', requiresAuth: true },
     ],
   },
 ];
@@ -95,14 +94,9 @@ export default function WebSidebar() {
 
   return (
     <View style={styles.sidebar}>
-      <View style={[styles.brand, { flexDirection: row }]}>
-        <View style={styles.mark}>
-          <Text style={styles.markText}>📱</Text>
-        </View>
-        <View>
-          <Text style={[styles.brandName, { textAlign }]}>My Phone</Text>
-          <Text style={[styles.brandSub, { textAlign }]}>{t('sidebar.roleLabel')}</Text>
-        </View>
+      <View style={styles.brand}>
+        <Text style={[styles.brandName, { textAlign }]}>My Phone</Text>
+        <Text style={[styles.brandSub, { textAlign }]}>{t('sidebar.roleLabel')}</Text>
       </View>
 
       <View style={styles.nav}>
@@ -122,7 +116,6 @@ export default function WebSidebar() {
                     pressed && !active && styles.itemHover,
                   ]}
                 >
-                  <Text style={styles.itemIcon}>{item.icon}</Text>
                   <Text style={[styles.itemLabel, active && styles.itemLabelActive, { textAlign }]}>
                     {t(item.labelKey)}
                   </Text>
@@ -137,7 +130,6 @@ export default function WebSidebar() {
         onPress={toggleLocale}
         style={({ pressed }) => [styles.langBtn, { flexDirection: row }, pressed && styles.itemHover]}
       >
-        <Text style={styles.itemIcon}>🌐</Text>
         <Text style={[styles.itemLabel, { textAlign }]}>{t('common.langToggle')}</Text>
       </Pressable>
 
@@ -161,7 +153,7 @@ export default function WebSidebar() {
           onPress={handleLoginPress}
           style={({ pressed }) => [styles.loginBtn, pressed && { opacity: 0.85 }]}
         >
-          <Text style={styles.loginBtnText}>👤 {t('sidebar.login')}</Text>
+          <Text style={styles.loginBtnText}>{t('sidebar.login')}</Text>
         </Pressable>
       )}
     </View>
@@ -184,16 +176,7 @@ const styles = StyleSheet.create({
     top: 0,
     overflowY: 'auto',
   },
-  brand: { alignItems: 'center', gap: 10, paddingHorizontal: 4, marginBottom: 22 },
-  mark: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    backgroundColor: colors.indigo,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  markText: { fontSize: 17 },
+  brand: { paddingHorizontal: 4, marginBottom: 22 },
   brandName: { fontFamily: fonts.heading, fontWeight: '700', fontSize: 14, color: colors.ink },
   brandSub: { fontSize: 11, color: colors.muted, marginTop: 1 },
   nav: { gap: 2, marginBottom: 8 },
@@ -207,7 +190,6 @@ const styles = StyleSheet.create({
   },
   itemHover: { backgroundColor: colors.bg },
   itemActive: { backgroundColor: colors.indigoTint },
-  itemIcon: { fontSize: 16, width: 18, textAlign: 'center' },
   itemLabel: { fontSize: 13.5, fontWeight: '500', color: colors.text, fontFamily: fonts.body },
   itemLabelActive: { color: colors.indigoDeep, fontWeight: '700' },
   langBtn: {

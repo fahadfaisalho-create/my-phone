@@ -10,7 +10,7 @@ export default function EntryPage() {
     <div className="app">
       <div style={{ display: 'flex', justifyContent: 'flex-end', maxWidth: 420, margin: '20px auto 0' }}>
         <button type="button" className="link" onClick={toggleLocale}>
-          🌐 {t('topbar.lang')}
+          {t('topbar.lang')}
         </button>
       </div>
       <div className="card card-narrow center" style={{ marginTop: 12 }}>

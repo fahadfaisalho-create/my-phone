@@ -241,7 +241,7 @@ export default function TechniciansTab({ onChanged }: { onChanged?: () => void }
                   tech.certificates.map((c) => (
                     <div key={c.id} className="rowline" style={{ padding: '6px 0' }}>
                       <span style={{ fontSize: 13 }}>
-                        🎓 {c.title}
+                        {c.title}
                         {c.fileUrl && (
                           <>
                             {' '}

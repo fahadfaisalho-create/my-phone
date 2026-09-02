@@ -22,7 +22,7 @@ export default function Topbar({
       <div className="right">
         <span className="role">{roleLabel}</span>
         <button className="link" onClick={toggleLocale} aria-label="Toggle language">
-          🌐 {t('topbar.lang')}
+          {t('topbar.lang')}
         </button>
         <button onClick={onExit}>{t('topbar.exit')}</button>
       </div>

@@ -209,7 +209,6 @@ export default function StoreDetailScreen({ route, navigation }: Props) {
                         selectedBranchId === b.id && styles.branchPickChipTextOn,
                       ]}
                     >
-                      {selectedBranchId === b.id ? '✓ ' : ''}
                       {b.name}
                     </Text>
                   </Pressable>
@@ -224,7 +223,7 @@ export default function StoreDetailScreen({ route, navigation }: Props) {
               {store.branches.map((b) => (
                 <View style={[styles.branchRow, { flexDirection: row }]} key={b.id}>
                   <View style={{ flex: 1 }}>
-                    <Text style={[styles.branchName, { textAlign }]}>📍 {b.name}</Text>
+                    <Text style={[styles.branchName, { textAlign }]}>{b.name}</Text>
                     {b.address ? (
                       <Text style={[styles.branchAddress, { textAlign }]}>{b.address}</Text>
                     ) : (
@@ -300,7 +299,7 @@ export default function StoreDetailScreen({ route, navigation }: Props) {
                               }}
                               style={styles.certChip}
                             >
-                              <Text style={styles.certChipText}>🎓 {c.title}</Text>
+                              <Text style={styles.certChipText}>{c.title}</Text>
                             </Pressable>
                           ))}
                         </View>

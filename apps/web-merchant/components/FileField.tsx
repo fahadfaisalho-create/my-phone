@@ -46,9 +46,9 @@ export default function FileField({
             onChange={(e) => onChange(e.target.files?.[0] ?? null)}
           />
         </label>
-        {file && !previewAsImage && <span className="filename">✓ {file.name}</span>}
+        {file && !previewAsImage && <span className="filename">{file.name}</span>}
         {file && previewAsImage && !file.type.startsWith('image/') && (
-          <span className="filename">✓ {file.name}</span>
+          <span className="filename">{file.name}</span>
         )}
       </div>
     </div>
