@@ -1,21 +1,9 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
-import { randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { getOwnedStoreOrThrow } from '../common/get-owned-store.util';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
-
-// كلمة سر عشوائية للحساب الفرعي — تُرجع نصاً صريحاً مرة واحدة فقط وقت
-// الإنشاء (نفس نمط بيانات الدخول المُولَّدة بمنصات أخرى بالنظام) ليبلّغها
-// صاحب المحل للموظف يدوياً؛ لا تُخزَّن ولا تُرجَع بعد ذلك أبداً
-function generatePassword(): string {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
-  const bytes = randomBytes(10);
-  let pw = '';
-  for (let i = 0; i < 10; i++) pw += chars[bytes[i] % chars.length];
-  return pw + '@1';
-}
 
 @Injectable()
 export class EmployeesService {
@@ -32,8 +20,7 @@ export class EmployeesService {
     const existingEmail = await this.prisma.user.findUnique({ where: { email: dto.email } });
     if (existingEmail) throw new BadRequestException('البريد الإلكتروني مستخدم مسبقاً');
 
-    const password = generatePassword();
-    const passwordHash = await bcrypt.hash(password, 10);
+    const passwordHash = await bcrypt.hash(dto.password, 10);
 
     const employee = await this.prisma.$transaction(async (tx) => {
       const user = await tx.user.create({
@@ -62,7 +49,7 @@ export class EmployeesService {
       });
     });
 
-    return { ...employee, temporaryPassword: password };
+    return employee;
   }
 
   async listMine(ownerUserId: string) {

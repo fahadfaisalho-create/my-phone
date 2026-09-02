@@ -24,10 +24,6 @@ const SECTIONS: { key: StoreSection; navKey: string }[] = [
   { key: 'settings', navKey: 'nav.settings' },
 ];
 
-interface CreateResult extends Employee {
-  temporaryPassword: string;
-}
-
 export default function EmployeesTab() {
   const { t, locale } = useLocale();
   const dateLocale = locale === 'ar' ? 'ar-SA' : 'en-US';
@@ -45,13 +41,14 @@ export default function EmployeesTab() {
   const [nationalId, setNationalId] = useState('');
   const [birthDate, setBirthDate] = useState('');
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [permissions, setPermissions] = useState<Set<StoreSection>>(new Set());
   const [zoneLat, setZoneLat] = useState<number | null>(null);
   const [zoneLng, setZoneLng] = useState<number | null>(null);
   const [zoneRadiusM, setZoneRadiusM] = useState('500');
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState('');
-  const [justCreated, setJustCreated] = useState<CreateResult | null>(null);
+  const [justCreated, setJustCreated] = useState<Employee | null>(null);
 
   async function load() {
     setLoading(true);
@@ -89,6 +86,7 @@ export default function EmployeesTab() {
     setNationalId('');
     setBirthDate('');
     setEmail('');
+    setPassword('');
     setPermissions(new Set());
     setZoneLat(null);
     setZoneLng(null);
@@ -96,7 +94,15 @@ export default function EmployeesTab() {
   }
 
   async function handleCreate() {
-    if (!firstName.trim() || !lastName.trim() || !phone.trim() || !nationalId.trim() || !birthDate || !email.trim())
+    if (
+      !firstName.trim() ||
+      !lastName.trim() ||
+      !phone.trim() ||
+      !nationalId.trim() ||
+      !birthDate ||
+      !email.trim() ||
+      password.length < 6
+    )
       return;
     setCreating(true);
     setCreateError('');
@@ -109,6 +115,7 @@ export default function EmployeesTab() {
         nationalId: nationalId.trim(),
         birthDate,
         email: email.trim(),
+        password,
         permissions: Array.from(permissions),
       };
       if (zoneLat !== null && zoneLng !== null && zoneRadiusM) {
@@ -116,7 +123,7 @@ export default function EmployeesTab() {
         body.attendanceLng = zoneLng;
         body.attendanceRadiusM = Number(zoneRadiusM);
       }
-      const created = await apiFetch<CreateResult>('/stores/me/employees', {
+      const created = await apiFetch<Employee>('/stores/me/employees', {
         method: 'POST',
         body: JSON.stringify(body),
       });
@@ -204,6 +211,20 @@ export default function EmployeesTab() {
             <input id="empEmail" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
           </div>
         </div>
+        <div className="row2">
+          <div>
+            <label htmlFor="empPassword">{t('employeesTab.password')}</label>
+            <input
+              id="empPassword"
+              type="text"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={6}
+            />
+          </div>
+          <div />
+        </div>
 
         <label>{t('employeesTab.permissionsLabel')}</label>
         <p className="note" style={{ marginTop: 0 }}>
@@ -254,7 +275,8 @@ export default function EmployeesTab() {
             !phone.trim() ||
             !nationalId.trim() ||
             !birthDate ||
-            !email.trim()
+            !email.trim() ||
+            password.length < 6
           }
         >
           {creating ? t('common.saving') : t('employeesTab.createAccount')}
@@ -265,9 +287,6 @@ export default function EmployeesTab() {
             <b>{t('employeesTab.createdHeading')}</b>
             <div style={{ marginTop: 6, fontSize: 13 }}>
               {t('employeesTab.emailLabel')}: <b style={{ fontFamily: 'var(--font-cairo)' }}>{justCreated.user.email}</b>
-              <br />
-              {t('employeesTab.passwordLabel')}:{' '}
-              <b style={{ fontFamily: 'var(--font-cairo)' }}>{justCreated.temporaryPassword}</b>
             </div>
             <p style={{ marginTop: 8, marginBottom: 0, fontSize: 12 }}>{t('employeesTab.createdNote')}</p>
           </div>

@@ -1,4 +1,4 @@
-import { ArrayUnique, IsArray, IsDateString, IsEmail, IsEnum, IsLatitude, IsLongitude, IsNotEmpty, IsOptional, IsString, Min } from 'class-validator';
+import { ArrayUnique, IsArray, IsDateString, IsEmail, IsEnum, IsLatitude, IsLongitude, IsNotEmpty, IsOptional, IsString, Min, MinLength } from 'class-validator';
 import { Type } from 'class-transformer';
 import { StoreSection } from '@prisma/client';
 
@@ -27,6 +27,11 @@ export class CreateEmployeeDto {
   @IsEmail({}, { message: 'صيغة البريد الإلكتروني غير صحيحة' })
   @IsNotEmpty({ message: 'البريد الإلكتروني مطلوب' })
   email: string;
+
+  // صاحب المحل هو اللي يحدد كلمة سر الموظف مباشرة (بدل توليدها عشوائياً)
+  @IsString()
+  @MinLength(6, { message: 'كلمة السر يجب أن تكون 6 أحرف على الأقل' })
+  password: string;
 
   // الأقسام (تبويبات لوحة التاجر) المسموح للموظف الوصول لها
   @IsOptional()
