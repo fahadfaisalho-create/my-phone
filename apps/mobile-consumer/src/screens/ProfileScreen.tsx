@@ -45,7 +45,7 @@ export default function ProfileScreen({ navigation }: Props) {
 
   async function handleLogout() {
     await clearSession();
-    navigation.reset({ index: 0, routes: [{ name: 'OtpRequest' }] });
+    navigation.reset({ index: 0, routes: [{ name: 'AuthPhone' }] });
   }
 
   return (

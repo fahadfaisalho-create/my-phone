@@ -2,8 +2,10 @@
 export type ReturnTo = { screen: keyof RootStackParamList; params?: object };
 
 export type RootStackParamList = {
-  OtpRequest: { returnTo?: ReturnTo } | undefined;
-  OtpVerify: { phone: string; devOtp?: string; returnTo?: ReturnTo };
+  AuthPhone: { returnTo?: ReturnTo } | undefined;
+  // registered: جاية من شاشة إدخال الجوال بعد ما تحقق النظام هل الرقم مسجّل
+  // (يعرض خانة كلمة السر فقط) أو لا (يعرض خانتي كلمة السر + الاسم لحساب جديد)
+  AuthPassword: { phone: string; registered: boolean; returnTo?: ReturnTo };
   Home: undefined;
   // product/technician: معرّف اختياري يصل عبر رابط مشاركة مباشر (من لوحة
   // التاجر) — يمرّر الشاشة تلقائياً لعنصر المنتج/الفني المقصود ويميّزه

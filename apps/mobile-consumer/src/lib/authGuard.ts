@@ -11,6 +11,6 @@ export async function requireAuth(
 ): Promise<boolean> {
   const token = await getToken();
   if (token) return true;
-  navigation.navigate('OtpRequest', { returnTo });
+  navigation.navigate('AuthPhone', { returnTo });
   return false;
 }

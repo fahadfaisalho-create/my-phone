@@ -1,21 +1,28 @@
 import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { ConsumerAuthService } from './consumer-auth.service';
-import { RequestOtpDto } from './dto/request-otp.dto';
-import { VerifyOtpDto } from './dto/verify-otp.dto';
+import { CheckPhoneDto } from './dto/check-phone.dto';
+import { RegisterConsumerDto } from './dto/register-consumer.dto';
+import { ConsumerLoginDto } from './dto/consumer-login.dto';
 
 @Controller('consumer-auth')
 export class ConsumerAuthController {
   constructor(private readonly consumerAuthService: ConsumerAuthService) {}
 
-  @Post('request-otp')
+  @Post('check-phone')
   @HttpCode(HttpStatus.OK)
-  requestOtp(@Body() dto: RequestOtpDto) {
-    return this.consumerAuthService.requestOtp(dto.phone);
+  checkPhone(@Body() dto: CheckPhoneDto) {
+    return this.consumerAuthService.checkPhone(dto.phone);
   }
 
-  @Post('verify-otp')
+  @Post('register')
   @HttpCode(HttpStatus.OK)
-  verifyOtp(@Body() dto: VerifyOtpDto) {
-    return this.consumerAuthService.verifyOtp(dto.phone, dto.code, dto.name);
+  register(@Body() dto: RegisterConsumerDto) {
+    return this.consumerAuthService.register(dto.phone, dto.password, dto.name);
+  }
+
+  @Post('login')
+  @HttpCode(HttpStatus.OK)
+  login(@Body() dto: ConsumerLoginDto) {
+    return this.consumerAuthService.login(dto.phone, dto.password);
   }
 }

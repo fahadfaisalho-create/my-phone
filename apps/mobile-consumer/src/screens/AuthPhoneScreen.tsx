@@ -8,9 +8,11 @@ import { ErrorText, LinkButton, Note, PrimaryButton } from '@/components/ui';
 import TextField from '@/components/TextField';
 import { useLocale } from '@/lib/i18n';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'OtpRequest'>;
+type Props = NativeStackScreenProps<RootStackParamList, 'AuthPhone'>;
 
-export default function OtpRequestScreen({ navigation, route }: Props) {
+// خطوة 1: يدخل المستخدم رقم جواله فقط — النظام يتحقق هل الرقم مسجّل مسبقاً
+// أو لا، ويوجّهه لشاشة كلمة السر المناسبة (دخول أو إنشاء حساب جديد)
+export default function AuthPhoneScreen({ navigation, route }: Props) {
   const returnTo = route.params?.returnTo;
   const { t, textAlign, toggleLocale } = useLocale();
   const [phone, setPhone] = useState('');
@@ -19,19 +21,19 @@ export default function OtpRequestScreen({ navigation, route }: Props) {
 
   async function handleSubmit() {
     if (!phone.trim()) {
-      setError(t('otpRequest.phoneLabel'));
+      setError(t('authPhone.phoneLabel'));
       return;
     }
     setError('');
     setLoading(true);
     try {
-      const res = await apiFetch<{ message: string; devOtp?: string }>('/consumer-auth/request-otp', {
+      const res = await apiFetch<{ registered: boolean }>('/consumer-auth/check-phone', {
         method: 'POST',
         body: JSON.stringify({ phone: phone.trim() }),
       });
-      navigation.navigate('OtpVerify', { phone: phone.trim(), devOtp: res.devOtp, returnTo });
+      navigation.navigate('AuthPassword', { phone: phone.trim(), registered: res.registered, returnTo });
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : t('otpRequest.genericError'));
+      setError(err instanceof ApiError ? err.message : t('authPhone.genericError'));
     } finally {
       setLoading(false);
     }
@@ -47,24 +49,24 @@ export default function OtpRequestScreen({ navigation, route }: Props) {
         <View style={styles.iconBadge}>
           <Text style={styles.iconBadgeText}>📱</Text>
         </View>
-        <Text style={[styles.title, { textAlign }]}>{t('otpRequest.title')}</Text>
-        <Note>{t('otpRequest.subtitle')}</Note>
+        <Text style={[styles.title, { textAlign }]}>{t('authPhone.title')}</Text>
+        <Note>{t('authPhone.subtitle')}</Note>
         <TextField
-          label={t('otpRequest.phoneLabel')}
-          placeholder={t('otpRequest.phonePlaceholder')}
+          label={t('authPhone.phoneLabel')}
+          placeholder={t('authPhone.phonePlaceholder')}
           keyboardType="phone-pad"
           value={phone}
           onChangeText={setPhone}
         />
         {error ? <ErrorText>{error}</ErrorText> : null}
         <PrimaryButton
-          title={loading ? t('otpRequest.submitting') : t('otpRequest.submit')}
+          title={loading ? t('authPhone.submitting') : t('authPhone.submit')}
           onPress={handleSubmit}
           loading={loading}
         />
         {navigation.canGoBack() && (
           <View style={styles.backLink}>
-            <LinkButton title={t('otpRequest.continueGuest')} onPress={() => navigation.goBack()} />
+            <LinkButton title={t('authPhone.continueGuest')} onPress={() => navigation.goBack()} />
           </View>
         )}
       </ScrollView>

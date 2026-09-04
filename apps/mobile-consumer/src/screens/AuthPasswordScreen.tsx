@@ -8,32 +8,42 @@ import { ErrorText, LinkButton, Note, PrimaryButton } from '@/components/ui';
 import TextField from '@/components/TextField';
 import { useLocale } from '@/lib/i18n';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'OtpVerify'>;
+type Props = NativeStackScreenProps<RootStackParamList, 'AuthPassword'>;
 
-interface VerifyResponse {
+interface SessionResponse {
   accessToken: string;
   user: ConsumerUser;
 }
 
-export default function OtpVerifyScreen({ route, navigation }: Props) {
-  const { t, tf, textAlign } = useLocale();
-  const { phone, devOtp, returnTo } = route.params;
-  const [code, setCode] = useState('');
+// خطوة 2: لو الرقم مسجّل (registered) تُعرض خانة كلمة السر فقط لتسجيل
+// الدخول، ولو رقم جديد تُعرض خانتا كلمة السر + الاسم لإنشاء الحساب فوراً
+export default function AuthPasswordScreen({ route, navigation }: Props) {
+  const { t, textAlign } = useLocale();
+  const { phone, registered, returnTo } = route.params;
+  const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit() {
-    if (code.trim().length !== 6) {
-      setError(t('otpVerify.codeRequired'));
+    if (!password.trim()) {
+      setError(t('authPassword.passwordRequired'));
+      return;
+    }
+    if (!registered && !name.trim()) {
+      setError(t('authPassword.nameRequired'));
       return;
     }
     setError('');
     setLoading(true);
     try {
-      const res = await apiFetch<VerifyResponse>('/consumer-auth/verify-otp', {
+      const path = registered ? '/consumer-auth/login' : '/consumer-auth/register';
+      const body = registered
+        ? { phone, password }
+        : { phone, password, name: name.trim() };
+      const res = await apiFetch<SessionResponse>(path, {
         method: 'POST',
-        body: JSON.stringify({ phone, code: code.trim(), name: name.trim() || undefined }),
+        body: JSON.stringify(body),
       });
       await setSession(res.accessToken, res.user);
       if (returnTo) {
@@ -45,7 +55,7 @@ export default function OtpVerifyScreen({ route, navigation }: Props) {
         navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
       }
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : t('otpVerify.genericError'));
+      setError(err instanceof ApiError ? err.message : t('authPassword.genericError'));
     } finally {
       setLoading(false);
     }
@@ -55,29 +65,35 @@ export default function OtpVerifyScreen({ route, navigation }: Props) {
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.iconBadge}>
-          <Text style={styles.iconBadgeText}>🔐</Text>
+          <Text style={styles.iconBadgeText}>{registered ? '🔐' : '📝'}</Text>
         </View>
-        <Text style={[styles.title, { textAlign }]}>{t('otpVerify.title')}</Text>
-        <Text style={[styles.subtitle, { textAlign }]}>{tf('otpVerify.subtitle', phone)}</Text>
-        {devOtp ? <Note>{tf('otpVerify.devMode', devOtp)}</Note> : null}
+        <Text style={[styles.title, { textAlign }]}>
+          {registered ? t('authPassword.loginTitle') : t('authPassword.signupTitle')}
+        </Text>
+        <Text style={[styles.subtitle, { textAlign }]}>{phone}</Text>
+        {!registered && (
+          <TextField
+            label={t('authPassword.nameLabel')}
+            placeholder={t('authPassword.namePlaceholder')}
+            value={name}
+            onChangeText={setName}
+          />
+        )}
         <TextField
-          label={t('otpVerify.codeLabel')}
-          placeholder="000000"
-          keyboardType="number-pad"
-          maxLength={6}
-          value={code}
-          onChangeText={setCode}
-        />
-        <TextField
-          label={t('otpVerify.nameLabel')}
-          placeholder={t('otpVerify.optional')}
-          value={name}
-          onChangeText={setName}
+          label={t('authPassword.passwordLabel')}
+          placeholder={t('authPassword.passwordPlaceholder')}
+          secureTextEntry
+          value={password}
+          onChangeText={setPassword}
         />
         {error ? <ErrorText>{error}</ErrorText> : null}
-        <PrimaryButton title={t('otpVerify.confirm')} onPress={handleSubmit} loading={loading} />
+        <PrimaryButton
+          title={registered ? t('authPassword.loginSubmit') : t('authPassword.signupSubmit')}
+          onPress={handleSubmit}
+          loading={loading}
+        />
         <View style={styles.backLink}>
-          <LinkButton title={t('otpVerify.back')} onPress={() => navigation.goBack()} />
+          <LinkButton title={t('authPassword.back')} onPress={() => navigation.goBack()} />
         </View>
       </ScrollView>
     </KeyboardAvoidingView>

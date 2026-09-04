@@ -1,8 +1,8 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { RootStackParamList } from './types';
 import { colors, fonts } from '@/theme/colors';
-import OtpRequestScreen from '@/screens/OtpRequestScreen';
-import OtpVerifyScreen from '@/screens/OtpVerifyScreen';
+import AuthPhoneScreen from '@/screens/AuthPhoneScreen';
+import AuthPasswordScreen from '@/screens/AuthPasswordScreen';
 import HomeScreen from '@/screens/HomeScreen';
 import StoreDetailScreen from '@/screens/StoreDetailScreen';
 import ChatListScreen from '@/screens/ChatListScreen';
@@ -17,7 +17,7 @@ import ProfileScreen from '@/screens/ProfileScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
-export default function RootNavigator({ initialRoute }: { initialRoute: 'Home' | 'OtpRequest' }) {
+export default function RootNavigator({ initialRoute }: { initialRoute: 'Home' | 'AuthPhone' }) {
   return (
     <Stack.Navigator
       initialRouteName={initialRoute}
@@ -29,8 +29,8 @@ export default function RootNavigator({ initialRoute }: { initialRoute: 'Home' |
         contentStyle: { backgroundColor: colors.bg },
       }}
     >
-      <Stack.Screen name="OtpRequest" component={OtpRequestScreen} options={{ headerShown: false }} />
-      <Stack.Screen name="OtpVerify" component={OtpVerifyScreen} options={{ title: 'تأكيد الرمز' }} />
+      <Stack.Screen name="AuthPhone" component={AuthPhoneScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="AuthPassword" component={AuthPasswordScreen} options={{ title: 'تسجيل الدخول' }} />
       <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
       <Stack.Screen name="StoreDetail" component={StoreDetailScreen} options={{ title: '' }} />
       <Stack.Screen name="ChatList" component={ChatListScreen} options={{ title: 'محادثاتي' }} />

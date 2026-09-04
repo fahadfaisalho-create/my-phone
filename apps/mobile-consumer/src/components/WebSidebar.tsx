@@ -84,12 +84,12 @@ export default function WebSidebar() {
 
   async function handleLogout() {
     await clearSession();
-    navigationRef.resetRoot({ index: 0, routes: [{ name: 'OtpRequest' }] });
+    navigationRef.resetRoot({ index: 0, routes: [{ name: 'AuthPhone' }] });
   }
 
   function handleLoginPress() {
     if (!navigationRef.isReady()) return;
-    navigationRef.navigate('OtpRequest', { returnTo: { screen: 'Home' } });
+    navigationRef.navigate('AuthPhone', { returnTo: { screen: 'Home' } });
   }
 
   return (
