@@ -11,8 +11,9 @@ import { useLocale } from '@/lib/i18n';
 // نفس بنية الشريط الجانبي المستخدمة بلوحتي التاجر والإدمن بالضبط (نفس
 // الألوان/الخطوط — الهوية أصلاً موحّدة بين التطبيقات الثلاثة) لكن بمكوّنات
 // React Native عادية بدل CSS، لأن هذا تطبيق Expo/React Native وليس Next.js.
-// يظهر فقط بعرض الويب الواسع (useIsWideWeb) — على الجوال يبقى التنقل
-// بالصفحات المتتالية الأصلي
+// يُستخدم بحالتين: ثابتاً بجانب المحتوى على عرض الويب الواسع، أو داخل قائمة
+// منسدلة على الجوال (نفس المحتوى بالضبط) — و onNavigate تقفل المنسدلة بعد
+// أي إجراء ينقل المستخدم لمكان ثاني
 type NavKey = keyof RootStackParamList;
 
 interface NavItem {
@@ -37,7 +38,12 @@ const GROUPS: { labelKey: string; items: NavItem[] }[] = [
   },
 ];
 
-export default function WebSidebar() {
+interface Props {
+  variant?: 'fixed' | 'drawer';
+  onNavigate?: () => void;
+}
+
+export default function WebSidebar({ variant = 'fixed', onNavigate }: Props = {}) {
   const { t, row, textAlign, toggleLocale } = useLocale();
   const [activeKey, setActiveKey] = useState<string | undefined>(undefined);
   const [userName, setUserName] = useState('');
@@ -77,23 +83,29 @@ export default function WebSidebar() {
       const ok = await requireAuth(navigationRef as unknown as NavigationProp<RootStackParamList>, {
         screen: item.key,
       });
+      // حتى لو تحوّل لصفحة الدخول بدل الوجهة المطلوبة، المستخدم انتقل فعلاً
+      // من مكانه — نقفل المنسدلة بالحالتين
+      onNavigate?.();
       if (!ok) return;
     }
     navigationRef.navigate(item.key as never);
+    onNavigate?.();
   }
 
   async function handleLogout() {
     await clearSession();
     navigationRef.resetRoot({ index: 0, routes: [{ name: 'AuthPhone' }] });
+    onNavigate?.();
   }
 
   function handleLoginPress() {
     if (!navigationRef.isReady()) return;
     navigationRef.navigate('AuthPhone', { returnTo: { screen: 'Home' } });
+    onNavigate?.();
   }
 
   return (
-    <View style={styles.sidebar}>
+    <View style={[styles.sidebar, variant === 'drawer' && styles.sidebarDrawer]}>
       <View style={styles.brand}>
         <Text style={[styles.brandName, { textAlign }]}>My Phone</Text>
         <Text style={[styles.brandSub, { textAlign }]}>{t('sidebar.roleLabel')}</Text>
@@ -175,6 +187,14 @@ const styles = StyleSheet.create({
     position: 'sticky',
     top: 0,
     overflowY: 'auto',
+  },
+  // داخل المنسدلة يملأ اللوح كامل ارتفاعها بدل التثبيت على ارتفاع النافذة
+  sidebarDrawer: {
+    width: '100%',
+    height: '100%',
+    position: 'relative',
+    borderRightWidth: 0,
+    paddingTop: 26,
   },
   brand: { paddingHorizontal: 4, marginBottom: 22 },
   brandName: { fontFamily: fonts.heading, fontWeight: '700', fontSize: 14, color: colors.ink },

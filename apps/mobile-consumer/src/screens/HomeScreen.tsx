@@ -2,23 +2,16 @@ import { useCallback, useEffect, useState } from 'react';
 import { FlatList, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@/navigation/types';
-import { apiFetch, ApiError, getToken, getUser } from '@/lib/api';
-import { requireAuth } from '@/lib/authGuard';
+import { apiFetch, ApiError } from '@/lib/api';
 import { StoreListItem } from '@/lib/types';
 import { colors, fonts, radius } from '@/theme/colors';
 import StoreCard from '@/components/StoreCard';
+import MobileTopBar from '@/components/MobileTopBar';
 import { EmptyState, ErrorText, Skeleton } from '@/components/ui';
 import { useLocale } from '@/lib/i18n';
 import { useIsWideWeb } from '@/lib/webShell';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
-
-const QUICK_LINKS: { icon: string; labelKey: string; screen: keyof RootStackParamList }[] = [
-  { icon: '💬', labelKey: 'home.chats', screen: 'ChatList' },
-  { icon: '📅', labelKey: 'home.bookings', screen: 'MyBookings' },
-  { icon: '🧾', labelKey: 'home.orders', screen: 'MyOrders' },
-  { icon: '🆘', labelKey: 'home.support', screen: 'Support' },
-];
 
 type ProviderFilter = 'all' | 'individual' | 'company';
 
@@ -29,9 +22,9 @@ const PROVIDER_FILTERS: { key: ProviderFilter; labelKey: string }[] = [
 ];
 
 export default function HomeScreen({ navigation }: Props) {
-  const { t, tf, row, textAlign, toggleLocale } = useLocale();
-  // بعرض الويب الواسع الشريط الجانبي (WebSidebar) يغطي البراند/تسجيل
-  // الدخول/الاختصارات، فنخفي نسخة الصفحة منها حتى ما تتكرر
+  const { t, row, textAlign } = useLocale();
+  // الهوية (البراند/الحساب/التنقل) يغطيها الشريط الجانبي بعرض الويب الواسع،
+  // وعلى الجوال يغطيها الشريط العلوي + القائمة المنسدلة — فما نكررها بالصفحة
   const isWideWeb = useIsWideWeb();
   const [stores, setStores] = useState<StoreListItem[]>([]);
   const [featuredStores, setFeaturedStores] = useState<StoreListItem[]>([]);
@@ -40,19 +33,6 @@ export default function HomeScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
-  const [userName, setUserName] = useState('');
-  const [loggedIn, setLoggedIn] = useState(false);
-
-  const refreshSession = useCallback(() => {
-    getUser().then((u) => setUserName(u?.name || ''));
-    getToken().then((t) => setLoggedIn(!!t));
-  }, []);
-
-  useEffect(() => {
-    const unsub = navigation.addListener('focus', refreshSession);
-    refreshSession();
-    return unsub;
-  }, [navigation, refreshSession]);
 
   const load = useCallback(async (query?: string) => {
     setError('');
@@ -81,39 +61,9 @@ export default function HomeScreen({ navigation }: Props) {
   const filteredStores =
     providerFilter === 'all' ? stores : stores.filter((s) => s.providerType === providerFilter);
 
-  async function handleProfilePress() {
-    if (!(await requireAuth(navigation, { screen: 'Home' }))) return;
-    navigation.navigate('Profile');
-  }
-
-  async function handleQuickLink(screen: keyof RootStackParamList) {
-    if (!(await requireAuth(navigation, { screen }))) return;
-    navigation.navigate(screen as never);
-  }
-
   return (
     <View style={styles.flex}>
-      {!isWideWeb && (
-        <View style={[styles.topbar, { flexDirection: row }]}>
-          <View>
-            <Text style={[styles.brand, { textAlign }]}>{t('home.brand')}</Text>
-            <Text style={[styles.hello, { textAlign }]}>
-              {loggedIn && userName ? tf('home.helloName', userName) : t('home.hello')}
-            </Text>
-          </View>
-          <View style={{ flexDirection: row, gap: 8 }}>
-            <Pressable style={({ pressed }) => [styles.langBtn, pressed && { opacity: 0.85 }]} onPress={toggleLocale}>
-              <Text style={styles.profileBtnText}>🌐</Text>
-            </Pressable>
-            <Pressable
-              style={({ pressed }) => [styles.profileBtn, pressed && { opacity: 0.85 }]}
-              onPress={handleProfilePress}
-            >
-              <Text style={styles.profileBtnText}>{loggedIn ? t('home.account') : t('home.login')}</Text>
-            </Pressable>
-          </View>
-        </View>
-      )}
+      {!isWideWeb && <MobileTopBar />}
 
       <View style={[styles.searchWrap, { flexDirection: row }]}>
         <Text style={styles.searchIcon}>🔍</Text>
@@ -127,23 +77,6 @@ export default function HomeScreen({ navigation }: Props) {
           returnKeyType="search"
         />
       </View>
-
-      {!isWideWeb && (
-        <View style={[styles.quickLinks, { flexDirection: row }]}>
-          {QUICK_LINKS.map((q) => (
-            <Pressable
-              key={q.screen}
-              style={({ pressed }) => [styles.quickLink, pressed && styles.quickLinkPressed]}
-              onPress={() => handleQuickLink(q.screen)}
-            >
-              <View style={styles.quickLinkIconWrap}>
-                <Text style={styles.quickLinkIcon}>{q.icon}</Text>
-              </View>
-              <Text style={styles.quickLinkText}>{t(q.labelKey)}</Text>
-            </Pressable>
-          ))}
-        </View>
-      )}
 
       {error ? <ErrorText>{error}</ErrorText> : null}
 
@@ -225,40 +158,12 @@ export default function HomeScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.bg },
-  topbar: {
-    flexDirection: 'row-reverse',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: colors.ink,
-    paddingHorizontal: 18,
-    paddingTop: 54,
-    paddingBottom: 22,
-    borderBottomLeftRadius: radius.lg,
-    borderBottomRightRadius: radius.lg,
-  },
-  brand: { fontFamily: fonts.headingExtra, fontSize: 18, color: '#fff', textAlign: 'right' },
-  hello: { fontFamily: fonts.body, fontSize: 12.5, color: 'rgba(255,255,255,0.75)', textAlign: 'right', marginTop: 3 },
-  profileBtn: {
-    backgroundColor: 'rgba(255,255,255,0.14)',
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-    borderRadius: radius.sm,
-  },
-  profileBtnText: { color: '#fff', fontFamily: fonts.bodyMedium, fontSize: 13 },
-  langBtn: {
-    backgroundColor: 'rgba(255,255,255,0.14)',
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    borderRadius: radius.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   searchWrap: {
     flexDirection: 'row-reverse',
     alignItems: 'center',
     backgroundColor: colors.card,
     marginHorizontal: 16,
-    marginTop: -22,
+    marginTop: 14,
     borderRadius: radius.md,
     paddingHorizontal: 14,
     borderWidth: 1,
@@ -273,33 +178,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.text,
   },
-  quickLinks: {
-    flexDirection: 'row-reverse',
-    gap: 10,
-    paddingHorizontal: 16,
-    paddingTop: 16,
-  },
-  quickLink: {
-    flex: 1,
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    paddingVertical: 12,
-    alignItems: 'center',
-    gap: 4,
-  },
-  quickLinkPressed: { backgroundColor: colors.chipBg },
-  quickLinkIconWrap: {
-    width: 34,
-    height: 34,
-    borderRadius: radius.sm,
-    backgroundColor: colors.indigoTint,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  quickLinkIcon: { fontSize: 16 },
-  quickLinkText: { fontFamily: fonts.bodyMedium, fontSize: 11.5, color: colors.text },
   featuredSection: { marginTop: 18 },
   featuredTitle: {
     fontFamily: fonts.headingSemi,

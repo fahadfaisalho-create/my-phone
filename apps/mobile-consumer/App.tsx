@@ -1,6 +1,6 @@
 import { LinkingOptions, NavigationContainer } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
-import { I18nManager, StyleSheet, View } from 'react-native';
+import { I18nManager, Pressable, StyleSheet, View } from 'react-native';
 import {
   useFonts as useCairoFonts,
   Cairo_600SemiBold,
@@ -16,6 +16,7 @@ import {
 import RootNavigator from '@/navigation/RootNavigator';
 import { ScreenLoading } from '@/components/ui';
 import { CartProvider } from '@/lib/CartContext';
+import { DrawerProvider, useDrawer } from '@/lib/drawer';
 import { LocaleProvider, useLocale } from '@/lib/i18n';
 import { navigationRef, useIsWideWeb } from '@/lib/webShell';
 import WebSidebar from '@/components/WebSidebar';
@@ -39,11 +40,14 @@ const linking: LinkingOptions<RootStackParamList> = {
 // في وضع التطوير/الويب نعتمد على تنسيقات row-reverse/textAlign يدوياً لضمان ثبات المعاينة.
 I18nManager.allowRTL(true);
 
-// قشرة الشريط الجانبي (نفس هوية لوحتي التاجر والإدمن بالضبط) — تظهر فقط
-// بعرض الويب الواسع؛ داخل LocaleProvider لأنها تحتاج useLocale/useIsWideWeb
+// قشرة الشريط الجانبي (نفس هوية لوحتي التاجر والإدمن بالضبط) — ثابتة بجانب
+// المحتوى بعرض الويب الواسع، وعلى الجوال نفس الشريط بالضبط لكن داخل قائمة
+// منسدلة يفتحها زر (☰) حتى تبقى الهوية وحدة على الجهازين. داخل LocaleProvider
+// لأنها تحتاج useLocale/useIsWideWeb
 function ShellRoot() {
   const isWideWeb = useIsWideWeb();
   const { row } = useLocale();
+  const { isOpen, close } = useDrawer();
 
   return (
     <View style={[styles.flex, isWideWeb && { flexDirection: row }]}>
@@ -54,6 +58,15 @@ function ShellRoot() {
           <RootNavigator initialRoute="Home" />
         </NavigationContainer>
       </View>
+      {!isWideWeb && isOpen && (
+        // اتجاه الصف يخلي اللوح يطلع من جهة القراءة الصحيحة (يمين بالعربي)
+        <View style={[styles.drawerOverlay, { flexDirection: row }]}>
+          <View style={styles.drawerPanel}>
+            <WebSidebar variant="drawer" onNavigate={close} />
+          </View>
+          <Pressable style={styles.scrim} onPress={close} />
+        </View>
+      )}
     </View>
   );
 }
@@ -74,7 +87,9 @@ export default function App() {
   return (
     <LocaleProvider>
       <CartProvider>
-        <ShellRoot />
+        <DrawerProvider>
+          <ShellRoot />
+        </DrawerProvider>
       </CartProvider>
     </LocaleProvider>
   );
@@ -82,4 +97,19 @@ export default function App() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.bg },
+  drawerOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 100,
+  },
+  drawerPanel: {
+    width: 264,
+    maxWidth: '82%',
+    backgroundColor: colors.card,
+    boxShadow: '0 0 24px rgba(16,27,46,0.22)',
+  } as any,
+  scrim: { flex: 1, backgroundColor: 'rgba(16,27,46,0.45)' },
 });

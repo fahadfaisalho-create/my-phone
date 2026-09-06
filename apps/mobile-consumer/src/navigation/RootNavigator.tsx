@@ -1,6 +1,8 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { RootStackParamList } from './types';
 import { colors, fonts } from '@/theme/colors';
+import { useIsWideWeb } from '@/lib/webShell';
+import MenuButton from '@/components/MenuButton';
 import AuthPhoneScreen from '@/screens/AuthPhoneScreen';
 import AuthPasswordScreen from '@/screens/AuthPasswordScreen';
 import HomeScreen from '@/screens/HomeScreen';
@@ -18,6 +20,9 @@ import ProfileScreen from '@/screens/ProfileScreen';
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function RootNavigator({ initialRoute }: { initialRoute: 'Home' | 'AuthPhone' }) {
+  // على الجوال ما فيه شريط جانبي ثابت، فنحط زر القائمة برأس كل شاشة
+  const isWideWeb = useIsWideWeb();
+
   return (
     <Stack.Navigator
       initialRouteName={initialRoute}
@@ -27,6 +32,7 @@ export default function RootNavigator({ initialRoute }: { initialRoute: 'Home' |
         headerTitleStyle: { fontFamily: fonts.headingSemi },
         headerBackTitle: '',
         contentStyle: { backgroundColor: colors.bg },
+        headerRight: isWideWeb ? undefined : () => <MenuButton tone="dark" />,
       }}
     >
       <Stack.Screen name="AuthPhone" component={AuthPhoneScreen} options={{ headerShown: false }} />
