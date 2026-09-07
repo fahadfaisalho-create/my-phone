@@ -6,7 +6,15 @@ import { assertStoreAvailable } from '../common/store-availability.util';
 import { distanceKm } from '../common/geo.util';
 import { CouponsService } from '../coupons/coupons.service';
 import { TaxInvoicesService } from '../tax-invoices/tax-invoices.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CreateOrderDto } from './dto/create-order.dto';
+
+const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
+  pending: 'قيد الانتظار',
+  processing: 'قيد التجهيز',
+  completed: 'مكتمل',
+  cancelled: 'ملغي',
+};
 
 @Injectable()
 export class OrdersService {
@@ -14,9 +22,10 @@ export class OrdersService {
     private readonly prisma: PrismaService,
     private readonly couponsService: CouponsService,
     private readonly taxInvoicesService: TaxInvoicesService,
+    private readonly notifications: NotificationsService,
   ) {}
 
-  async create(consumerId: string, dto: CreateOrderDto) {
+  async create(consumerId: string, consumerName: string, dto: CreateOrderDto) {
     const store = await this.prisma.store.findUnique({
       where: { id: dto.storeId },
       include: { subscriptions: { orderBy: { startDate: 'desc' }, take: 1 }, branches: true },
@@ -80,7 +89,7 @@ export class OrdersService {
           : Number(store.deliveryFee ?? 0)
         : null;
 
-    return this.prisma.$transaction(
+    const order = await this.prisma.$transaction(
       async (tx) => {
         let subtotal = 0;
         const itemsData: { productId: string; qty: number; price: number }[] = [];
@@ -153,6 +162,19 @@ export class OrdersService {
       // قد تحتاج عدة رحلات لقاعدة بيانات Neon السحابية، خصوصاً بعد فترة خمول
       { timeout: 15000 },
     );
+
+    // إشعار فوري لصاحب المحل بطلب جديد — لا نوقف نجاح الطلب لو فشل الإشعار لأي سبب
+    this.notifications
+      .create({
+        userId: store.ownerUserId,
+        type: 'new_order',
+        title: 'طلب جديد',
+        body: `طلب جديد من ${consumerName} بقيمة ${Number(order.total).toFixed(2)} ﷼`,
+        data: { orderId: order.id },
+      })
+      .catch(() => undefined);
+
+    return order;
   }
 
   // المستهلك يقدر يلغي طلبه بنفسه طالما لسه قيد الانتظار وغير مدفوع (لم يبدأ المحل تجهيزه بعد)
@@ -231,7 +253,17 @@ export class OrdersService {
     if (!order || order.storeId !== store.id) {
       throw new NotFoundException('الطلب غير موجود');
     }
-    return this.prisma.order.update({ where: { id: orderId }, data: { status } });
+    const updated = await this.prisma.order.update({ where: { id: orderId }, data: { status } });
+    this.notifications
+      .create({
+        userId: order.consumerId,
+        type: 'order_status_changed',
+        title: 'تحديث حالة طلبك',
+        body: `طلبك من "${store.name}" صار حالته: ${ORDER_STATUS_LABEL[status]}`,
+        data: { orderId: order.id },
+      })
+      .catch(() => undefined);
+    return updated;
   }
 
   // --- الإدمن: بوابة الدفع الفعلية غير مربوطة بعد، فالإدمن يؤكد استلام دفع الطلب يدوياً

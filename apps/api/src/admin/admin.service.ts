@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import * as bcrypt from 'bcryptjs';
 import { StoreStatus, TechnicianStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
@@ -190,5 +191,63 @@ export class AdminService {
       where: { id },
       data: { status: 'rejected', rejectionReason: reason },
     });
+  }
+
+  // --- إدارة المستهلكين ---
+  async listConsumers(search?: string, page = 1, pageSize = 20) {
+    const where = {
+      role: 'consumer' as const,
+      ...(search
+        ? {
+            OR: [
+              { name: { contains: search, mode: 'insensitive' as const } },
+              { phone: { contains: search, mode: 'insensitive' as const } },
+            ],
+          }
+        : {}),
+    };
+    const [total, items] = await Promise.all([
+      this.prisma.user.count({ where }),
+      this.prisma.user.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        select: {
+          id: true,
+          name: true,
+          phone: true,
+          suspended: true,
+          createdAt: true,
+          _count: { select: { orders: true, bookings: true } },
+        },
+      }),
+    ]);
+    return { items, total, page, pageSize };
+  }
+
+  async suspendConsumer(id: string) {
+    const user = await this.prisma.user.findUnique({ where: { id } });
+    if (!user || user.role !== 'consumer') throw new NotFoundException('المستهلك غير موجود');
+    return this.prisma.user.update({ where: { id }, data: { suspended: true } });
+  }
+
+  async reactivateConsumer(id: string) {
+    const user = await this.prisma.user.findUnique({ where: { id } });
+    if (!user || user.role !== 'consumer') throw new NotFoundException('المستهلك غير موجود');
+    return this.prisma.user.update({ where: { id }, data: { suspended: false } });
+  }
+
+  // --- إعادة تعيين كلمة سر أي حساب (تاجر/موظف/مستهلك) يدوياً من الإدمن —
+  // بديل عملي بلا تكلفة عن بريد/SMS استعادة فعلي غير مربوط بعد؛ صاحب الحساب
+  // يتواصل مع الإدمن (خارج المنصة) والإدمن يحدد له كلمة سر جديدة هنا مباشرة ---
+  async resetUserPassword(identifier: string, newPassword: string) {
+    const user = await this.prisma.user.findFirst({
+      where: { OR: [{ email: identifier }, { phone: identifier }] },
+    });
+    if (!user) throw new NotFoundException('لا يوجد حساب بهذا البريد أو رقم الجوال');
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    await this.prisma.user.update({ where: { id: user.id }, data: { passwordHash } });
+    return { id: user.id, name: user.name, role: user.role };
   }
 }

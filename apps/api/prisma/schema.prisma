@@ -182,15 +182,45 @@ model User {
   resetToken       String?   @unique @map("reset_token")
   resetTokenExpiry DateTime? @map("reset_token_expiry")
 
+  // إيقاف حساب مستهلك مسيء من الإدمن — يمنعه من تسجيل الدخول (لا يُستخدم
+  // لأدوار ثانية، التاجر يُوقَف عبر Store.status والموظف عبر EmployeeProfile.active)
+  suspended Boolean @default(false)
+
   stores          Store[]          @relation("StoreOwner")
   bookings        Booking[]        @relation("ConsumerBookings")
   orders          Order[]          @relation("ConsumerOrders")
   chats           Chat[]           @relation("ConsumerChats")
   reviews         Review[]         @relation("ConsumerReviews")
+  notifications   Notification[]
   // فقط لمستخدم role=employee — بيانات الموظف/صلاحياته الخاصة بحساب فرعي
   employeeProfile EmployeeProfile?
 
   @@map("users")
+}
+
+// إشعار داخل المنصة (جرس + قائمة) — بديل خفيف عن بريد/SMS فعلي (مكلف حالياً
+// وغير مربوط). نوعه نص حر يحدده مصدر الإنشاء (طلب جديد، تغيّر حالة طلب...)
+// و data JSON اختياري يحمل مرجعاً (orderId/bookingId) تفتح عليه الواجهة مباشرة
+enum NotificationType {
+  new_order
+  order_status_changed
+  new_booking
+  booking_status_changed
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String           @map("user_id")
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  title     String
+  body      String
+  data      Json?
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  @@index([userId, read])
+  @@map("notifications")
 }
 
 model Store {

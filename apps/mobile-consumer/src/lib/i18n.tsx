@@ -40,10 +40,15 @@ const dict = {
       chats: 'محادثاتي',
       bookings: 'حجوزاتي',
       orders: 'طلباتي',
+      notifications: 'الإشعارات',
       support: 'الدعم',
       profile: 'الملف الشخصي',
       roleLabel: 'مستهلك',
       login: 'تسجيل الدخول',
+    },
+    notifications: {
+      empty: 'لا يوجد إشعارات',
+      loadError: 'تعذّر تحميل الإشعارات',
     },
     authPhone: {
       title: 'تسجيل الدخول',
@@ -309,10 +314,15 @@ const dict = {
       chats: 'Chats',
       bookings: 'Bookings',
       orders: 'Orders',
+      notifications: 'Notifications',
       support: 'Support',
       profile: 'Profile',
       roleLabel: 'Consumer',
       login: 'Sign in',
+    },
+    notifications: {
+      empty: 'No notifications',
+      loadError: 'Could not load notifications',
     },
     authPhone: {
       title: 'Sign In',

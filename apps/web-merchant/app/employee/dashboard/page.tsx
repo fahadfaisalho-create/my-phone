@@ -18,6 +18,7 @@ import StatsTab from '@/components/tabs/StatsTab';
 import SupportTab from '@/components/tabs/SupportTab';
 import SettingsTab from '@/components/tabs/SettingsTab';
 import TechniciansTab from '@/components/tabs/TechniciansTab';
+import NotificationBell from '@/components/NotificationBell';
 import CouponsTab from '@/components/tabs/CouponsTab';
 import AdsTab from '@/components/tabs/AdsTab';
 import { useLocale } from '@/lib/i18n';
@@ -116,6 +117,7 @@ export default function EmployeeDashboardPage() {
             <h1>{effectiveTab ? t(ALL_TABS.find((v) => v.key === effectiveTab)!.navKey) : t('employeeDashboard.noAccess')}</h1>
             <div className="subtitle">{store.name}</div>
           </div>
+          <NotificationBell onNavigate={(tabKey) => setTab(tabKey as TabKey)} />
         </div>
 
         <AttendanceWidget />

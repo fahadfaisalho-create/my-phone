@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { fileUrl } from '@/lib/api';
+import { apiFetch, ApiError, fileUrl } from '@/lib/api';
 import { PLAN_LABEL, PLAN_LABEL_EN, StoreRequest } from '@/lib/types';
 import { useLocale } from '@/lib/i18n';
 
@@ -48,6 +48,10 @@ export default function StoreRequestCard({
   const [showReject, setShowReject] = useState(false);
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [resetMsg, setResetMsg] = useState('');
+  const [resetErr, setResetErr] = useState('');
+  const [resetBusy, setResetBusy] = useState(false);
 
   const logo = fileUrl(store.logoUrl);
   const sub = store.subscriptions?.[0];
@@ -100,6 +104,26 @@ export default function StoreRequestCard({
       await onReactivate(store.id);
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function handleResetPassword(e: React.FormEvent) {
+    e.preventDefault();
+    if (!store.owner.email) return;
+    setResetMsg('');
+    setResetErr('');
+    setResetBusy(true);
+    try {
+      await apiFetch('/admin/users/reset-password', {
+        method: 'PATCH',
+        body: JSON.stringify({ identifier: store.owner.email, newPassword }),
+      });
+      setResetMsg(t('stores.resetPasswordSuccess'));
+      setNewPassword('');
+    } catch (err) {
+      setResetErr(err instanceof ApiError ? err.message : t('stores.resetPasswordError'));
+    } finally {
+      setResetBusy(false);
     }
   }
 
@@ -271,6 +295,31 @@ export default function StoreRequestCard({
               {t('common.cancel')}
             </button>
           </div>
+        </div>
+      )}
+
+      {store.owner.email && (
+        <div style={{ borderTop: '1px solid var(--border)', marginTop: 20, paddingTop: 18 }}>
+          <h3 style={{ marginBottom: 6, fontSize: 14 }}>{t('stores.resetPasswordHeading')}</h3>
+          <p className="note" style={{ marginBottom: 12 }}>{t('stores.resetPasswordNote')}</p>
+          <form onSubmit={handleResetPassword} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+            <div style={{ flex: 1, minWidth: 180 }}>
+              <label htmlFor={`newPassword-${store.id}`}>{t('stores.newPasswordLabel')}</label>
+              <input
+                id={`newPassword-${store.id}`}
+                type="text"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                minLength={6}
+                required
+              />
+            </div>
+            <button className="btn-lg primary" type="submit" disabled={resetBusy || newPassword.length < 6}>
+              {t('stores.resetPasswordSubmit')}
+            </button>
+          </form>
+          {resetMsg && <p className="note" style={{ color: 'var(--green)', marginTop: 10 }}>{resetMsg}</p>}
+          {resetErr && <div className="err" style={{ marginTop: 10 }}>{resetErr}</div>}
         </div>
       )}
     </div>

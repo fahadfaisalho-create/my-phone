@@ -19,7 +19,7 @@ export class BookingsController {
   @Post('bookings')
   @Roles('consumer')
   create(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreateBookingDto) {
-    return this.bookingsService.create(user.id, dto);
+    return this.bookingsService.create(user.id, user.name, dto);
   }
 
   @Get('bookings/me')

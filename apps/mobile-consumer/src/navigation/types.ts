@@ -19,4 +19,5 @@ export type RootStackParamList = {
   Invoice: { orderId: string };
   Support: undefined;
   Profile: undefined;
+  Notifications: undefined;
 };

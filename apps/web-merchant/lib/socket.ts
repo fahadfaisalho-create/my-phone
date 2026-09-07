@@ -15,3 +15,20 @@ export function disconnectSocket() {
   socket?.disconnect();
   socket = null;
 }
+
+let notificationsSocket: Socket | null = null;
+
+// اتصال منفصل بمساحة اسم الإشعارات (namespace مختلف عن الشات) — يبث فوراً
+// أي إشعار جديد (طلب/حجز جديد أو تغيّر حالته) للمستخدم المتصل حالياً
+export function getNotificationsSocket(): Socket {
+  if (notificationsSocket && notificationsSocket.connected) return notificationsSocket;
+  const token = getToken();
+  if (notificationsSocket) notificationsSocket.disconnect();
+  notificationsSocket = io(`${API_ORIGIN}/notifications`, { auth: { token }, transports: ['websocket'] });
+  return notificationsSocket;
+}
+
+export function disconnectNotificationsSocket() {
+  notificationsSocket?.disconnect();
+  notificationsSocket = null;
+}

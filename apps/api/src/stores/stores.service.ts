@@ -154,4 +154,55 @@ export class StoresService {
       { timeout: 15000 },
     );
   }
+
+  // إحصائيات لوحة التاجر: أعداد (فروع/خدمات/منتجات/محادثات/حجوزات/طلبات) +
+  // إيراد فعلي (طلبات مدفوعة فقط) — إجمالي، هذا الشهر، وآخر 6 أشهر لرسم بياني
+  // بسيط. نفس منطق admin.service.getStats بالضبط لكن مقصور على محل واحد.
+  async getStats(userId: string) {
+    const store = await getOwnedStoreOrThrow(this.prisma, userId);
+    const [branches, services, products, chats, bookings, paidOrders, ordersCount] = await Promise.all([
+      this.prisma.branch.count({ where: { storeId: store.id } }),
+      this.prisma.service.count({ where: { storeId: store.id } }),
+      this.prisma.product.count({ where: { storeId: store.id } }),
+      this.prisma.chat.count({ where: { storeId: store.id } }),
+      this.prisma.booking.count({ where: { storeId: store.id } }),
+      this.prisma.order.findMany({
+        where: { storeId: store.id, paymentStatus: 'paid' },
+        select: { total: true, paidAt: true },
+      }),
+      this.prisma.order.count({ where: { storeId: store.id } }),
+    ]);
+
+    const monthKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const now = new Date();
+    const months: { key: string; label: string }[] = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.push({ key: monthKey(d), label: d.toLocaleDateString('ar-SA', { month: 'long' }) });
+    }
+    const revenueByMonth = new Map(months.map((m) => [m.key, 0]));
+    let totalRevenue = 0;
+    for (const o of paidOrders) {
+      if (!o.paidAt) continue;
+      totalRevenue += Number(o.total);
+      const bucket = revenueByMonth.get(monthKey(o.paidAt));
+      if (bucket !== undefined) revenueByMonth.set(monthKey(o.paidAt), bucket + Number(o.total));
+    }
+    const thisMonthKey = monthKey(now);
+
+    return {
+      branches,
+      services,
+      products,
+      chats,
+      bookings,
+      orders: ordersCount,
+      revenue: {
+        total: totalRevenue,
+        thisMonth: revenueByMonth.get(thisMonthKey) ?? 0,
+        paidOrdersCount: paidOrders.length,
+        monthly: months.map((m) => ({ month: m.label, total: revenueByMonth.get(m.key)! })),
+      },
+    };
+  }
 }

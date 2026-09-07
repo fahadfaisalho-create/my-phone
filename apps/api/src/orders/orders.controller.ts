@@ -19,7 +19,7 @@ export class OrdersController {
   @Post('orders')
   @Roles('consumer')
   create(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreateOrderDto) {
-    return this.ordersService.create(user.id, dto);
+    return this.ordersService.create(user.id, user.name, dto);
   }
 
   @Get('orders/me')

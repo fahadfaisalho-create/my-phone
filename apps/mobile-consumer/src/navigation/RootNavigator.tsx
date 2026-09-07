@@ -16,6 +16,7 @@ import MyOrdersScreen from '@/screens/MyOrdersScreen';
 import InvoiceScreen from '@/screens/InvoiceScreen';
 import SupportScreen from '@/screens/SupportScreen';
 import ProfileScreen from '@/screens/ProfileScreen';
+import NotificationsScreen from '@/screens/NotificationsScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -48,6 +49,7 @@ export default function RootNavigator({ initialRoute }: { initialRoute: 'Home' |
       <Stack.Screen name="Invoice" component={InvoiceScreen} options={{ title: 'الفاتورة' }} />
       <Stack.Screen name="Support" component={SupportScreen} options={{ title: 'الدعم' }} />
       <Stack.Screen name="Profile" component={ProfileScreen} options={{ title: 'حسابي' }} />
+      <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ title: 'الإشعارات' }} />
     </Stack.Navigator>
   );
 }

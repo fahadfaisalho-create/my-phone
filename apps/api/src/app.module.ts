@@ -24,6 +24,7 @@ import { StoreAdsModule } from './store-ads/store-ads.module';
 import { TaxInvoicesModule } from './tax-invoices/tax-invoices.module';
 import { EmployeesModule } from './employees/employees.module';
 import { AttendanceModule } from './attendance/attendance.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { AttendanceModule } from './attendance/attendance.module';
     TaxInvoicesModule,
     EmployeesModule,
     AttendanceModule,
+    NotificationsModule,
   ],
 })
 export class AppModule {}

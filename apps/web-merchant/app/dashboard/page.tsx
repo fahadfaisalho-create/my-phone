@@ -22,6 +22,7 @@ import CouponsTab from '@/components/tabs/CouponsTab';
 import AdsTab from '@/components/tabs/AdsTab';
 import EmployeesTab from '@/components/tabs/EmployeesTab';
 import AttendanceTab from '@/components/tabs/AttendanceTab';
+import NotificationBell from '@/components/NotificationBell';
 import { useLocale } from '@/lib/i18n';
 
 const TABS = [
@@ -229,6 +230,7 @@ export default function DashboardPage() {
             <h1>{t(TABS.find((v) => v.key === effectiveTab)!.navKey)}</h1>
             <div className="subtitle">{store.name}</div>
           </div>
+          <NotificationBell onNavigate={(tabKey) => setTab(tabKey as TabKey)} />
         </div>
 
         {sub && !sub.paidAt && (

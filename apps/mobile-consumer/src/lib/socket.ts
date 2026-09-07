@@ -21,3 +21,23 @@ export function disconnectSocket() {
   socket?.disconnect();
   socket = null;
 }
+
+let notificationsSocket: Socket | null = null;
+
+// اتصال منفصل بمساحة اسم الإشعارات — يبث فوراً أي إشعار جديد (تغيّر حالة
+// طلب/حجز) للمستهلك المتصل حالياً
+export async function getNotificationsSocket(): Promise<Socket> {
+  if (notificationsSocket && notificationsSocket.connected) return notificationsSocket;
+  const token = await getToken();
+  if (notificationsSocket) notificationsSocket.disconnect();
+  notificationsSocket = io(`${API_ORIGIN}/notifications`, {
+    auth: { token },
+    transports: ['websocket'],
+  });
+  return notificationsSocket;
+}
+
+export function disconnectNotificationsSocket() {
+  notificationsSocket?.disconnect();
+  notificationsSocket = null;
+}

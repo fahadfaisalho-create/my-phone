@@ -52,6 +52,9 @@ export class ConsumerAuthService {
     if (!ok) {
       throw new UnauthorizedException('رقم الجوال أو كلمة السر غير صحيحة');
     }
+    if (user.suspended) {
+      throw new UnauthorizedException('حسابك موقوف — تواصل مع الدعم');
+    }
     return this.issueSession(user);
   }
 

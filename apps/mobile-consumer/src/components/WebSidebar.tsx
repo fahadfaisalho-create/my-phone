@@ -3,7 +3,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { NavigationProp } from '@react-navigation/native';
 import { navigationRef } from '@/lib/webShell';
 import { requireAuth } from '@/lib/authGuard';
-import { clearSession, getUser } from '@/lib/api';
+import { apiFetch, clearSession, getToken, getUser } from '@/lib/api';
+import { getNotificationsSocket, disconnectNotificationsSocket } from '@/lib/socket';
 import type { RootStackParamList } from '@/navigation/types';
 import { colors, fonts, radius } from '@/theme/colors';
 import { useLocale } from '@/lib/i18n';
@@ -33,6 +34,7 @@ const GROUPS: { labelKey: string; items: NavItem[] }[] = [
       { key: 'ChatList', labelKey: 'sidebar.chats', requiresAuth: true },
       { key: 'MyBookings', labelKey: 'sidebar.bookings', requiresAuth: true },
       { key: 'MyOrders', labelKey: 'sidebar.orders', requiresAuth: true },
+      { key: 'Notifications', labelKey: 'sidebar.notifications', requiresAuth: true },
       { key: 'Support', labelKey: 'sidebar.support', requiresAuth: true },
     ],
   },
@@ -48,6 +50,7 @@ export default function WebSidebar({ variant = 'fixed', onNavigate }: Props = {}
   const [activeKey, setActiveKey] = useState<string | undefined>(undefined);
   const [userName, setUserName] = useState('');
   const [loggedIn, setLoggedIn] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   async function refreshSession() {
     const user = await getUser();
@@ -55,8 +58,40 @@ export default function WebSidebar({ variant = 'fixed', onNavigate }: Props = {}
     setLoggedIn(!!user);
   }
 
+  async function refreshUnreadCount() {
+    const token = await getToken();
+    if (!token) {
+      setUnreadCount(0);
+      return;
+    }
+    try {
+      const count = await apiFetch<number>('/notifications/me/unread-count');
+      setUnreadCount(count);
+    } catch {
+      // فشل تحميل العدّاد — يبقى بلا رقم بدل ما يعطّل باقي الشريط
+    }
+  }
+
+  // اتصال بسوكيت الإشعارات طالما فيه جلسة دخول — يزيد العدّاد فوراً بلا إعادة تحميل
+  useEffect(() => {
+    if (!loggedIn) return;
+    let socketRef: Awaited<ReturnType<typeof getNotificationsSocket>> | null = null;
+    let cancelled = false;
+    getNotificationsSocket().then((socket) => {
+      if (cancelled) return;
+      socketRef = socket;
+      socket.on('new', () => setUnreadCount((c) => c + 1));
+    });
+    return () => {
+      cancelled = true;
+      socketRef?.off('new');
+      disconnectNotificationsSocket();
+    };
+  }, [loggedIn]);
+
   useEffect(() => {
     refreshSession();
+    refreshUnreadCount();
     // navigationRef يصير جاهزاً فقط بعد ما يُركَّب NavigationContainer الشقيق
     // له بشجرة العناصر — نستنى جاهزيته بفحص دوري قصير قبل تعليق المستمع
     let unsub: (() => void) | undefined;
@@ -67,6 +102,7 @@ export default function WebSidebar({ variant = 'fixed', onNavigate }: Props = {}
         unsub = navigationRef.addListener('state', () => {
           setActiveKey(navigationRef.getCurrentRoute()?.name);
           refreshSession();
+          refreshUnreadCount();
         });
       }
     }, 150);
@@ -94,6 +130,7 @@ export default function WebSidebar({ variant = 'fixed', onNavigate }: Props = {}
 
   async function handleLogout() {
     await clearSession();
+    setUnreadCount(0);
     navigationRef.resetRoot({ index: 0, routes: [{ name: 'AuthPhone' }] });
     onNavigate?.();
   }
@@ -123,7 +160,7 @@ export default function WebSidebar({ variant = 'fixed', onNavigate }: Props = {}
                   onPress={() => handlePress(item)}
                   style={({ pressed }) => [
                     styles.item,
-                    { flexDirection: row },
+                    { flexDirection: row, justifyContent: 'space-between' },
                     active && styles.itemActive,
                     pressed && !active && styles.itemHover,
                   ]}
@@ -131,6 +168,11 @@ export default function WebSidebar({ variant = 'fixed', onNavigate }: Props = {}
                   <Text style={[styles.itemLabel, active && styles.itemLabelActive, { textAlign }]}>
                     {t(item.labelKey)}
                   </Text>
+                  {item.key === 'Notifications' && unreadCount > 0 && (
+                    <View style={styles.badgeCount}>
+                      <Text style={styles.badgeCountText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+                    </View>
+                  )}
                 </Pressable>
               );
             })}
@@ -212,6 +254,16 @@ const styles = StyleSheet.create({
   itemActive: { backgroundColor: colors.indigoTint },
   itemLabel: { fontSize: 13.5, fontWeight: '500', color: colors.text, fontFamily: fonts.body },
   itemLabelActive: { color: colors.indigoDeep, fontWeight: '700' },
+  badgeCount: {
+    minWidth: 18,
+    height: 18,
+    paddingHorizontal: 4,
+    borderRadius: 999,
+    backgroundColor: colors.red,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeCountText: { color: '#fff', fontSize: 10.5, fontWeight: '700', fontFamily: fonts.bodySemi },
   langBtn: {
     alignItems: 'center',
     gap: 10,

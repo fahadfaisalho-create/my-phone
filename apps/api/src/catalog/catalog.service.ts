@@ -7,10 +7,21 @@ export class CatalogService {
   constructor(private readonly prisma: PrismaService) {}
 
   async listStores(search?: string) {
+    // البحث يغطي اسم المحل، وأيضاً أسماء منتجاته وخدماته — عشان لو أحد بحث
+    // "شاشة آيفون" يطلع له كل محل عنده منتج/خدمة بهذا الاسم، مو بس محل بهذا الاسم
+    const searchFilter = search
+      ? {
+          OR: [
+            { name: { contains: search, mode: 'insensitive' as const } },
+            { products: { some: { name: { contains: search, mode: 'insensitive' as const } } } },
+            { services: { some: { name: { contains: search, mode: 'insensitive' as const } } } },
+          ],
+        }
+      : {};
     const stores = await this.prisma.store.findMany({
       where: {
         status: 'active',
-        ...(search ? { name: { contains: search, mode: 'insensitive' } } : {}),
+        ...searchFilter,
       },
       orderBy: { createdAt: 'desc' },
       include: {

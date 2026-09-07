@@ -4,9 +4,10 @@ import { AdminOrdersController } from './admin-orders.controller';
 import { OrdersService } from './orders.service';
 import { CouponsModule } from '../coupons/coupons.module';
 import { TaxInvoicesModule } from '../tax-invoices/tax-invoices.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [CouponsModule, TaxInvoicesModule],
+  imports: [CouponsModule, TaxInvoicesModule, NotificationsModule],
   controllers: [OrdersController, AdminOrdersController],
   providers: [OrdersService],
 })

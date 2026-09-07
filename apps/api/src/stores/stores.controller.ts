@@ -25,6 +25,13 @@ export class StoresController {
     return this.storesService.findMine(user.id);
   }
 
+  @Get('me/stats')
+  @Roles('merchant_rep', 'employee')
+  @RequireSection('stats')
+  getStats(@CurrentUser() user: AuthenticatedUser) {
+    return this.storesService.getStats(user.id);
+  }
+
   @Patch('me')
   @Roles('merchant_rep', 'employee')
   @RequireSection('settings')

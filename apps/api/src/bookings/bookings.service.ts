@@ -3,13 +3,24 @@ import { BookingStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { getOwnedStoreOrThrow } from '../common/get-owned-store.util';
 import { assertStoreAvailable } from '../common/store-availability.util';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
+
+const BOOKING_STATUS_LABEL: Record<BookingStatus, string> = {
+  pending: 'قيد الانتظار',
+  accepted: 'مقبول',
+  completed: 'مكتمل',
+  cancelled: 'ملغي',
+};
 
 @Injectable()
 export class BookingsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
-  async create(consumerId: string, dto: CreateBookingDto) {
+  async create(consumerId: string, consumerName: string, dto: CreateBookingDto) {
     const store = await this.prisma.store.findUnique({
       where: { id: dto.storeId },
       include: { subscriptions: { orderBy: { startDate: 'desc' }, take: 1 } },
@@ -54,7 +65,7 @@ export class BookingsService {
       throw new BadRequestException('لديك حجز بنفس الموعد لهذه الخدمة بالفعل');
     }
 
-    return this.prisma.booking.create({
+    const booking = await this.prisma.booking.create({
       data: {
         consumerId,
         storeId: store.id,
@@ -68,6 +79,18 @@ export class BookingsService {
         customerLng: visitType === 'home_visit' ? dto.customerLng ?? null : null,
       },
     });
+
+    this.notifications
+      .create({
+        userId: store.ownerUserId,
+        type: 'new_booking',
+        title: 'حجز جديد',
+        body: `حجز جديد من ${consumerName} — ${service.name}`,
+        data: { bookingId: booking.id },
+      })
+      .catch(() => undefined);
+
+    return booking;
   }
 
   // المستهلك يقدر يلغي حجزه بنفسه طالما لسه قيد الانتظار (لم يقبله المحل بعد)
@@ -108,9 +131,19 @@ export class BookingsService {
     if (booking.status === 'completed' || booking.status === 'cancelled') {
       throw new ForbiddenException('لا يمكن تعديل حجز منتهٍ أو ملغى');
     }
-    return this.prisma.booking.update({
+    const updated = await this.prisma.booking.update({
       where: { id: bookingId },
       data: { status },
     });
+    this.notifications
+      .create({
+        userId: booking.consumerId,
+        type: 'booking_status_changed',
+        title: 'تحديث حالة حجزك',
+        body: `حجزك في "${store.name}" صار حالته: ${BOOKING_STATUS_LABEL[status]}`,
+        data: { bookingId: booking.id },
+      })
+      .catch(() => undefined);
+    return updated;
   }
 }
