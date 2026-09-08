@@ -24,5 +24,8 @@
     "admin:build": "npm run build --workspace=apps/web-admin",
     "merchant:dev": "npm run dev --workspace=apps/web-merchant",
     "merchant:build": "npm run build --workspace=apps/web-merchant"
+  },
+  "devDependencies": {
+    "railway": "^3.11.0"
   }
 }
