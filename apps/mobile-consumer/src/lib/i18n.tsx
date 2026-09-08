@@ -143,6 +143,8 @@ const dict = {
       viewInvoice: 'عرض الفاتورة',
       cancelling: 'جارٍ الإلغاء...',
       cancelOrder: 'إلغاء الطلب',
+      deliveryCodeLabel: 'كود التسليم',
+      deliveryCodeNote: 'أعطِ هذا الكود لمندوب المحل عند استلام طلبك — لا تشاركه قبل وصول طلبك فعلياً.',
     },
     chatList: {
       loadError: 'تعذّر تحميل المحادثات',
@@ -417,6 +419,8 @@ const dict = {
       viewInvoice: 'View invoice',
       cancelling: 'Cancelling...',
       cancelOrder: 'Cancel Order',
+      deliveryCodeLabel: 'Delivery Code',
+      deliveryCodeNote: "Give this code to the store's agent when your order arrives — don't share it before then.",
     },
     chatList: {
       loadError: 'Could not load chats',

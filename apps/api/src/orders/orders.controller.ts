@@ -9,6 +9,7 @@ import { AuthenticatedUser } from '../auth/types';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
+import { ConfirmDeliveryDto } from './dto/confirm-delivery.dto';
 
 @Controller()
 @UseGuards(JwtAuthGuard, RolesGuard, SectionGuard)
@@ -73,5 +74,18 @@ export class OrdersController {
   @RequireSection('orders')
   getInvoiceForMerchant(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
     return this.ordersService.getInvoiceForMerchant(user.id, id);
+  }
+
+  // إثبات تسليم طلب توصيل مندوب المحل — يحتاج الكود اللي يطلبه المندوب من
+  // المستهلك وقت التسليم (راجع OrdersService.confirmAgentDelivery)
+  @Patch('stores/me/orders/:id/confirm-delivery')
+  @Roles('merchant_rep', 'employee')
+  @RequireSection('orders')
+  confirmDelivery(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Body() dto: ConfirmDeliveryDto,
+  ) {
+    return this.ordersService.confirmAgentDelivery(user.id, id, dto.code);
   }
 }

@@ -20,6 +20,8 @@ interface Order {
   deliveryLng: string | null;
   courierProvider: CourierProvider | null;
   deliveryMethod: DeliveryMethod | null;
+  // ملاحظة: deliveryCode لا يوصل هنا أبداً — الكود يظهر للمستهلك فقط، ويُدخله
+  // التاجر عند التسليم عبر /confirm-delivery (راجع OrdersService بالباك إند)
   consumer: { name: string; phone: string | null };
   items: { qty: number; product: { name: string } }[];
   branch: { id: string; name: string } | null;
@@ -101,6 +103,11 @@ export default function OrdersTab() {
   const [invoiceError, setInvoiceError] = useState('');
   const [downloadingPdf, setDownloadingPdf] = useState(false);
 
+  // إدخال كود التسليم لطلبات توصيل مندوب المحل — راجع confirm-delivery بالباك إند
+  const [showDeliveryCode, setShowDeliveryCode] = useState(false);
+  const [deliveryCodeInput, setDeliveryCodeInput] = useState('');
+  const [deliveryCodeError, setDeliveryCodeError] = useState('');
+
   async function load() {
     setLoading(true);
     try {
@@ -126,6 +133,27 @@ export default function OrdersTab() {
     setShowInvoice(false);
     setInvoice(null);
     setInvoiceError('');
+    setShowDeliveryCode(false);
+    setDeliveryCodeInput('');
+    setDeliveryCodeError('');
+  }
+
+  async function confirmDelivery(id: string) {
+    setBusyId(id);
+    setDeliveryCodeError('');
+    try {
+      await apiFetch(`/stores/me/orders/${id}/confirm-delivery`, {
+        method: 'PATCH',
+        body: JSON.stringify({ code: deliveryCodeInput.trim() }),
+      });
+      setShowDeliveryCode(false);
+      setDeliveryCodeInput('');
+      await load();
+    } catch (err) {
+      setDeliveryCodeError(err instanceof ApiError ? err.message : t('ordersTab.updateError'));
+    } finally {
+      setBusyId(null);
+    }
   }
 
   async function updateStatus(id: string, status: OrderStatus) {
@@ -291,9 +319,14 @@ export default function OrdersTab() {
                     {t('ordersTab.startProcessing')}
                   </button>
                 )}
-                {selected.status === 'processing' && (
+                {selected.status === 'processing' && selected.deliveryMethod !== 'store_agent' && (
                   <button className="btn-lg primary" disabled={busyId === selected.id} onClick={() => updateStatus(selected.id, 'completed')}>
                     {t('ordersTab.finish')}
+                  </button>
+                )}
+                {selected.status === 'processing' && selected.deliveryMethod === 'store_agent' && !showDeliveryCode && (
+                  <button className="btn-lg primary" onClick={() => setShowDeliveryCode(true)}>
+                    {t('ordersTab.confirmDelivery')}
                   </button>
                 )}
                 {selected.paymentStatus === 'paid' && (
@@ -302,6 +335,34 @@ export default function OrdersTab() {
                   </button>
                 )}
               </div>
+
+              {showDeliveryCode && (
+                <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px dashed var(--border)' }}>
+                  <label htmlFor="deliveryCode">{t('ordersTab.deliveryCodeLabel')}</label>
+                  <p className="note" style={{ marginBottom: 8 }}>{t('ordersTab.deliveryCodeNote')}</p>
+                  <input
+                    id="deliveryCode"
+                    value={deliveryCodeInput}
+                    onChange={(e) => setDeliveryCodeInput(e.target.value)}
+                    maxLength={4}
+                    style={{ maxWidth: 160, textAlign: 'center', fontSize: 20, letterSpacing: 4 }}
+                    autoFocus
+                  />
+                  {deliveryCodeError && <div className="err" style={{ marginTop: 8 }}>{deliveryCodeError}</div>}
+                  <div className="actions-row" style={{ marginTop: 10 }}>
+                    <button
+                      className="btn-lg primary"
+                      disabled={busyId === selected.id || deliveryCodeInput.trim().length !== 4}
+                      onClick={() => confirmDelivery(selected.id)}
+                    >
+                      {t('ordersTab.confirmDeliverySubmit')}
+                    </button>
+                    <button className="secondary" onClick={() => setShowDeliveryCode(false)} disabled={busyId === selected.id}>
+                      {t('common.cancel')}
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {showInvoice && (
                 <div style={{ marginTop: 18, paddingTop: 18, borderTop: '1px dashed var(--border)' }}>

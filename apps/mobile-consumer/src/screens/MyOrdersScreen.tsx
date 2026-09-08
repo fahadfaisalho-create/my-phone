@@ -21,6 +21,8 @@ interface OrderItem {
   deliveryLng: number | string | null;
   courierProvider: 'aramex' | 'fedex' | null;
   deliveryMethod: 'courier' | 'store_agent' | null;
+  // كود إثبات التسليم — يوصل فقط لطلبات توصيل مندوب المحل (راجع OrdersService)
+  deliveryCode: string | null;
   discountAmount: string | null;
   coupon: { code: string } | null;
   store: { name: string };
@@ -141,6 +143,13 @@ export default function MyOrdersScreen({ navigation }: Props) {
                 <Text style={styles.mapsLinkText}>{t('myOrders.viewOnMap')}</Text>
               </Pressable>
             )}
+            {item.deliveryMethod === 'store_agent' && item.status === 'processing' && item.deliveryCode && (
+              <View style={styles.codeBox}>
+                <Text style={[styles.codeLabel, { textAlign }]}>{t('myOrders.deliveryCodeLabel')}</Text>
+                <Text style={styles.codeValue}>{item.deliveryCode}</Text>
+                <Text style={[styles.codeNote, { textAlign }]}>{t('myOrders.deliveryCodeNote')}</Text>
+              </View>
+            )}
             {item.coupon && (
               <Text style={[styles.deliveryType, { textAlign }]}>
                 {tf('myOrders.discountLabel', item.coupon.code, String(item.discountAmount))}
@@ -215,4 +224,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   invoiceBtnText: { color: colors.indigoDeep, fontFamily: fonts.bodyMedium, fontSize: 12 },
+  codeBox: {
+    marginTop: 10,
+    backgroundColor: colors.indigoTint,
+    borderWidth: 1,
+    borderColor: colors.indigo,
+    borderRadius: radius.md,
+    padding: 12,
+    alignItems: 'center',
+  },
+  codeLabel: { fontFamily: fonts.bodyMedium, fontSize: 12, color: colors.indigoDeep },
+  codeValue: {
+    fontFamily: fonts.headingExtra,
+    fontSize: 26,
+    letterSpacing: 6,
+    color: colors.indigoDeep,
+    marginVertical: 4,
+  },
+  codeNote: { fontFamily: fonts.body, fontSize: 11, color: colors.muted, textAlign: 'center' },
 });

@@ -149,6 +149,9 @@ export class OrdersService {
             deliveryFee,
             courierProvider: deliveryMethod === 'courier' ? dto.courierProvider ?? null : null,
             deliveryMethod,
+            // كود إثبات التسليم — فقط لطلبات توصيل مندوب المحل (المستهلك وحده
+            // يشوفه؛ يطلبه المندوب منه وقت التسليم لتأكيد الطلب)
+            deliveryCode: deliveryMethod === 'store_agent' ? this.generateDeliveryCode() : null,
             branchId,
             couponId,
             discountAmount,
@@ -215,7 +218,7 @@ export class OrdersService {
 
   async listForMyStore(ownerUserId: string) {
     const store = await getOwnedStoreOrThrow(this.prisma, ownerUserId);
-    return this.prisma.order.findMany({
+    const orders = await this.prisma.order.findMany({
       where: { storeId: store.id },
       orderBy: { id: 'desc' },
       include: {
@@ -225,6 +228,9 @@ export class OrdersService {
         coupon: { select: { code: true } },
       },
     });
+    // deliveryCode مخفي عمداً عن التاجر — لو شافه ما فيه داعي يطلبه فعلياً من
+    // المستهلك وقت التسليم، وتنهدم فكرة الإثبات كلها (راجع confirmAgentDelivery)
+    return orders.map(({ deliveryCode, ...rest }) => rest);
   }
 
   // محاكاة دفع فوري من المستهلك نفسه — بوابة الدفع الفعلية غير مربوطة بعد
@@ -253,6 +259,11 @@ export class OrdersService {
     if (!order || order.storeId !== store.id) {
       throw new NotFoundException('الطلب غير موجود');
     }
+    // طلب توصيل مندوب المحل لا يُنهى بهذا المسار — لازم كود التسليم الفعلي من
+    // المستهلك (راجع confirmAgentDelivery) حتى ما يصير "إنهاء" بدون توصيل فعلي
+    if (status === 'completed' && order.deliveryMethod === 'store_agent') {
+      throw new BadRequestException('طلب توصيل مندوب المحل يُنهى فقط بإدخال كود التسليم من المستهلك');
+    }
     const updated = await this.prisma.order.update({ where: { id: orderId }, data: { status } });
     this.notifications
       .create({
@@ -264,6 +275,42 @@ export class OrdersService {
       })
       .catch(() => undefined);
     return updated;
+  }
+
+  // إثبات تسليم طلب توصيل مندوب المحل — المندوب يطلب الكود من المستهلك وقت
+  // التسليم فعلياً، والتاجر/الموظف يدخله هنا. الكود ما يظهر أبداً بأي استعلام
+  // يخص التاجر (listForMyStore أعلاه)، فلا طريقة لإكمال الطلب إلا بالحصول عليه
+  // من المستهلك نفسه لحظة التسليم — هذا هو الإثبات
+  async confirmAgentDelivery(ownerUserId: string, orderId: string, code: string) {
+    const store = await getOwnedStoreOrThrow(this.prisma, ownerUserId);
+    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    if (!order || order.storeId !== store.id) {
+      throw new NotFoundException('الطلب غير موجود');
+    }
+    if (order.deliveryMethod !== 'store_agent') {
+      throw new BadRequestException('هذا الطلب ليس توصيل مندوب المحل');
+    }
+    if (order.status !== 'processing') {
+      throw new BadRequestException('لازم يكون الطلب قيد التجهيز قبل تأكيد تسليمه');
+    }
+    if (!order.deliveryCode || code.trim() !== order.deliveryCode) {
+      throw new BadRequestException('كود التسليم غير صحيح');
+    }
+    const updated = await this.prisma.order.update({ where: { id: orderId }, data: { status: 'completed' } });
+    this.notifications
+      .create({
+        userId: order.consumerId,
+        type: 'order_status_changed',
+        title: 'تحديث حالة طلبك',
+        body: `طلبك من "${store.name}" صار حالته: ${ORDER_STATUS_LABEL.completed}`,
+        data: { orderId: order.id },
+      })
+      .catch(() => undefined);
+    return updated;
+  }
+
+  private generateDeliveryCode(): string {
+    return String(Math.floor(1000 + Math.random() * 9000));
   }
 
   // --- الإدمن: بوابة الدفع الفعلية غير مربوطة بعد، فالإدمن يؤكد استلام دفع الطلب يدوياً
